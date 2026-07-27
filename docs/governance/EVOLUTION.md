@@ -10,6 +10,10 @@ The stable logical model is:
 contribution + substrate + execution context + evaluation = reproducible result
 ```
 
+These project-producing surfaces form the functional unit. The governance unit surrounds them
+with orientation, constraints, coordination, verification, and maintenance, but does not become
+a dependency of the result.
+
 Physical structure grows when an object becomes plural, shared, expensive, or independently
 versioned.
 

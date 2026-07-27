@@ -11,9 +11,10 @@ Before changing files:
 
 1. Read `CONTRACT.md` for invariants.
 2. Read `ANATOMY.md` for ownership and dependency direction.
-3. Read the relevant workflow in `GUIDE.md`.
-4. Inspect `git status`, the current branch, and nearby tests.
-5. Identify the narrowest verification command that can prove the task complete.
+3. Classify the task as functional, governance, or intentionally mixed using `REPO_UNITS.yaml`.
+4. Read the relevant workflow in `GUIDE.md`.
+5. Inspect `git status`, the current branch, and nearby tests.
+6. Identify the narrowest verification command that can prove the task complete.
 
 Do not load every memory topic, report, skill, or historical artifact by default. Follow indexes
 and load details only when the task needs them.
@@ -50,6 +51,21 @@ The main agent is the single interface to the human. It should:
 Workers do not modify root governance files unless their task explicitly owns an architecture,
 contract, or workflow change.
 
+## Unit Discipline
+
+Every durable path has one primary owner:
+
+- The **functional unit** implements, runs, evaluates, and communicates the project outcome.
+- The **governance unit** directs, constrains, verifies, integrates, and maintains that work.
+
+Unlisted paths are functional by default. Treat a change as governance only when it changes how
+the repository operates, not merely because an agent produced it. Functional code must not
+depend on `.agents/`, governance documents, or runtime coordination state.
+
+Prefer a functional-only change. Make a mixed change only when the functional work creates or
+changes a durable boundary, invariant, procedure, or validation rule. Report the two parts
+separately so governance growth remains visible.
+
 ## Project Skills
 
 Read a project skill only when its trigger applies:
@@ -78,8 +94,8 @@ A task is complete when:
 - requested behavior exists;
 - relevant tests or evaluations pass;
 - the diff contains no unrelated expansion;
+- every new durable path has the correct unit owner;
 - temporary files are removed or ignored;
 - affected Anatomy, Contract, or Guide content is updated when semantics changed;
 - the handoff states changed files, validation evidence, remaining risk, and durable knowledge
   candidates.
-

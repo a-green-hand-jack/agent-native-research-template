@@ -6,6 +6,9 @@ project-specific behavioral, scientific, and interface contracts below these sha
 ## Project-First Invariants
 
 - Governance must reduce expected project cost. Do not add governance solely for completeness.
+- Every durable path has exactly one primary unit owner as defined by `REPO_UNITS.yaml`.
+- Unlisted paths belong to the functional unit; governance ownership must be explicit.
+- Functional behavior and evidence must remain usable without agent runtime or governance state.
 - Each durable fact, command, configuration value, and behavioral promise has one canonical
   source.
 - The core contribution remains locatable even when its supporting substrate is large.
@@ -41,10 +44,16 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 ## Governance Invariants
 
+- Governance may inspect and invoke functional interfaces, but must not become a hidden runtime
+  dependency of the project.
+- Functional changes do not require governance changes unless they alter topology, invariants,
+  stable procedures, routing, or mandatory validation.
 - `ANATOMY.md` changes when component topology or dependency direction changes.
 - `CONTRACT.md` changes when promised behavior or result validity changes.
 - `GUIDE.md` changes when a stable operating procedure changes.
 - `AGENTS.md` changes when agent routing, authority, or mandatory verification changes.
+- `REPO_UNITS.yaml` changes when a durable path moves between functional and governance
+  ownership.
 - A governance artifact needs a reader, a trigger, an update rule, and a retirement path.
 
 ## Project-Specific Contract

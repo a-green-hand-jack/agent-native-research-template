@@ -4,7 +4,7 @@ A thin GitHub template for research and software projects where one human direct
 agent, the main agent coordinates isolated workers, and the repository remains the source of
 truth.
 
-![Agent-native project governance](docs/images/agent-native-project-governance.png)
+![Agent-native project governance](docs/governance/images/agent-native-project-governance.png)
 
 The template is designed for ML, DL, RL, agents, benchmarks, environments, and adjacent
 research projects. It provides a small constitutional layer, a reproducible execution seed,
@@ -35,7 +35,18 @@ Governance serves delivery. The repository should reduce:
 - time from a wrong change to a visible failure;
 - effort required to reproduce an accepted result.
 
-The always-present governance layer consists of:
+The repository makes one primary split:
+
+- The **functional unit** is the actual project: implementation, substrate, tests, evaluations,
+  environments, infra, experiments, reports, and publications.
+- The **governance unit** reduces the cost of directing, changing, validating, integrating, and
+  maintaining that project.
+
+Functional ownership is the default. Governance paths are explicitly declared in
+`REPO_UNITS.yaml`, so ordinary project growth does not silently expand the governance system.
+Standard paths such as `src/`, `tests/`, and `infra/` stay where their tools expect them.
+
+The always-present governance entry points are:
 
 - `AGENTS.md`: agent entry point and routing;
 - `ANATOMY.md`: current system map;
@@ -44,8 +55,9 @@ The always-present governance layer consists of:
 
 Project code, tests, evaluations, experiments, and results remain the center of the repository.
 
-See [Repository Evolution](docs/EVOLUTION.md) for the visual progression from one complete
-vertical slice to parallel execution, experiment governance, and publication-ready evidence.
+See [Repository Evolution](docs/governance/EVOLUTION.md) for the visual progression from one
+complete vertical slice to parallel execution, experiment governance, and publication-ready
+evidence.
 
 ## Commands
 

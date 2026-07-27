@@ -3,9 +3,24 @@
 This guide describes stable procedures. Keep task-specific notes in `.agents/runtime/` and
 project facts in `.agents/memory/`.
 
-Use [Repository Evolution](docs/EVOLUTION.md) when deciding whether a new project capability
-should remain an inline singleton or become an explicit directory, environment, registry, or
-evidence layer.
+Use [Repository Evolution](docs/governance/EVOLUTION.md) when deciding whether a new project
+capability should remain an inline singleton or become an explicit directory, environment,
+registry, or evidence layer.
+
+## Choose The Unit
+
+Classify a task before choosing files:
+
+- Use the **functional unit** for project capabilities, substrate, configs, environments, infra,
+  tests, evaluations, experiments, reports, and publications.
+- Use the **governance unit** only for ownership, invariants, stable procedures, agent routing,
+  coordination state, mandatory checks, or repository maintenance.
+- Use a **mixed change** only when functional work genuinely changes one of those governance
+  subjects. Keep the functional and governance portions separately reviewable.
+
+`REPO_UNITS.yaml` is authoritative for path ownership. New paths are functional by default.
+Before adding governance, name the repeated cost or failure it removes and the check that will
+show whether it works.
 
 ## Initialize From The Template
 
@@ -25,11 +40,12 @@ Do not pre-create empty packages, baseline directories, publication systems, or 
 
 1. Start from an accepted commit.
 2. Write a bounded task brief: goal, non-goals, write scope, acceptance, and verification.
-3. Inspect existing code and nearby tests before adding files.
-4. Implement the smallest coherent change.
-5. Run focused validation, then `make verify` when the scope warrants it.
-6. Remove replaced paths and temporary output.
-7. Commit implementation and evidence together.
+3. Declare the primary unit and any intentional cross-unit impact.
+4. Inspect existing code and nearby tests before adding files.
+5. Implement the smallest coherent change.
+6. Run focused validation, then `make verify` when the scope warrants it.
+7. Remove replaced paths and temporary output.
+8. Commit implementation and evidence together.
 
 ## Coordinate Parallel Work
 

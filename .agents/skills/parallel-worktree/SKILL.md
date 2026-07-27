@@ -14,7 +14,8 @@ future of the project.
 2. Choose a short task ID and branch such as `feat/<id>`, `exp/<id>`, or `maint/<id>`.
 3. Create a sibling worktree from the explicit base commit.
 4. Create ignored runtime state inside that worktree when the task needs a pad or handoff file.
-5. Give the worker a non-overlapping write scope and explicit verification command.
+5. Give the worker a primary unit, non-overlapping write scope, and explicit verification
+   command. Governance paths are out of scope unless named explicitly.
 
 Example:
 
@@ -44,4 +45,3 @@ path in committed project files.
 
 Do not use destructive cleanup commands to resolve uncertainty. Preserve unmerged work until its
 status is understood.
-
