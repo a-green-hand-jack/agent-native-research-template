@@ -20,6 +20,11 @@ Evidence:      run manifests + reports + paper outputs
 The constitutional layer guides the project but is not the project. Code, evaluations, and
 validated outcomes remain the primary product.
 
+The complete coordination and maintenance model is shown in
+[the governance diagram](docs/images/agent-native-project-governance.png). The staged visual
+model in [Repository Evolution](docs/EVOLUTION.md) explains how this anatomy grows without
+changing its underlying concepts.
+
 ## Static Surfaces
 
 | Path | Responsibility |
@@ -68,4 +73,3 @@ reports, decisions, or project memory through an explicit review.
 - A stable independent interface, test boundary, and lifecycle earn a package.
 - Repeated procedure earns a skill.
 - Repeated failure earns an executable check.
-

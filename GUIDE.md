@@ -3,6 +3,10 @@
 This guide describes stable procedures. Keep task-specific notes in `.agents/runtime/` and
 project facts in `.agents/memory/`.
 
+Use [Repository Evolution](docs/EVOLUTION.md) when deciding whether a new project capability
+should remain an inline singleton or become an explicit directory, environment, registry, or
+evidence layer.
+
 ## Initialize From The Template
 
 The main agent should:

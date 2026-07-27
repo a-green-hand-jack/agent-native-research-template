@@ -4,6 +4,8 @@ A thin GitHub template for research and software projects where one human direct
 agent, the main agent coordinates isolated workers, and the repository remains the source of
 truth.
 
+![Agent-native project governance](docs/images/agent-native-project-governance.png)
+
 The template is designed for ML, DL, RL, agents, benchmarks, environments, and adjacent
 research projects. It provides a small constitutional layer, a reproducible execution seed,
 project-local skills, Git/worktree conventions, and lightweight validation. It deliberately
@@ -41,6 +43,9 @@ The always-present governance layer consists of:
 - `GUIDE.md`: stable operating procedures.
 
 Project code, tests, evaluations, experiments, and results remain the center of the repository.
+
+See [Repository Evolution](docs/EVOLUTION.md) for the visual progression from one complete
+vertical slice to parallel execution, experiment governance, and publication-ready evidence.
 
 ## Commands
 
