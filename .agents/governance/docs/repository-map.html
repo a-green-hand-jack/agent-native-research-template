@@ -20,6 +20,8 @@
       --functional-line: #8fd0c8;
       --dynamic: #315da8;
       --dynamic-soft: #edf3ff;
+      --runtime: #315da8;
+      --runtime-line: #9fb6df;
       --danger: #b9382c;
       --shadow: 0 14px 40px rgba(23, 32, 29, 0.08);
     }
@@ -125,6 +127,46 @@
     .view-switcher button[aria-pressed="true"] {
       color: #fff;
       background: var(--ink);
+    }
+
+    .runtime-plane {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid var(--runtime-line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    .runtime-cell {
+      min-width: 0;
+      padding: 16px 20px;
+    }
+
+    .runtime-cell + .runtime-cell {
+      border-left: 1px solid var(--runtime-line);
+    }
+
+    .runtime-cell strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--runtime);
+      font-size: 14px;
+    }
+
+    .runtime-cell span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .runtime-cell code {
+      color: var(--ink);
+      font-weight: 750;
     }
 
     .rulebar {
@@ -620,6 +662,11 @@
       background: #f7faff;
     }
 
+    body[data-focus="dynamic"] .runtime-plane {
+      border-color: var(--runtime);
+      transform: translateY(-2px);
+    }
+
     body[data-focus="governance"] .unit.governance,
     body[data-focus="functional"] .unit.functional {
       transform: translateY(-2px);
@@ -641,10 +688,16 @@
       }
 
       .rulebar,
+      .runtime-plane,
       .map,
       .relation,
       .control-grid {
         grid-template-columns: 1fr;
+      }
+
+      .runtime-cell + .runtime-cell {
+        border-top: 1px solid var(--runtime-line);
+        border-left: 0;
       }
 
       .root {
@@ -741,6 +794,7 @@
 
       .unit,
       .rulebar,
+      .runtime-plane,
       .relation,
       .control-plane {
         box-shadow: none;
@@ -755,8 +809,8 @@
         <p class="eyebrow">Agent-Native Research Template</p>
         <h1>Repository Anatomy <span lang="zh-CN">/ 仓库结构图</span></h1>
         <p class="subtitle">
-          功能项目保持传统结构；治理被收拢为非运行时 sidecar。两者共享 Git，
-          但项目代码、命令、实验和证据不依赖治理才能运行。
+          Agent runtime 提供执行能力；repo 内仍只有功能项目和治理 sidecar 两个被跟踪单元。
+          它们共享 Git，但项目代码、命令、实验和证据不依赖治理或某个 runtime 才能运行。
         </p>
       </div>
       <nav class="view-switcher" aria-label="Map focus">
@@ -766,6 +820,21 @@
         <button type="button" data-view="dynamic" aria-pressed="false">动态表面</button>
       </nav>
     </header>
+
+    <section class="runtime-plane" aria-label="External agent runtime">
+      <div class="runtime-cell">
+        <strong>Agent Runtime / 仓库外执行层</strong>
+        <span>Codex、OMX 或其他工具读取 <code>AGENTS.md</code>，提供当前会话可用的执行能力。</span>
+      </div>
+      <div class="runtime-cell">
+        <strong>Execution surfaces</strong>
+        <span>solo session、native child agent、worktree session 或 runtime team worker。</span>
+      </div>
+      <div class="runtime-cell">
+        <strong>State boundary</strong>
+        <span><code>.agents/runtime/</code> 属于模板协作；<code>.omx/</code> 等工具状态独立忽略。</span>
+      </div>
+    </section>
 
     <section class="rulebar" aria-label="Ownership rule">
       <div class="rule governance">
@@ -830,10 +899,10 @@
           <section class="group optional">
             <div class="group-head">
               <h3>唯一根适配器</h3>
-              <span class="group-kind">Tool discovery only</span>
+              <span class="group-kind">Stable discovery</span>
             </div>
             <ul class="paths">
-              <li class="path"><code>AGENTS.md</code><span>只负责让 agent 工具发现 sidecar</span></li>
+              <li class="path"><code>AGENTS.md</code><span>发现 sidecar；允许有边界、可移除的 runtime overlay</span></li>
             </ul>
           </section>
 
@@ -844,7 +913,7 @@
             </div>
             <ul class="paths">
               <li class="path"><code>read + invoke</code><span>可读 Git、代码和配置并调用公开命令</span></li>
-              <li class="path"><code>no runtime hook</code><span>不注入 import、env、依赖或隐式状态</span></li>
+              <li class="path"><code>no project coupling</code><span>不注入 import、env、依赖或隐式状态</span></li>
             </ul>
           </section>
         </div>
@@ -1014,7 +1083,7 @@
 
     <footer class="source">
       <span>分类真相源：<strong><code>.agents/governance/REPO_UNITS.yaml</code></strong></span>
-      <span>Git 保存事实；<code>.agents/runtime/</code> 只保存工作树控制与临时交接。</span>
+      <span>Git 保存事实；模板 handoff 与工具 runtime state 保持分离并都不自动成为项目知识。</span>
     </footer>
   </main>
 

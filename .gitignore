@@ -16,3 +16,4 @@ checkpoints/
 .agents/runtime/*
 !.agents/runtime/.gitignore
 
+.omx/

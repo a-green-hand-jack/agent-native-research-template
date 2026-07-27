@@ -50,6 +50,24 @@ import, source, configure, or otherwise require governance. In particular:
 `.agents/governance/REPO_UNITS.yaml` is the ownership source of truth. Only `.agents/` and the
 root discovery adapter `AGENTS.md` are governance-owned; every new path is functional by default.
 
+## Agent Runtime Compatibility
+
+The repository does not require a specific orchestration product. Codex, OMX, native subagents,
+direct agent sessions, or another runtime may execute the same repository roles.
+
+```text
+agent runtime -> reads AGENTS.md -> operates governance + functional project
+```
+
+The runtime is outside the two tracked repository units. Template-owned handoffs use ignored
+`.agents/runtime/`; tool-owned state such as `.omx/` stays in its own ignored directory. Generated
+runtime instructions, model tables, hook registries, and session state are not durable project
+knowledge and should not be copied into the sidecar.
+
+A `worktree agent` names the role attached to a Git worktree. It may be implemented by a direct
+session, a native child agent, or a runtime-specific team worker without changing the repository
+contract.
+
 ## Human And Agent Routing
 
 The default topology keeps the human in one conversation:

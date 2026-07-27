@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -10,8 +11,18 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 UNIT_MANIFEST = ROOT / ".agents" / "governance" / "REPO_UNITS.yaml"
 UNIT_NAMES = {"governance", "functional"}
-IGNORED_PARTS = {".git", ".venv", ".pytest_cache", ".ruff_cache", "runs", "artifacts"}
+IGNORED_PARTS = {
+    ".git",
+    ".omx",
+    ".venv",
+    ".pytest_cache",
+    ".ruff_cache",
+    "runs",
+    "artifacts",
+}
 GOVERNANCE_PATHS = {".agents/", "AGENTS.md"}
+TOOL_RUNTIME_PREFIXES = {".omx/"}
+OVERLAY_MARKER = re.compile(r"<!--\s*(?P<name>[A-Z][A-Z0-9:_-]*):(?P<boundary>START|END)\s*-->")
 LEGACY_GOVERNANCE_PATHS = {
     "ANATOMY.md",
     "CONTRACT.md",
@@ -244,8 +255,54 @@ def check_tracked_state(errors: list[str]) -> None:
             ".agents/runtime/.gitignore"
         ):
             errors.append(f"GIT-002 runtime state must not be tracked: {relative_path}")
+        if any(relative_path.startswith(prefix) for prefix in TOOL_RUNTIME_PREFIXES):
+            errors.append(f"GIT-004 tool runtime state must not be tracked: {relative_path}")
         if path.is_file() and path.stat().st_size > 10 * 1024 * 1024:
             errors.append(f"GIT-003 tracked file exceeds 10 MiB: {relative_path}")
+
+
+def check_runtime_ignores(errors: list[str]) -> None:
+    for prefix in sorted(TOOL_RUNTIME_PREFIXES):
+        probe = f"{prefix}repo-check-probe"
+        result = subprocess.run(
+            ["git", "check-ignore", "--quiet", "--no-index", probe],
+            cwd=ROOT,
+            check=False,
+        )
+        if result.returncode != 0:
+            errors.append(f"GIT-005 tool runtime path must be ignored: {prefix}")
+
+
+def check_instruction_overlays(errors: list[str]) -> None:
+    path = ROOT / "AGENTS.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"GUIDANCE-001 cannot read AGENTS.md: {exc}")
+        return
+
+    stack: list[str] = []
+    starts: Counter[str] = Counter()
+    for marker in OVERLAY_MARKER.finditer(text):
+        name = marker.group("name")
+        boundary = marker.group("boundary")
+        if boundary == "START":
+            starts[name] += 1
+            stack.append(name)
+            continue
+
+        if not stack:
+            errors.append(f"GUIDANCE-002 overlay {name} ends without a start marker")
+        elif stack[-1] != name:
+            errors.append(f"GUIDANCE-003 overlay {name} closes while {stack[-1]} is still open")
+        else:
+            stack.pop()
+
+    for name, count in sorted(starts.items()):
+        if count > 1:
+            errors.append(f"GUIDANCE-004 overlay {name} appears {count} times")
+    for name in stack:
+        errors.append(f"GUIDANCE-005 overlay {name} has no end marker")
 
 
 def check_sidecar_boundary(errors: list[str]) -> None:
@@ -284,6 +341,8 @@ def main() -> int:
     check_skills(errors)
     check_experiment_specs(errors)
     check_tracked_state(errors)
+    check_runtime_ignores(errors)
+    check_instruction_overlays(errors)
     check_sidecar_boundary(errors)
 
     if errors:
@@ -294,7 +353,8 @@ def main() -> int:
     print(
         "OK repository structure, units "
         f"(functional={unit_counts['functional']}, governance={unit_counts['governance']}), "
-        "sidecar boundary, YAML, skills, experiment specs, and tracked state"
+        "sidecar boundary, runtime isolation, guidance overlays, YAML, skills, experiment specs, "
+        "and tracked state"
     )
     return 0
 

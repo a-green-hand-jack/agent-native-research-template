@@ -55,6 +55,9 @@ adapters:
   - path: AGENTS.md
     purpose: agent-tool discovery
     invasive: false
+  - path: .gitignore
+    purpose: keep template-owned and tool-owned runtime state outside tracked repository units
+    invasive: false
   - path: .github/workflows/verify.yml
     purpose: run project verification and governance validation as independent CI jobs
     invasive: false

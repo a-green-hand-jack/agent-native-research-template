@@ -29,6 +29,24 @@ project-specific behavioral, scientific, and interface contracts below these sha
   or mixed change.
 - Governance artifacts need a reader, trigger, update rule, and retirement path.
 
+## Agent Runtime Invariants
+
+- The agent runtime is an execution surface outside the two tracked repository units. It may
+  interpret repository guidance and operate project interfaces, but it is not project truth.
+- Repository guidance defines durable project state and constraints. Runtime instructions define
+  how the current agent session executes. The active task defines the current requested outcome.
+- Runtime safety and capability limits take precedence during execution. They do not silently
+  rewrite the repository contract; an unresolved conflict is reported as a constraint or blocker.
+- The repository does not require Codex, OMX, a particular model table, hook registry, subagent
+  implementation, or team runtime in order to remain usable.
+- Tool-generated instruction overlays must use paired, tool-owned markers and preserve the
+  canonical repository guidance around them. Applying the same overlay twice must not duplicate
+  sections.
+- Template-owned temporary coordination state belongs in ignored `.agents/runtime/`.
+  Tool-owned ephemeral state, such as `.omx/`, remains in its conventional ignored directory.
+- Runtime output becomes durable only through the same review path as human output: accepted
+  code, tests, evaluations, reports, decisions, or reviewed memory.
+
 ## Execution Invariants
 
 - A runnable experiment resolves its code revision, config, environment, data, executor, and
@@ -52,7 +70,8 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - A direct worktree agent may report to the human without routing through the main agent.
 - The assigned integration owner validates and combines completed work; the main agent is the
   default integration owner, not an unavoidable communication bottleneck.
-- Runtime pads and handoffs are local coordination state, not durable project knowledge.
+- Repository handoffs and tool runtime state are local coordination data, not durable project
+  knowledge.
 
 ## Environment And Infra Invariants
 

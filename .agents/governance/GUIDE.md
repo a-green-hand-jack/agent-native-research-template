@@ -25,6 +25,40 @@ observed.
 Governance may inspect and invoke the project. Do not make project code, commands, hooks,
 environments, or configs depend on `.agents/`.
 
+## Select An Agent Runtime Surface
+
+Repository roles are stable; execution capabilities vary by session. Before decomposing work,
+inspect the tools actually available and choose the least expensive surface that preserves the
+task boundary:
+
+| Surface | Use when |
+|---|---|
+| solo or direct session | One agent can implement and verify the bounded change |
+| native child agent | An independent read, implementation, research, or verification slice can run concurrently |
+| Git worktree agent | A parallel writer needs an isolated checkout and branch |
+| runtime team mode | The installed orchestration runtime provides durable staged coordination worth its overhead |
+
+Do not invoke a runtime-specific command merely because its name appears in a generated
+instruction overlay. The command must exist in the active environment and improve the current
+task.
+
+`main agent` and `worktree agent` are repository roles. The main agent is the human-facing
+coordinating session. A worktree agent may be a direct session, native child agent, or runtime
+team worker. Reserve the term `team worker` for an agent actually launched by a team runtime; do
+not use it as a generic synonym for every delegated agent.
+
+Repository guidance and runtime guidance have different lifecycles:
+
+- `AGENTS.md` and `.agents/governance/` contain stable repository guidance.
+- The active task or issue contains the requested outcome and acceptance criteria.
+- Tool-generated overlays, model routing, keyword registries, and hooks belong to the runtime.
+- `.agents/runtime/` contains template-owned temporary coordination context.
+- `.omx/` or another tool-specific ignored path contains runtime-owned state.
+
+Do not copy runtime-generated instructions into the sidecar. If a runtime must edit `AGENTS.md`,
+its section must use paired tool-owned markers, remain idempotent, and be removable without
+changing the stable adapter around it.
+
 ## Initialize From The Template
 
 The initializing agent should:
@@ -43,13 +77,14 @@ Do not pre-create empty packages, baseline directories, publication systems, or 
 
 1. Start from an accepted commit.
 2. Write a bounded brief: goal, non-goals, write scope, acceptance, and verification.
-3. Identify the worktree controller and intended integration owner.
-4. Inspect existing code and nearby tests before adding files.
-5. Implement the smallest coherent change.
-6. Run focused validation, then `make verify` when the scope warrants it.
-7. Run the governance doctor only when sidecar structure or its declared boundary changed.
-8. Remove replaced paths and temporary output.
-9. Commit implementation and evidence together.
+3. Select the smallest available runtime surface and decide whether a worktree is needed.
+4. Identify the worktree controller and intended integration owner.
+5. Inspect existing code and nearby tests before adding files.
+6. Implement the smallest coherent change.
+7. Run focused validation, then `make verify` when the scope warrants it.
+8. Run the governance doctor only when sidecar structure or its declared boundary changed.
+9. Remove replaced paths and temporary output.
+10. Commit implementation and evidence together.
 
 ## Choose A Control Mode
 
@@ -123,6 +158,10 @@ The incoming controller:
 No durable registry is required. Git is the durable timeline; the optional handoff only bridges
 uncommitted context. Direct human instructions override older mediated task packets for that
 worktree.
+
+Tool-owned session state does not transfer control by itself. A runtime may record orchestration
+state under an ignored path such as `.omx/`, but the receiving controller still inspects Git and
+the optional repository handoff before writing.
 
 ## Integrate Parallel Work
 

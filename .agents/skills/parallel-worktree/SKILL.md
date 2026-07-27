@@ -32,7 +32,7 @@ the human may directly take over a main-agent-created worktree.
 
 ## Coordinate
 
-- Never assign two workers ownership of the same mutable files.
+- Never assign two task agents ownership of the same mutable files.
 - Share immutable inputs such as committed configs, data hashes, and environment locks.
 - Keep outputs namespaced by task or run ID.
 - In mediated mode, route scope changes through the main agent.

@@ -33,10 +33,11 @@ authority from an image whose scope is functional evolution.
 | V2 | Multiple functional environments, baselines, data, and executors | Governance ownership |
 | V3 | Experiment intent, immutable facts, evaluation, and reports | Agent coordination |
 | V4 | Contribution-to-evidence-to-publication traceability | A specific ML architecture |
-| Governing overview | Control modes, sidecar boundary, and delivery | Exact directory inventory |
+| Governing overview | External agent runtime, control modes, sidecar boundary, and delivery | Exact directory inventory or runtime implementation |
 
-The exact repository boundary lives in [Repository Anatomy](repository-map.html). The exact
-human, main-agent, worktree, and worktree-agent authority model lives in
+The exact repository and agent-runtime boundary lives in
+[Repository Anatomy](repository-map.html). The exact human, main-agent, worktree, and
+worktree-agent authority model lives in
 [Worktree Control Model](worktree-control.html).
 
 ## V0: One Complete Vertical Slice
@@ -122,8 +123,10 @@ direct mode the human talks to a selected worktree-agent. Modes are per worktree
 and can switch after a checkpoint. Either human or main agent may create the worktree; creation,
 active control, and integration ownership remain separate decisions.
 
-The same image also shows the non-invasive sidecar boundary and the delivery path from checkpoint
-through optional handoff, integration, verification, and validated outcome. Exact transfer rules
-remain in [Worktree Control Model](worktree-control.html).
+The external agent runtime may instantiate the main-agent and worktree-agent roles through direct
+sessions, native child agents, or a runtime-specific team surface. The same image also shows the
+non-invasive sidecar boundary and the delivery path from checkpoint through optional handoff,
+integration, verification, and validated outcome. Exact runtime and transfer rules remain in the
+two interactive HTML maps.
 
 The template should evolve only when a repeated project cost justifies a new permanent mechanism.

@@ -1,7 +1,8 @@
 # Project Memory Index
 
-This directory contains accepted, durable project facts. Runtime notes, session journals, worker
-handoffs, and unverified candidates belong under `.agents/runtime/`.
+This directory contains accepted, durable project facts. Template-owned runtime notes, session
+journals, task-agent handoffs, and unverified candidates belong under `.agents/runtime/`.
+Tool-owned workflow state remains in its own ignored path, such as `.omx/`.
 
 ## Topics
 
@@ -14,4 +15,3 @@ by code or evidence, and not already represented by a contract, test, evaluation
 existing memory topic.
 
 Each topic should state its scope, source, confidence, review status, and what it supersedes.
-

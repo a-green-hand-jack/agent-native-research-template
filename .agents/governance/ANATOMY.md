@@ -3,6 +3,12 @@
 ## System Shape
 
 ```text
+agent runtime                             outside tracked repo units
+├── Codex / OMX / another execution surface
+├── solo session / native child / runtime team worker
+└── optional ignored tool state, e.g. .omx/
+              │ reads guidance and operates declared interfaces
+              ▼
 repo/
 ├── functional project                    default owner
 │   ├── src + tests
@@ -19,11 +25,14 @@ repo/
 ```
 
 The repository has a primary functional project and an optional governance sidecar. They share
-Git history but not runtime. The physical boundary is intentionally asymmetric:
+Git history but not runtime. An agent runtime operates them from outside that two-unit model. The
+physical boundary is intentionally asymmetric:
 
 - `.agents/` contains governance.
 - `AGENTS.md` is the only root governance file because agent tools discover it there.
 - Every other path is functional by default.
+- Ignored tool state such as `.omx/` may appear in the working directory but is not a third
+  tracked repository unit.
 
 The interactive **[Repository Anatomy Map](docs/repository-map.html)** shows the physical
 boundary, allowed interactions, and worktree control modes. [Repository Evolution](docs/EVOLUTION.md)
@@ -65,6 +74,26 @@ jobs. Pre-commit hooks validate project files without requiring the sidecar.
 | `.agents/memory/` | Reviewed facts that reduce future orientation cost |
 | `.agents/skills/` | Repeatable project procedures |
 | `.agents/runtime/` | Ignored per-worktree pads, control notes, and handoffs |
+
+## Agent Runtime
+
+The agent runtime supplies execution capabilities rather than repository truth:
+
+| Surface | Responsibility |
+|---|---|
+| direct or solo session | Execute a bounded task in the current checkout |
+| native child agent | Execute an independent delegated task supported by the current tool |
+| runtime team worker | Execute a role created by a specific orchestration runtime |
+| runtime hooks and routing | Select or constrain execution behavior for the current session |
+| tool state such as `.omx/` | Ignored runtime-owned state with its own lifecycle |
+
+`main agent` and `worktree agent` are repository roles. They do not require a particular agent
+type or orchestration product. A runtime may implement those roles differently while preserving
+the same worktree control and integration invariants.
+
+Runtime-generated model tables, hook registries, keyword routing, and session state stay owned by
+that runtime. They enter repository governance only if the project explicitly adopts a stable,
+portable contract rather than copying generated output.
 
 ## Functional Project
 
@@ -113,6 +142,7 @@ Creation and control are independent:
 | Unit | Path | Responsibility |
 |---|---|---|
 | governance | `.agents/runtime/` | Per-worktree pads, control state, and handoffs |
+| external runtime | `.omx/` or equivalent ignored path | Tool-owned execution and workflow state |
 | functional | `runs/` | Local run outputs and immutable manifests |
 | functional | external artifact storage | Large datasets, checkpoints, logs, and generated artifacts |
 

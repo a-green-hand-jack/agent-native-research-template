@@ -17,7 +17,23 @@ Before changing the project:
 - Governance may inspect and invoke public project interfaces; it must not inject runtime
   imports, environment requirements, or hidden state into them.
 - New paths are functional by default. Governance growth stays inside `.agents/`.
-- Temporary agent state belongs in ignored `.agents/runtime/`, never in project source paths.
+- Template-owned temporary coordination state belongs in ignored `.agents/runtime/`, never in
+  project source paths.
+
+## Agent Runtime
+
+This repository defines durable project and governance truth, not a required orchestration
+product. Codex, OMX, native subagents, hooks, or another runtime may supply the current execution
+surface.
+
+- Detect available capabilities before choosing solo execution, native delegation, worktrees, or
+  a runtime-specific team mode.
+- `worktree agent` is a repository role, not a required runtime type. A direct session, native
+  child agent, or runtime team worker may fill it.
+- Tool-generated instruction overlays must remain bounded by paired tool-owned markers,
+  repeatable to apply, and removable without damaging this adapter.
+- Tool-owned state such as `.omx/` remains ignored and never becomes project truth merely because
+  a runtime produced it.
 
 ## Worktree Control
 

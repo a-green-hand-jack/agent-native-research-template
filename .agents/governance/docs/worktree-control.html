@@ -204,6 +204,47 @@
       white-space: nowrap;
     }
 
+    .runtime-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: 20px;
+      padding: 16px 22px;
+      border-bottom: 1px solid #afc1e3;
+      background: var(--main-soft);
+    }
+
+    .runtime-strip strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--main);
+      font-size: 13px;
+    }
+
+    .runtime-strip p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .runtime-options {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .runtime-options span {
+      padding: 5px 7px;
+      border: 1px solid #9fb6df;
+      border-radius: 4px;
+      color: #284b88;
+      background: #fff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
     .entities {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -527,7 +568,7 @@
 
     .evidence {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .evidence-item {
@@ -615,6 +656,7 @@
       }
 
       .principle,
+      .runtime-strip,
       .entities,
       .topology,
       .ownership,
@@ -669,6 +711,10 @@
         grid-template-columns: 1fr;
       }
 
+      .runtime-options {
+        justify-content: flex-start;
+      }
+
       .arrow {
         text-align: center;
         transform: rotate(90deg);
@@ -700,7 +746,8 @@
         <h1>Worktree Control Model <span lang="zh-CN">/ 工作树控制关系</span></h1>
         <p class="subtitle">
           这里区分四个经常被混为一谈的对象：human、main-agent、worktree 和
-          worktree-agent。Git worktree 提供隔离；控制权决定谁可以向其中的 agent 发出写入指令。
+          worktree-agent。Agent runtime 只负责实例化这些 agent 角色；Git worktree 提供隔离，
+          控制权决定谁可以向其中的 agent 发出写入指令。
         </p>
       </div>
       <nav class="switcher" aria-label="Control model focus">
@@ -729,11 +776,23 @@
     <section class="section" aria-label="Entities">
       <header class="section-head">
         <div>
-          <h2>Four Entities / 四类对象</h2>
-          <p>持久性、权限和职责不同，不能把 agent session 与 Git worktree 当成同一个东西。</p>
+          <h2>Four Repository Entities / 四类仓库对象</h2>
+          <p>持久性、权限和职责不同，也不能把 agent runtime、agent session 与 Git worktree 当成同一个东西。</p>
         </div>
         <span class="badge">Identity before routing</span>
       </header>
+      <div class="runtime-strip">
+        <div>
+          <strong>Agent Runtime / 执行载体，不是第五个仓库角色</strong>
+          <p>当前工具提供会话、子 agent、hooks 或 team 能力。它可以更换，但下面四个角色及其控制契约不变。</p>
+        </div>
+        <div class="runtime-options" aria-label="Possible execution surfaces">
+          <span>direct session</span>
+          <span>native child agent</span>
+          <span>worktree session</span>
+          <span>runtime team worker</span>
+        </div>
+      </div>
       <div class="entities">
         <article class="entity human">
           <span class="entity-id">H</span>
@@ -748,7 +807,7 @@
         <article class="entity main-agent">
           <span class="entity-id">M</span>
           <h3>Main Agent</h3>
-          <p>默认协调中心。拆解任务、管理 mediated worktrees，并通常负责集成和最终验证。</p>
+          <p>默认协调角色。可由当前主会话承担，拆解任务、管理 mediated worktrees，并通常负责集成和最终验证。</p>
           <dl>
             <dt>持久性</dt><dd>会话级</dd>
             <dt>可创建</dt><dd>worktree</dd>
@@ -768,7 +827,7 @@
         <article class="entity worktree-agent">
           <span class="entity-id">A</span>
           <h3>Worktree Agent</h3>
-          <p>在特定 worktree 上下文中工作的 agent session。会话可替换，Git 状态继续存在。</p>
+          <p>绑定特定 worktree 的角色，可由 direct session、native child 或 team worker 实例化。会话可替换，Git 状态继续存在。</p>
           <dl>
             <dt>持久性</dt><dd>会话级</dd>
             <dt>作用域</dt><dd>一个 worktree</dd>
@@ -905,7 +964,7 @@
       <header class="section-head">
         <div>
           <h2>What Persists / 哪些状态应该保存</h2>
-          <p>不建立永久协调数据库。Git 保存事实，runtime 只桥接尚未固化的上下文。</p>
+          <p>不建立永久协调数据库。Git 保存事实；模板 handoff 与工具 runtime state 各自桥接临时上下文。</p>
         </div>
         <span class="badge">Minimal coordination state</span>
       </header>
@@ -924,6 +983,14 @@
             <li>尚未提交但有意保留的 dirty state</li>
             <li>下一步、已运行验证、剩余风险和 integration owner</li>
             <li>接管完成后删除或覆盖，不提升为默认项目真相</li>
+          </ul>
+        </div>
+        <div class="evidence-item">
+          <h3><code>.omx/</code> or equivalent: tool state</h3>
+          <ul>
+            <li>由具体 runtime 维护的 workflow、hook 或 session 状态</li>
+            <li>保持 Git ignored，不复制到 repository memory</li>
+            <li>删除或更换 runtime 不应破坏项目命令与 Git 事实</li>
           </ul>
         </div>
       </div>
