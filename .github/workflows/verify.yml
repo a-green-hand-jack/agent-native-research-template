@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  project:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -30,9 +30,22 @@ jobs:
       - name: Check formatting
         run: uv run ruff format --check .
 
-      - name: Validate repository
-        run: uv run python tools/repo_check.py
-
       - name: Test
         run: uv run pytest -q
 
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Sync validation dependency
+        run: uv sync --frozen --group dev
+
+      - name: Validate optional governance sidecar
+        run: uv run python .agents/governance/tools/repo_check.py

@@ -20,7 +20,8 @@ Preserve the upstream implementation while adapting its inputs and outputs to th
 7. Add a smoke test proving source retrieval, environment resolution, adapter invocation, and
    expected output shape.
 8. Register the baseline only after the smoke path passes.
-9. Update Anatomy or Guide only when the integration creates a durable new boundary or procedure.
+9. Update `.agents/governance/ANATOMY.md` or `.agents/governance/GUIDE.md` only when the
+   integration creates a durable new boundary or procedure.
 
 ## Required Handoff
 
@@ -38,4 +39,3 @@ known deviations from the published baseline
 
 Never merge baseline dependencies into the main environment merely to avoid maintaining a
 separate lock.
-

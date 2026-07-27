@@ -14,7 +14,8 @@ exceeds the cost of consolidation.
 2. Start a dedicated maintenance branch and worktree from an accepted commit.
 3. Identify the primary unit of the material being compacted. The maintenance procedure is
    governance, but code, configs, reports, and evidence remain functional.
-4. Identify the Contract that must remain true.
+4. Identify the project behavior and `.agents/governance/CONTRACT.md` clauses that must remain
+   true.
 5. Add characterization tests or behavior snapshots when current behavior is not already
    protected.
 6. Avoid mixing feature work into the pass.
@@ -35,7 +36,8 @@ exceeds the cost of consolidation.
 1. Run focused tests and evaluations for the preserved Contract.
 2. Run the project verification command.
 3. Confirm common workflows now have fewer entry points or sources of truth.
-4. Update Anatomy, Contract, Guide, and memory only where the maintenance changed their subject.
+4. Update sidecar Anatomy, Contract, Guide, and memory only where maintenance changed their
+   subject.
 5. Report what was removed, what became canonical, evidence of preserved behavior, and remaining
    debt.
 

@@ -1,0 +1,89 @@
+# Project Contract
+
+This file defines durable repository invariants. During template initialization, add the
+project-specific behavioral, scientific, and interface contracts below these shared invariants.
+
+## Project-First Invariants
+
+- The functional project is primary; governance exists only to reduce expected project cost.
+- Governance is physically contained by `.agents/`, except for the minimal discovery adapter
+  `AGENTS.md`.
+- New paths belong to the functional unit unless
+  `.agents/governance/REPO_UNITS.yaml` explicitly says otherwise.
+- Project code, commands, environments, experiments, evaluations, and evidence remain usable
+  when `.agents/` is absent.
+- Each durable fact, command, configuration value, and behavioral promise has one canonical
+  source.
+- The core contribution remains locatable even when its supporting substrate is large.
+- Generated output never silently becomes source input.
+
+## Sidecar Invariants
+
+- Governance may read project state and invoke declared project commands.
+- Governance must not add project imports, runtime environment variables, package dependencies,
+  configuration lookups, or execution prerequisites that point into `.agents/`.
+- Project verification and governance validation are separate commands. A failed governance
+  check must not make the project implementation unusable.
+- Hooks must not require the governance sidecar for ordinary project commits.
+- Governance writes project files only when the active task explicitly authorizes a functional
+  or mixed change.
+- Governance artifacts need a reader, trigger, update rule, and retirement path.
+
+## Execution Invariants
+
+- A runnable experiment resolves its code revision, config, environment, data, executor, and
+  evaluation protocol.
+- Expensive runs begin from a committed checkpoint whenever practical.
+- A run records its Git revision, dirty patch state, resolved config, environment identity, data
+  identity, seed, executor, hardware, timestamps, metrics, and artifact references.
+- Run facts are immutable. Retries create new runs linked to their parent.
+- Accepted reports cite run IDs; paper values are generated from locked evidence rather than
+  copied from terminal output.
+
+## Worktree Invariants
+
+- One worktree has one bounded intent and one active controller.
+- Control mode is per worktree: `mediated` through the main agent or `direct` from the human.
+- Different worktrees may use different modes concurrently.
+- The human or main agent may create a worktree; creation gives no permanent authority.
+- Control may switch after a coherent checkpoint. The receiving agent inspects Git state and any
+  runtime handoff before writing.
+- Parallel writers use separate worktrees and non-overlapping ownership scopes.
+- A direct worktree agent may report to the human without routing through the main agent.
+- The assigned integration owner validates and combines completed work; the main agent is the
+  default integration owner, not an unavoidable communication bottleneck.
+- Runtime pads and handoffs are local coordination state, not durable project knowledge.
+
+## Environment And Infra Invariants
+
+- Incompatible baselines or workloads use isolated environments.
+- Project configuration refers to logical executor and storage names rather than private
+  machine-specific paths.
+- Secrets and private infrastructure values remain in ignored overrides, encrypted files, or a
+  secret manager.
+- Large datasets, checkpoints, caches, and raw logs are not committed to Git.
+
+## Governance Change Rules
+
+- `.agents/governance/ANATOMY.md` changes when component topology or dependency direction changes.
+- `.agents/governance/CONTRACT.md` changes when promised behavior or result validity changes.
+- `.agents/governance/GUIDE.md` changes when a stable operating procedure changes.
+- `AGENTS.md` changes only when discovery, mandatory orientation, or control routing changes.
+- `.agents/governance/REPO_UNITS.yaml` changes when a durable ownership boundary changes.
+
+## Project-Specific Contract
+
+Replace this section during project initialization with:
+
+- externally observable behavior;
+- scientific claims currently under test;
+- input and output schemas;
+- numerical or statistical validity requirements;
+- compatibility constraints;
+- explicit non-goals.
+
+## Completion Contract
+
+A change is acceptable only when its relevant implementation, validation evidence, and durable
+documentation agree. Passing tests cannot excuse a violated contract, and prose cannot excuse a
+failing executable check.

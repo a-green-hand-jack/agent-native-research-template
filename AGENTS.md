@@ -1,101 +1,33 @@
-# Agent Instructions
+# Agent Entry Point
 
-## Mission
+The project is primary. Agent governance is an optional, non-runtime sidecar under `.agents/`.
+This root file exists only because agent tools discover `AGENTS.md` here.
 
-Serve the project outcome. Reduce human-agent and agent-agent friction without turning
-governance into a second product.
+Before changing the project:
 
-## Boot Sequence
+1. Read `.agents/governance/CONTRACT.md`.
+2. Read `.agents/governance/ANATOMY.md`.
+3. Classify ownership through `.agents/governance/REPO_UNITS.yaml`.
+4. Load `.agents/governance/GUIDE.md` or a project skill only when the task needs it.
+5. Inspect Git state and choose the smallest verification that proves the outcome.
 
-Before changing files:
+## Boundary
 
-1. Read `CONTRACT.md` for invariants.
-2. Read `ANATOMY.md` for ownership and dependency direction.
-3. Classify the task as functional, governance, or intentionally mixed using `REPO_UNITS.yaml`.
-4. Read the relevant workflow in `GUIDE.md`.
-5. Inspect `git status`, the current branch, and nearby tests.
-6. Identify the narrowest verification command that can prove the task complete.
+- Project code, commands, experiments, and reports must work without `.agents/`.
+- Governance may inspect and invoke public project interfaces; it must not inject runtime
+  imports, environment requirements, or hidden state into them.
+- New paths are functional by default. Governance growth stays inside `.agents/`.
+- Temporary agent state belongs in ignored `.agents/runtime/`, never in project source paths.
 
-Do not load every memory topic, report, skill, or historical artifact by default. Follow indexes
-and load details only when the task needs them.
+## Worktree Control
 
-## Authority
+Human-to-main-agent is the default routing mode, not a permanent topology.
 
-Use this order when instructions conflict:
+- In **mediated mode**, the human directs the main agent, which coordinates a worktree agent.
+- In **direct mode**, the human directs the agent inside that worktree.
+- Modes are per worktree, may coexist, and may switch at any checkpoint.
+- A worktree may be created by the human or the main agent; creation does not determine control.
+- Only the current controller writes to a worktree. Before control changes, leave a coherent Git
+  checkpoint and, when context is not obvious, an ignored `.agents/runtime/HANDOFF.md`.
 
-1. Safety and the human's explicit current instruction.
-2. `CONTRACT.md` and executable tests/evaluations.
-3. The current task brief.
-4. `GUIDE.md`.
-5. `ANATOMY.md`.
-6. Accepted project memory and skills.
-7. Runtime notes and historical logs.
-
-An explicit task may authorize a contract change. Until that change is made and validated, the
-current contract remains authoritative.
-
-## Main-Agent Workflow
-
-The main agent is the single interface to the human. It should:
-
-1. Translate the requested outcome into bounded tasks.
-2. Keep tightly coupled work local.
-3. Delegate independent read-heavy work freely and independent write work only into isolated
-   Git worktrees.
-4. Give each worker a base commit, goal, non-goals, write scope, acceptance criteria, and
-   verification command.
-5. Collect handoffs, integrate changes, resolve conflicts, and run final verification.
-6. Return one consolidated result to the human.
-7. Promote only validated, durable knowledge.
-
-Workers do not modify root governance files unless their task explicitly owns an architecture,
-contract, or workflow change.
-
-## Unit Discipline
-
-Every durable path has one primary owner:
-
-- The **functional unit** implements, runs, evaluates, and communicates the project outcome.
-- The **governance unit** directs, constrains, verifies, integrates, and maintains that work.
-
-Unlisted paths are functional by default. Treat a change as governance only when it changes how
-the repository operates, not merely because an agent produced it. Functional code must not
-depend on `.agents/`, governance documents, or runtime coordination state.
-
-Prefer a functional-only change. Make a mixed change only when the functional work creates or
-changes a durable boundary, invariant, procedure, or validation rule. Report the two parts
-separately so governance growth remains visible.
-
-## Project Skills
-
-Read a project skill only when its trigger applies:
-
-- `.agents/skills/main-agent/SKILL.md`: coordinate a multi-step or delegated project task.
-- `.agents/skills/parallel-worktree/SKILL.md`: create or integrate parallel write work.
-- `.agents/skills/run-experiment/SKILL.md`: execute a reproducible experiment.
-- `.agents/skills/add-baseline/SKILL.md`: integrate an external implementation.
-- `.agents/skills/repo-maintenance/SKILL.md`: run a bounded compaction pass.
-
-## Change Rules
-
-- Prefer an existing module, command, config, or source of truth over a new one.
-- Keep temporary exploration under ignored runtime or run directories.
-- A new permanent module needs a current caller, a clear responsibility, and focused validation.
-- Do not mix a broad refactor with a feature or experiment unless the refactor is required.
-- Remove an obsolete path in the same change that replaces it.
-- Use Git history instead of `old/`, `backup/`, or unreferenced archive directories.
-- Never commit secrets, local credentials, private host details, raw logs, large datasets, or
-  checkpoints.
-
-## Definition Of Done
-
-A task is complete when:
-
-- requested behavior exists;
-- relevant tests or evaluations pass;
-- the diff contains no unrelated expansion;
-- every new durable path has the correct unit owner;
-- temporary files are removed or ignored;
-- affected Anatomy, Contract, or Guide content is updated when semantics changed;
-- the handoff states changed files, validation evidence, remaining risk, and durable knowledge
-  candidates.
+Read `.agents/governance/GUIDE.md` for adoption, switching, and integration procedures.

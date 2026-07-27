@@ -452,6 +452,135 @@
       line-height: 1.5;
     }
 
+    .control-plane {
+      margin-top: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .control-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--line);
+      background: #f7f8f6;
+    }
+
+    .control-head h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .control-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .control-badge {
+      padding: 6px 8px;
+      border: 1px solid #9eaaa5;
+      border-radius: 5px;
+      color: #4e5a56;
+      background: #fff;
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .mode {
+      min-width: 0;
+      padding: 22px;
+    }
+
+    .mode + .mode {
+      border-left: 1px solid var(--line);
+    }
+
+    .mode-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 17px;
+    }
+
+    .mode-label strong {
+      font-size: 14px;
+    }
+
+    .mode-label span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .mode-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.35fr);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode.direct .mode-line {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.35fr);
+    }
+
+    .actor {
+      display: grid;
+      place-items: center;
+      min-height: 52px;
+      padding: 9px;
+      border: 1px solid #cbd2ce;
+      border-radius: 6px;
+      background: #fbfcfb;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .actor.worktree {
+      border-color: var(--functional-line);
+      background: var(--functional-soft);
+    }
+
+    .route-arrow {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 850;
+    }
+
+    .control-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 15px 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .control-foot strong {
+      color: var(--ink);
+    }
+
     .source {
       display: flex;
       align-items: center;
@@ -506,7 +635,8 @@
 
       .rulebar,
       .map,
-      .relation {
+      .relation,
+      .control-grid {
         grid-template-columns: 1fr;
       }
 
@@ -522,6 +652,11 @@
       }
 
       .relation-item + .relation-item {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .mode + .mode {
         border-top: 1px solid var(--line);
         border-left: 0;
       }
@@ -565,6 +700,26 @@
       .source {
         display: block;
       }
+
+      .control-head,
+      .control-foot {
+        display: block;
+      }
+
+      .control-badge {
+        display: inline-block;
+        margin-top: 12px;
+      }
+
+      .mode-line,
+      .mode.direct .mode-line {
+        grid-template-columns: 1fr;
+      }
+
+      .route-arrow {
+        text-align: center;
+        transform: rotate(90deg);
+      }
     }
 
     @media print {
@@ -579,7 +734,8 @@
 
       .unit,
       .rulebar,
-      .relation {
+      .relation,
+      .control-plane {
         box-shadow: none;
       }
     }
@@ -592,8 +748,8 @@
         <p class="eyebrow">Agent-Native Research Template</p>
         <h1>Repository Anatomy <span lang="zh-CN">/ 仓库结构图</span></h1>
         <p class="subtitle">
-          这是一张真实目录的所有权地图，而不是项目流程图。治理单元被显式登记；
-          其余路径默认属于功能单元，因此项目自然生长时不会自动扩大治理系统。
+          功能项目保持传统结构；治理被收拢为非运行时 sidecar。两者共享 Git，
+          但项目代码、命令、实验和证据不依赖治理才能运行。
         </p>
       </div>
       <nav class="view-switcher" aria-label="Map focus">
@@ -608,16 +764,16 @@
       <div class="rule governance">
         <span class="rule-dot" aria-hidden="true"></span>
         <div>
-          <strong>治理单元是显式集合</strong>
-          <span>只有 <code>REPO_UNITS.yaml</code> 登记的路径才属于治理。</span>
+          <strong>治理收拢在 sidecar</strong>
+          <span><code>.agents/</code> 是物理边界，根目录只保留发现适配器。</span>
         </div>
       </div>
       <div class="root" aria-label="Repository root"><code>repo/</code></div>
       <div class="rule functional">
         <span class="rule-dot" aria-hidden="true"></span>
         <div>
-          <strong>功能单元是默认集合</strong>
-          <span>新代码、实验、环境与报告默认服务项目结果。</span>
+          <strong>项目路径默认属于功能</strong>
+          <span>代码、环境、实验、工具与报告留在生态原生位置。</span>
         </div>
       </div>
     </section>
@@ -627,33 +783,34 @@
         <header class="unit-header">
           <div>
             <span class="unit-index">G</span>
-            <p class="unit-kicker">Governance Unit</p>
-            <h2>治理单元</h2>
+            <p class="unit-kicker">Governance Sidecar</p>
+            <h2><code>.agents/</code> 治理 sidecar</h2>
             <p class="unit-description">
-              让 human 与 agent 更低成本地定向、约束、协调、验证、集成和维护项目。
+              可以观察并调用项目接口，但不进入项目运行时、依赖或命令链。
             </p>
           </div>
-          <span class="ownership-badge">Explicit paths</span>
+          <span class="ownership-badge">Contained</span>
         </header>
 
         <div class="groups">
           <section class="group">
             <div class="group-head">
-              <h3>根契约</h3>
+              <h3><code>.agents/governance/</code></h3>
               <span class="group-kind">Orientation + rules</span>
             </div>
             <ul class="paths">
-              <li class="path"><code>AGENTS.md</code><span>agent 入口、权限与完成条件</span></li>
               <li class="path"><code>ANATOMY.md</code><span>当前边界、拓扑与依赖方向</span></li>
-              <li class="path"><code>CONTRACT.md</code><span>项目不可轻易破坏的约束</span></li>
-              <li class="path"><code>GUIDE.md</code><span>稳定且可重复的操作流程</span></li>
+              <li class="path"><code>CONTRACT.md</code><span>项目与 sidecar 的稳定约束</span></li>
+              <li class="path"><code>GUIDE.md</code><span>操作、控制转移和集成流程</span></li>
               <li class="path"><code>REPO_UNITS.yaml</code><span>机器可读的所有权真相源</span></li>
+              <li class="path"><code>tools/repo_check.py</code><span>结构与非侵入边界检查</span></li>
+              <li class="path"><code>docs/</code><span>治理理由、结构地图与演进图</span></li>
             </ul>
           </section>
 
           <section class="group">
             <div class="group-head">
-              <h3>Agent 工作区</h3>
+              <h3><code>.agents/</code> 工作表面</h3>
               <span class="group-kind">Context + procedures</span>
             </div>
             <ul class="paths">
@@ -663,27 +820,24 @@
             </ul>
           </section>
 
-          <section class="group">
+          <section class="group optional">
             <div class="group-head">
-              <h3>验证与协作机制</h3>
-              <span class="group-kind">Automation + policy</span>
+              <h3>唯一根适配器</h3>
+              <span class="group-kind">Tool discovery only</span>
             </div>
             <ul class="paths">
-              <li class="path"><code>.github/</code><span>PR 模板与持续验证策略</span></li>
-              <li class="path"><code>tools/repo_check.py</code><span>结构和仓库政策检查</span></li>
-              <li class="path"><code>Makefile</code><span>统一的 setup / verify 接口</span></li>
-              <li class="path"><code>.pre-commit-config.yaml</code><span>提交前的廉价反馈</span></li>
-              <li class="path"><code>.gitignore</code><span>动态产出与私密状态边界</span></li>
+              <li class="path"><code>AGENTS.md</code><span>只负责让 agent 工具发现 sidecar</span></li>
             </ul>
           </section>
 
           <section class="group">
             <div class="group-head">
-              <h3>治理说明</h3>
-              <span class="group-kind">Design record</span>
+              <h3>sidecar 写入边界</h3>
+              <span class="group-kind">Non-invasive</span>
             </div>
             <ul class="paths">
-              <li class="path"><code>docs/governance/</code><span>治理模型、仓库演进与本地图</span></li>
+              <li class="path"><code>read + invoke</code><span>可读 Git、代码和配置并调用公开命令</span></li>
+              <li class="path"><code>no runtime hook</code><span>不注入 import、env、依赖或隐式状态</span></li>
             </ul>
           </section>
         </div>
@@ -693,10 +847,10 @@
         <header class="unit-header">
           <div>
             <span class="unit-index">F</span>
-            <p class="unit-kicker">Functional Unit</p>
-            <h2>功能单元</h2>
+            <p class="unit-kicker">Functional Project</p>
+            <h2>功能项目</h2>
             <p class="unit-description">
-              实现、运行、评估并表达项目本身。它包含创新，也包含让创新成立所需的 substrate。
+              实现、运行、评估并表达项目本身，包含创新及其所需的 substrate。
             </p>
           </div>
           <span class="ownership-badge">Default owner</span>
@@ -764,6 +918,18 @@
             </ul>
           </section>
 
+          <section class="group">
+            <div class="group-head">
+              <h3>项目命令与平台</h3>
+              <span class="group-kind">Public interfaces</span>
+            </div>
+            <ul class="paths">
+              <li class="path"><code>Makefile</code><span>不依赖 sidecar 的 setup / verify 接口</span></li>
+              <li class="path"><code>.pre-commit-config.yaml</code><span>只检查项目文件</span></li>
+              <li class="path"><code>.github/</code><span>项目验证与 sidecar doctor 独立运行</span></li>
+            </ul>
+          </section>
+
           <section class="group optional">
             <div class="group-head">
               <h3>按真实需求生长</h3>
@@ -783,22 +949,62 @@
       <div class="relation-item">
         <div class="relation-label">
           <span class="arrow" aria-hidden="true">G → F</span>
-          <span>治理可以观察、调用与验证功能接口</span>
+          <span>sidecar 可以观察、调用与验证项目接口</span>
         </div>
-        <p>治理服务项目交付；检查、skills 和 main-agent 可以调用测试、评估与实验入口。</p>
+        <p>治理通过 Git 和公开命令工作；它不要求项目为 agent 添加运行时入口。</p>
       </div>
       <div class="relation-item">
         <div class="relation-label">
           <span class="blocked" aria-hidden="true">F ↛ G</span>
-          <span>功能运行时不得依赖治理状态</span>
+          <span>项目运行时不得依赖 sidecar</span>
         </div>
-        <p>代码、实验和报告在没有 agent runtime、pad 或治理文档时仍应可用和可复现。</p>
+        <p>移除 <code>.agents/</code> 后，代码、命令、实验、评估和报告仍应可用。</p>
+      </div>
+    </section>
+
+    <section class="control-plane" aria-label="Worktree control modes">
+      <header class="control-head">
+        <div>
+          <h2>Worktree Control Plane / 可切换控制模式</h2>
+          <p>控制模式属于每个 worktree；不同模式可以同时存在，创建者不等于永久控制者。</p>
+        </div>
+        <span class="control-badge">Per worktree · switchable</span>
+      </header>
+      <div class="control-grid">
+        <section class="mode mediated">
+          <div class="mode-label">
+            <strong>Mediated / 中介模式</strong>
+            <span>Default</span>
+          </div>
+          <div class="mode-line">
+            <span class="actor">Human</span>
+            <span class="route-arrow" aria-hidden="true">↔</span>
+            <span class="actor">Main Agent</span>
+            <span class="route-arrow" aria-hidden="true">↔</span>
+            <span class="actor worktree">Agent @ worktree A</span>
+          </div>
+        </section>
+        <section class="mode direct">
+          <div class="mode-label">
+            <strong>Direct / 直连模式</strong>
+            <span>Parallel steering</span>
+          </div>
+          <div class="mode-line">
+            <span class="actor">Human</span>
+            <span class="route-arrow" aria-hidden="true">↔</span>
+            <span class="actor worktree">Agent @ worktree B</span>
+          </div>
+        </section>
+      </div>
+      <div class="control-foot">
+        <span><strong>Human 或 Main Agent</strong> 都可以创建或接管 worktree。</span>
+        <span><strong>checkpoint + optional HANDOFF</strong> 后即可在两种模式间切换。</span>
       </div>
     </section>
 
     <footer class="source">
-      <span>分类真相源：<strong><code>REPO_UNITS.yaml</code></strong></span>
-      <span>静态结构保存在 Git；动态状态进入 runtime、runs 或外部 artifact storage。</span>
+      <span>分类真相源：<strong><code>.agents/governance/REPO_UNITS.yaml</code></strong></span>
+      <span>Git 保存事实；<code>.agents/runtime/</code> 只保存工作树控制与临时交接。</span>
     </footer>
   </main>
 

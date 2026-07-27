@@ -7,10 +7,30 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
-UNIT_MANIFEST = ROOT / "REPO_UNITS.yaml"
+ROOT = Path(__file__).resolve().parents[3]
+UNIT_MANIFEST = ROOT / ".agents" / "governance" / "REPO_UNITS.yaml"
 UNIT_NAMES = {"governance", "functional"}
 IGNORED_PARTS = {".git", ".venv", ".pytest_cache", ".ruff_cache", "runs", "artifacts"}
+GOVERNANCE_PATHS = {".agents/", "AGENTS.md"}
+LEGACY_GOVERNANCE_PATHS = {
+    "ANATOMY.md",
+    "CONTRACT.md",
+    "GUIDE.md",
+    "REPO_UNITS.yaml",
+    "docs/governance",
+    "tools/repo_check.py",
+}
+FUNCTIONAL_EXECUTION_ROOTS = {
+    "configs",
+    "environments",
+    "evals",
+    "experiments",
+    "infra",
+    "src",
+    "tests",
+}
+FUNCTIONAL_COMMAND_FILES = {"Makefile", "pyproject.toml", ".pre-commit-config.yaml"}
+TEXT_SUFFIXES = {".md", ".py", ".sh", ".toml", ".yaml", ".yml"}
 REQUIRED_EXPERIMENT_FIELDS = {
     "id",
     "contribution",
@@ -74,11 +94,12 @@ def is_valid_repo_path(value: object) -> bool:
 
 def load_unit_manifest(errors: list[str]) -> dict[str, object] | None:
     data = load_yaml(UNIT_MANIFEST, errors)
+    manifest_name = UNIT_MANIFEST.relative_to(ROOT)
     if not isinstance(data, dict):
-        errors.append("UNIT-001 REPO_UNITS.yaml must be a mapping")
+        errors.append(f"UNIT-001 {manifest_name} must be a mapping")
         return None
     if data.get("schema_version") != 1:
-        errors.append("UNIT-002 REPO_UNITS.yaml schema_version must be 1")
+        errors.append(f"UNIT-002 {manifest_name} schema_version must be 1")
 
     units = data.get("units")
     if not isinstance(units, dict) or set(units) != UNIT_NAMES:
@@ -98,6 +119,10 @@ def load_unit_manifest(errors: list[str]) -> dict[str, object] | None:
         errors.append("UNIT-007 governance paths must be normalized repository-relative paths")
     elif len(governance_paths) != len(set(governance_paths)):
         errors.append("UNIT-008 governance paths must be unique")
+    elif set(governance_paths) != GOVERNANCE_PATHS:
+        errors.append(
+            "UNIT-013 governance must remain contained by .agents/ and the AGENTS.md adapter"
+        )
 
     required_paths = data.get("required_paths")
     if not isinstance(required_paths, dict) or set(required_paths) != UNIT_NAMES:
@@ -223,6 +248,32 @@ def check_tracked_state(errors: list[str]) -> None:
             errors.append(f"GIT-003 tracked file exceeds 10 MiB: {relative_path}")
 
 
+def check_sidecar_boundary(errors: list[str]) -> None:
+    for relative_path in sorted(LEGACY_GOVERNANCE_PATHS):
+        if (ROOT / relative_path).exists():
+            errors.append(f"BOUNDARY-001 governance path escaped sidecar: {relative_path}")
+
+    for path in project_files():
+        relative_path = path.relative_to(ROOT)
+        relative_name = relative_path.as_posix()
+        first_part = relative_path.parts[0]
+        is_execution_path = first_part in FUNCTIONAL_EXECUTION_ROOTS
+        is_command_file = relative_name in FUNCTIONAL_COMMAND_FILES
+        if not (is_execution_path or is_command_file):
+            continue
+        if path.suffix not in TEXT_SUFFIXES and not is_command_file:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        if ".agents/" in text or ".agents\\" in text:
+            errors.append(
+                "BOUNDARY-002 functional execution path references governance sidecar: "
+                f"{relative_name}"
+            )
+
+
 def main() -> int:
     errors: list[str] = []
     manifest = load_unit_manifest(errors)
@@ -233,6 +284,7 @@ def main() -> int:
     check_skills(errors)
     check_experiment_specs(errors)
     check_tracked_state(errors)
+    check_sidecar_boundary(errors)
 
     if errors:
         for error in errors:
@@ -242,7 +294,7 @@ def main() -> int:
     print(
         "OK repository structure, units "
         f"(functional={unit_counts['functional']}, governance={unit_counts['governance']}), "
-        "YAML, skills, experiment specs, and tracked state"
+        "sidecar boundary, YAML, skills, experiment specs, and tracked state"
     )
     return 0
 

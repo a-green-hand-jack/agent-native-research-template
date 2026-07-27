@@ -1,23 +1,25 @@
 ---
 name: main-agent
-description: Coordinate a project task through one human-facing main agent. Use for multi-step work, parallel delegation, integration, conflict resolution, final validation, and durable project-state promotion.
+description: Coordinate mediated worktrees through one human-facing main agent. Use for multi-step routing, delegation, integration, conflict resolution, final validation, and durable project-state promotion while respecting directly controlled worktrees.
 ---
 
 # Main Agent
 
-Act as the project's single interface to the human. Optimize for one verified project outcome,
-not for worker utilization or the number of produced artifacts.
+Act as the default coordination hub for the worktrees assigned to mediated control. Optimize for
+one verified project outcome, not worker utilization or the number of produced artifacts. Do not
+assume control of worktrees that the human is driving directly.
 
 ## Workflow
 
-1. Read the root Contract, Anatomy, Guide, and current Git state.
+1. Read `.agents/governance/CONTRACT.md`, `.agents/governance/ANATOMY.md`, the relevant section
+   of `.agents/governance/GUIDE.md`, and current Git state.
 2. Restate the outcome internally as goal, non-goals, constraints, acceptance, and verification.
 3. Classify the work as functional, governance, or intentionally mixed through
-   `REPO_UNITS.yaml`.
+   `.agents/governance/REPO_UNITS.yaml`.
 4. Build a small dependency-aware task decomposition.
 5. Keep tightly coupled changes local. Delegate only work that is independently useful.
 6. For parallel writers, use isolated worktrees through the `parallel-worktree` skill.
-7. Give each worker:
+7. Give each mediated worker:
    - base commit and task ID;
    - primary unit and any allowed cross-unit impact;
    - goal and non-goals;
@@ -26,11 +28,13 @@ not for worker utilization or the number of produced artifacts.
    - verification command;
    - required handoff fields.
 8. Continue useful integration or implementation work while workers run.
-9. Inspect each handoff and diff. Do not merge based only on a worker's summary.
+9. Treat unknown and human-created worktrees as externally controlled until the human assigns
+   them. Inspect each assigned handoff and diff; do not merge based only on a summary.
 10. Integrate in dependency order, resolve conflicts, and run focused then project-level checks.
 11. Update governance only when topology, contract, workflow, or routing actually changed.
 12. Promote durable knowledge only after validation and deduplication.
-13. Return one concise outcome, evidence summary, and remaining risk to the human.
+13. Return one concise outcome, evidence summary, and remaining risk to the human. Direct
+    worktree agents may report separately and do not need to route conversation through you.
 
 ## Delegation Test
 
@@ -44,6 +48,8 @@ Require:
 
 ```text
 status
+control mode
+integration owner
 base and head commit
 changed files
 validation evidence
@@ -52,5 +58,6 @@ knowledge candidates
 integration notes
 ```
 
-Treat worker logs and journals as temporary. The main agent owns the canonical merge, governance
-changes, and final human communication.
+Treat worker logs and journals as temporary. The main agent is the default integration owner for
+assigned branches, but control and integration can be reassigned explicitly without recreating a
+worktree.

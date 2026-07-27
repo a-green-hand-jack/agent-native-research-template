@@ -8,18 +8,18 @@
 
 ## Unit
 
-- [ ] Functional: capability, substrate, execution, evaluation, or evidence
-- [ ] Governance: ownership, contract, procedure, routing, validation, or maintenance
+- [ ] Functional project: capability, substrate, execution, evaluation, or evidence
+- [ ] Governance sidecar: agent ownership, contract, procedure, routing, or maintenance
 
-<!-- For governance changes, name the repeated cost or failure this removes. -->
+<!-- Sidecar changes stay under .agents/ except for the AGENTS.md discovery adapter. -->
 
 ## Evidence
 
 <!-- Commands, tests, evaluations, run IDs, or screenshots. -->
 
-## Cross-Unit Impact
+## Sidecar Boundary
 
-<!-- Explain intentional functional/governance coupling. Use "none" when the change stays in one unit. -->
+<!-- Confirm the project remains usable without .agents/. Name any non-invasive adapter touched. -->
 
 ## Remaining Risk
 

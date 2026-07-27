@@ -10,9 +10,9 @@ The stable logical model is:
 contribution + substrate + execution context + evaluation = reproducible result
 ```
 
-These project-producing surfaces form the functional unit. The governance unit surrounds them
-with orientation, constraints, coordination, verification, and maintenance, but does not become
-a dependency of the result.
+These project-producing surfaces form the functional project. The governance sidecar observes
+them through public interfaces and supplies orientation, constraints, coordination, validation,
+and maintenance without becoming a dependency of the result.
 
 Physical structure grows when an object becomes plural, shared, expensive, or independently
 versioned.
@@ -41,15 +41,15 @@ experiment.yaml
 
 ![V1 agent-ready core](images/repo-evolution-v1.png)
 
-The repository gains a thin constitutional layer and an executable feedback loop:
+The repository gains a thin `.agents/` sidecar and an executable project feedback loop:
 
 - bounded tasks;
 - code, tests, and evaluations;
 - short-lived pad and journal;
 - reviewed durable knowledge.
 
-This stage reduces repeated orientation and explanation. Governance remains smaller than the
-project surface it guides.
+This stage reduces repeated orientation and explanation. Governance remains physically
+contained and smaller than the project surface it guides.
 
 ## V2: Infrastructure And Multiple Environments
 
@@ -95,9 +95,12 @@ traceable evidence rather than terminal logs or copied metrics.
 
 ![Agent-native project governance](images/agent-native-project-governance.png)
 
-The human communicates with one main agent. Independent workers operate in isolated worktrees.
-The main agent integrates and validates their output. Delivery advances the project; bounded
-maintenance periodically removes duplicate code, stale docs, obsolete memory, and unreferenced
-outputs.
+The default path keeps the human in one conversation with a main agent, which coordinates
+isolated worktree agents and integrates their output. When more conversational parallelism or
+lower-latency steering matters, the human may directly control selected worktree agents. Both
+modes can coexist, and either human or main agent may create or adopt the worktrees.
+
+Delivery advances the project; bounded maintenance periodically removes duplicate code, stale
+docs, obsolete memory, and unreferenced outputs.
 
 The template should evolve only when a repeated project cost justifies a new permanent mechanism.

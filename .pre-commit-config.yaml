@@ -11,9 +11,3 @@ repos:
         entry: uv run ruff format --check --force-exclude
         language: system
         types_or: [python, pyi]
-      - id: repository-check
-        name: repository check
-        entry: uv run python tools/repo_check.py
-        language: system
-        pass_filenames: false
-
