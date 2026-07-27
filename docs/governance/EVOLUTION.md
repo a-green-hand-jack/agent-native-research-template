@@ -17,6 +17,10 @@ a dependency of the result.
 Physical structure grows when an object becomes plural, shared, expensive, or independently
 versioned.
 
+The interactive [current repository map](repository-map.html) labels the concrete template
+paths as governance or functional. The diagrams below describe how those paths become necessary
+over time rather than replacing that ownership map.
+
 ## V0: One Complete Vertical Slice
 
 ![V0 simple research project](images/repo-evolution-v0.png)

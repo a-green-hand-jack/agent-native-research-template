@@ -28,6 +28,9 @@ functional behavior must not require governance files or agent runtime state.
 governance belong to the functional unit by default. This project-first default prevents a new
 feature, experiment, or document from becoming governance merely because an agent created it.
 
+The interactive **[Repository Anatomy Map](docs/governance/repository-map.html)** labels the
+concrete paths and can focus the view on either unit or on dynamic surfaces.
+
 The complete coordination and maintenance model is shown in
 [the governance diagram](docs/governance/images/agent-native-project-governance.png). The staged
 visual model in [Repository Evolution](docs/governance/EVOLUTION.md) explains how this anatomy
