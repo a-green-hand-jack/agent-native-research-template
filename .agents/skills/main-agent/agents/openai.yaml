@@ -1,0 +1,4 @@
+interface:
+  display_name: "Main Agent"
+  short_description: "Coordinate delegated work and verified project integration."
+  default_prompt: "Coordinate this project task as the main agent, delegate independent work safely, integrate results, and report one consolidated outcome."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Parallel Worktree"
+  short_description: "Run parallel project work in isolated Git worktrees."
+  default_prompt: "Create and coordinate isolated Git worktrees for parallel tasks, then return integration-ready handoffs."

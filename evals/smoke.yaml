@@ -1,0 +1,3 @@
+id: smoke
+command: make smoke
+purpose: verify the smallest complete project path

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Maintenance"
+  short_description: "Compact code, docs, memory, reports, and stale project state."
+  default_prompt: "Perform a bounded repository maintenance pass that removes duplication while preserving contracts and validated behavior."

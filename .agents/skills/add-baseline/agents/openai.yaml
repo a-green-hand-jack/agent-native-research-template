@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Baseline"
+  short_description: "Integrate a pinned baseline in an isolated environment."
+  default_prompt: "Add this external baseline with pinned source, an isolated environment, a project adapter, and a smoke test."

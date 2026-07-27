@@ -1,0 +1,7 @@
+id: smoke
+contribution: bootstrap
+config: configs/base.yaml
+environment: main
+executor: local
+evaluation: smoke
+command: make smoke

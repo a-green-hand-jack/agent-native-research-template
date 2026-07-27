@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run Experiment"
+  short_description: "Execute reproducible experiments and record immutable evidence."
+  default_prompt: "Run this experiment reproducibly, capture its code and environment provenance, evaluate it, and return a concise report."
