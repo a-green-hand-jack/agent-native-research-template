@@ -581,6 +581,13 @@
       color: var(--ink);
     }
 
+    .control-foot a {
+      color: var(--main, #315da8);
+      font-weight: 800;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
     .source {
       display: flex;
       align-items: center;
@@ -998,7 +1005,10 @@
       </div>
       <div class="control-foot">
         <span><strong>Human 或 Main Agent</strong> 都可以创建或接管 worktree。</span>
-        <span><strong>checkpoint + optional HANDOFF</strong> 后即可在两种模式间切换。</span>
+        <span>
+          <strong>checkpoint + optional HANDOFF</strong> 后即可切换。
+          <a href="worktree-control.html">查看完整控制模型</a>
+        </span>
       </div>
     </section>
 

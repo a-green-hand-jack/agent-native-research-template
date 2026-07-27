@@ -71,7 +71,9 @@ the main agent; a main-agent-created worktree can be taken over directly by the 
 is durable; an ignored `.agents/runtime/HANDOFF.md` carries only context that Git cannot express.
 
 See the [Project Guide](.agents/governance/GUIDE.md) for worktree adoption, control transfer, and
-integration procedures.
+integration procedures. The interactive
+[Worktree Control Model](.agents/governance/docs/worktree-control.html) distinguishes human,
+main-agent, Git worktree, and worktree-agent responsibilities.
 
 ## Governance Entry Points
 
@@ -84,10 +86,10 @@ integration procedures.
 - `.agents/memory/`: reviewed durable facts;
 - `.agents/runtime/`: ignored per-worktree pads and handoffs.
 
-The [governance loop diagram](.agents/governance/docs/images/agent-native-project-governance.png)
-shows the default main-agent coordination path. [Repository Evolution](.agents/governance/docs/EVOLUTION.md)
-shows how the functional project grows from one vertical slice to parallel experiments and
-publication-ready evidence.
+The [governance overview](.agents/governance/docs/images/agent-native-project-governance.png)
+shows mediated and direct control modes, the sidecar boundary, and delivery. [Repository
+Evolution](.agents/governance/docs/EVOLUTION.md) defines the semantic scope of every image and
+shows how the functional project grows from one vertical slice to publication-ready evidence.
 
 ## Project Commands
 

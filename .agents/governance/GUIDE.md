@@ -54,6 +54,8 @@ Do not pre-create empty packages, baseline directories, publication systems, or 
 ## Choose A Control Mode
 
 Control mode is per worktree and can differ across concurrent tasks.
+Use the interactive [Worktree Control Model](docs/worktree-control.html) when distinguishing the
+human, main-agent, Git worktree, worktree-agent, active controller, and integration owner.
 
 ### Mediated Mode
 

@@ -22,6 +22,7 @@ required_paths:
     - .agents/governance/CONTRACT.md
     - .agents/governance/GUIDE.md
     - .agents/governance/REPO_UNITS.yaml
+    - .agents/governance/docs/worktree-control.html
     - .agents/governance/tools/repo_check.py
     - .agents/memory/INDEX.md
     - .agents/runtime/.gitignore

@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Worktree Control Model | Agent-Native Research Template</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f3f5f2;
+      --paper: #ffffff;
+      --ink: #17201d;
+      --muted: #65706b;
+      --line: #cdd4d0;
+      --human: #9a4f15;
+      --human-soft: #fff3e8;
+      --main: #315da8;
+      --main-soft: #edf3ff;
+      --agent: #087d71;
+      --agent-soft: #e9f7f4;
+      --git: #594b8a;
+      --git-soft: #f2effb;
+      --warning: #b9382c;
+      --warning-soft: #fff0ee;
+      --shadow: 0 14px 40px rgba(23, 32, 29, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--canvas);
+      color: var(--ink);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+    }
+
+    button,
+    code {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 26px;
+    }
+
+    .masthead > *,
+    .switcher,
+    .switcher button {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 980px;
+      font-size: clamp(34px, 4.4vw, 58px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    h1 span {
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      max-width: 900px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .switcher {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      box-shadow: 0 5px 18px rgba(23, 32, 29, 0.05);
+    }
+
+    .switcher button {
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .switcher button:hover {
+      color: var(--ink);
+      background: #f1f3f1;
+    }
+
+    .switcher button[aria-pressed="true"] {
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .principle {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      overflow: hidden;
+      margin-bottom: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .principle-item {
+      min-height: 82px;
+      padding: 17px 20px;
+    }
+
+    .principle-item + .principle-item {
+      border-left: 1px solid var(--line);
+    }
+
+    .principle-item strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .principle-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .section {
+      margin-top: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--line);
+      background: #f7f8f6;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      padding: 6px 8px;
+      border: 1px solid #9eaaa5;
+      border-radius: 5px;
+      color: #4e5a56;
+      background: #fff;
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .entities {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .entity {
+      min-width: 0;
+      padding: 20px;
+      transition: opacity 160ms ease, filter 160ms ease;
+    }
+
+    .entity + .entity {
+      border-left: 1px solid var(--line);
+    }
+
+    .entity-id {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 13px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .entity.human .entity-id {
+      color: var(--human);
+      background: var(--human-soft);
+    }
+
+    .entity.main-agent .entity-id {
+      color: var(--main);
+      background: var(--main-soft);
+    }
+
+    .entity.worktree .entity-id {
+      color: var(--git);
+      background: var(--git-soft);
+    }
+
+    .entity.worktree-agent .entity-id {
+      color: var(--agent);
+      background: var(--agent-soft);
+    }
+
+    .entity h3 {
+      margin: 0 0 7px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .entity p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .entity dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 5px 9px;
+      margin: 14px 0 0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .entity dt {
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .entity dd {
+      margin: 0;
+      font-weight: 700;
+    }
+
+    .topology {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .lane {
+      min-width: 0;
+      padding: 22px;
+      transition: opacity 160ms ease, filter 160ms ease, background 160ms ease;
+    }
+
+    .lane + .lane {
+      border-left: 1px solid var(--line);
+    }
+
+    .lane-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .lane-head strong {
+      font-size: 15px;
+    }
+
+    .lane-head span {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .route {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.2fr);
+      align-items: center;
+      gap: 9px;
+    }
+
+    .lane.direct .route {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
+    }
+
+    .node {
+      display: grid;
+      place-items: center;
+      min-height: 66px;
+      padding: 10px;
+      border: 1px solid #cbd2ce;
+      border-radius: 6px;
+      background: #fbfcfb;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .node.human {
+      border-color: #e1b68f;
+      background: var(--human-soft);
+    }
+
+    .node.main-agent {
+      border-color: #9fb7df;
+      background: var(--main-soft);
+    }
+
+    .node.agent {
+      border-color: var(--agent);
+      background: var(--agent-soft);
+    }
+
+    .node small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 850;
+    }
+
+    .lane-note {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .ownership {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+    }
+
+    .ownership-item {
+      padding: 17px 20px;
+    }
+
+    .ownership-item + .ownership-item {
+      border-left: 1px solid var(--line);
+    }
+
+    .ownership-item strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .ownership-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .state-flow {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 22px;
+    }
+
+    .state {
+      min-height: 84px;
+      padding: 13px;
+      border: 1px solid #cbd2ce;
+      border-radius: 6px;
+      background: #fbfcfb;
+    }
+
+    .state strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .state span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .state.controlled {
+      border-color: var(--agent);
+      background: var(--agent-soft);
+    }
+
+    .state.handoff {
+      border-color: #d19a4d;
+      background: #fff8e9;
+    }
+
+    .state.complete {
+      border-color: #7ea786;
+      background: #eff8f0;
+    }
+
+    .state-arrow {
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .transfer {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .transfer-step {
+      position: relative;
+      min-width: 0;
+      padding: 20px;
+    }
+
+    .transfer-step + .transfer-step {
+      border-left: 1px solid var(--line);
+    }
+
+    .step-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 27px;
+      height: 27px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .transfer-step strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .transfer-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .invariant {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 17px 20px;
+      border-top: 1px solid #e7b8b2;
+      color: #7e2a22;
+      background: var(--warning-soft);
+      font-size: 13px;
+      font-weight: 760;
+      line-height: 1.5;
+    }
+
+    .invariant-mark {
+      display: grid;
+      flex: 0 0 28px;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--warning);
+      border-radius: 50%;
+      color: var(--warning);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .evidence {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .evidence-item {
+      padding: 20px 22px;
+    }
+
+    .evidence-item + .evidence-item {
+      border-left: 1px solid var(--line);
+    }
+
+    .evidence-item h3 {
+      margin: 0 0 9px;
+      font-size: 14px;
+    }
+
+    .evidence-item ul {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .evidence-item li {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .evidence-item code {
+      color: var(--ink);
+      font-weight: 750;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .footer strong {
+      color: var(--ink);
+    }
+
+    body[data-focus="mediated"] .lane.direct,
+    body[data-focus="direct"] .lane.mediated {
+      opacity: 0.25;
+      filter: grayscale(0.8);
+    }
+
+    body[data-focus="mediated"] .lane.mediated,
+    body[data-focus="direct"] .lane.direct {
+      background: #f8fbfa;
+    }
+
+    body[data-focus="handoff"] .topology,
+    body[data-focus="handoff"] .entities {
+      opacity: 0.3;
+      filter: grayscale(0.75);
+    }
+
+    body[data-focus="handoff"] .state.handoff {
+      border-color: #a8660a;
+      box-shadow: 0 0 0 3px rgba(168, 102, 10, 0.13);
+    }
+
+    @media (max-width: 1000px) {
+      .page {
+        width: min(780px, calc(100% - 24px));
+        padding-top: 28px;
+      }
+
+      .masthead {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .switcher {
+        width: fit-content;
+      }
+
+      .principle,
+      .entities,
+      .topology,
+      .ownership,
+      .transfer,
+      .evidence {
+        grid-template-columns: 1fr;
+      }
+
+      .principle-item + .principle-item,
+      .entity + .entity,
+      .lane + .lane,
+      .ownership-item + .ownership-item,
+      .transfer-step + .transfer-step,
+      .evidence-item + .evidence-item {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .state-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .state-arrow {
+        text-align: center;
+        transform: rotate(90deg);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(520px, calc(100% - 18px));
+      }
+
+      .switcher {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+      }
+
+      .section-head,
+      .footer {
+        display: block;
+      }
+
+      .badge {
+        display: inline-block;
+        margin-top: 12px;
+      }
+
+      .route,
+      .lane.direct .route {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        text-align: center;
+        transform: rotate(90deg);
+      }
+    }
+
+    @media print {
+      .page {
+        width: 100%;
+        padding: 0;
+      }
+
+      .switcher {
+        display: none;
+      }
+
+      .principle,
+      .section {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body data-focus="mixed">
+  <main class="page">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Agent-Native Research Template</p>
+        <h1>Worktree Control Model <span lang="zh-CN">/ 工作树控制关系</span></h1>
+        <p class="subtitle">
+          这里区分四个经常被混为一谈的对象：human、main-agent、worktree 和
+          worktree-agent。Git worktree 提供隔离；控制权决定谁可以向其中的 agent 发出写入指令。
+        </p>
+      </div>
+      <nav class="switcher" aria-label="Control model focus">
+        <button type="button" data-view="mixed" aria-pressed="true">并行全景</button>
+        <button type="button" data-view="mediated" aria-pressed="false">中介模式</button>
+        <button type="button" data-view="direct" aria-pressed="false">直连模式</button>
+        <button type="button" data-view="handoff" aria-pressed="false">控制交接</button>
+      </nav>
+    </header>
+
+    <section class="principle" aria-label="Control principles">
+      <div class="principle-item">
+        <strong>创建者不等于控制者</strong>
+        <p>Human 和 main-agent 都可以创建 worktree，之后仍可把控制权交给另一方。</p>
+      </div>
+      <div class="principle-item">
+        <strong>控制者不等于集成者</strong>
+        <p>Human 可以直连 worktree-agent，同时让 main-agent 保持最终集成责任。</p>
+      </div>
+      <div class="principle-item">
+        <strong>模式属于 worktree</strong>
+        <p>同一 repo 可以同时存在 mediated、direct 和等待交接的多个工作树。</p>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Entities">
+      <header class="section-head">
+        <div>
+          <h2>Four Entities / 四类对象</h2>
+          <p>持久性、权限和职责不同，不能把 agent session 与 Git worktree 当成同一个东西。</p>
+        </div>
+        <span class="badge">Identity before routing</span>
+      </header>
+      <div class="entities">
+        <article class="entity human">
+          <span class="entity-id">H</span>
+          <h3>Human</h3>
+          <p>定义结果、选择交流对象、分配或收回控制权，并解决需要人类判断的分支。</p>
+          <dl>
+            <dt>持久性</dt><dd>跨会话</dd>
+            <dt>可创建</dt><dd>worktree</dd>
+            <dt>可控制</dt><dd>main 或 worktree-agent</dd>
+          </dl>
+        </article>
+        <article class="entity main-agent">
+          <span class="entity-id">M</span>
+          <h3>Main Agent</h3>
+          <p>默认协调中心。拆解任务、管理 mediated worktrees，并通常负责集成和最终验证。</p>
+          <dl>
+            <dt>持久性</dt><dd>会话级</dd>
+            <dt>可创建</dt><dd>worktree</dd>
+            <dt>写权限</dt><dd>被分配的 worktrees</dd>
+          </dl>
+        </article>
+        <article class="entity worktree">
+          <span class="entity-id">W</span>
+          <h3>Git Worktree</h3>
+          <p>一个 branch 的隔离 checkout，是代码与 Git 时间线的容器，本身不是 agent。</p>
+          <dl>
+            <dt>持久性</dt><dd>直到移除</dd>
+            <dt>包含</dt><dd>branch + checkout</dd>
+            <dt>当前控制</dt><dd>每次一个 controller</dd>
+          </dl>
+        </article>
+        <article class="entity worktree-agent">
+          <span class="entity-id">A</span>
+          <h3>Worktree Agent</h3>
+          <p>在特定 worktree 上下文中工作的 agent session。会话可替换，Git 状态继续存在。</p>
+          <dl>
+            <dt>持久性</dt><dd>会话级</dd>
+            <dt>作用域</dt><dd>一个 worktree</dd>
+            <dt>指令来源</dt><dd>human 或 main-agent</dd>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Interaction topologies">
+      <header class="section-head">
+        <div>
+          <h2>Interaction Topologies / 交互拓扑</h2>
+          <p>两种模式可以并存。差别只在 worktree-agent 的当前指令来源，不改变 branch 或 checkout。</p>
+        </div>
+        <span class="badge">Concurrent + switchable</span>
+      </header>
+      <div class="topology">
+        <article class="lane mediated">
+          <div class="lane-head">
+            <strong>Mediated / 中介模式</strong>
+            <span>Default hub</span>
+          </div>
+          <div class="route">
+            <span class="node human">Human</span>
+            <span class="arrow" aria-hidden="true">↔</span>
+            <span class="node main-agent">Main Agent</span>
+            <span class="arrow" aria-hidden="true">↔</span>
+            <span class="node agent">Worktree Agent<small>inside worktree A</small></span>
+          </div>
+          <p class="lane-note">
+            Human 只维护一个主要对话；main-agent 负责分解、跟进、冲突处理和结果汇总。
+          </p>
+        </article>
+        <article class="lane direct">
+          <div class="lane-head">
+            <strong>Direct / 直连模式</strong>
+            <span>Parallel steering</span>
+          </div>
+          <div class="route">
+            <span class="node human">Human</span>
+            <span class="arrow" aria-hidden="true">↔</span>
+            <span class="node agent">Worktree Agent<small>inside worktree B</small></span>
+          </div>
+          <p class="lane-note">
+            Human 获得更低延迟、更深局部上下文和更多并行对话；该 worktree 不再接受 main-agent 写指令。
+          </p>
+        </article>
+      </div>
+      <div class="ownership">
+        <div class="ownership-item">
+          <strong>Creation owner / 创建者</strong>
+          <p>只负责建立 worktree。Human 或 main-agent 都可以承担。</p>
+        </div>
+        <div class="ownership-item">
+          <strong>Active controller / 当前控制者</strong>
+          <p>唯一可以向该 worktree-agent 发出写入指令的一方。</p>
+        </div>
+        <div class="ownership-item">
+          <strong>Integration owner / 集成者</strong>
+          <p>检查 commits 和 diff、决定合并顺序并运行最终验证；默认是 main-agent。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Worktree state model">
+      <header class="section-head">
+        <div>
+          <h2>Per-Worktree State / 每个工作树的状态</h2>
+          <p>控制变化是 checkpoint transition，不是重新创建 worktree，也不是强制 merge。</p>
+        </div>
+        <span class="badge">Git is durable state</span>
+      </header>
+      <div class="state-flow">
+        <div class="state">
+          <strong>External / Unassigned</strong>
+          <span>未知或 human 手动创建；main-agent 默认只读。</span>
+        </div>
+        <span class="state-arrow" aria-hidden="true">→</span>
+        <div class="state controlled">
+          <strong>Mediated 或 Direct</strong>
+          <span>一个 controller 独占写指令；agent 在 worktree 内执行。</span>
+        </div>
+        <span class="state-arrow" aria-hidden="true">↔</span>
+        <div class="state handoff">
+          <strong>Handoff Checkpoint</strong>
+          <span>停止旧写入，提交状态，补充可选 HANDOFF。</span>
+        </div>
+        <span class="state-arrow" aria-hidden="true">→</span>
+        <div class="state complete">
+          <strong>Completed / Integrated</strong>
+          <span>集成者验证并合并；之后安全移除 worktree。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Control transfer protocol">
+      <header class="section-head">
+        <div>
+          <h2>Control Transfer / 控制权交接</h2>
+          <p>“随时切换”意味着不重建工作树，但仍要避免两个 agent 同时写同一 checkout。</p>
+        </div>
+        <span class="badge">No concurrent controllers</span>
+      </header>
+      <div class="transfer">
+        <article class="transfer-step">
+          <span class="step-index">1</span>
+          <strong>Stop / 停止旧控制</strong>
+          <p>Human 明确通知 outgoing controller 停止发出新写入。</p>
+        </article>
+        <article class="transfer-step">
+          <span class="step-index">2</span>
+          <strong>Checkpoint / 固化状态</strong>
+          <p>尽量形成 coherent commit，并保留当前 status 与验证结果。</p>
+        </article>
+        <article class="transfer-step">
+          <span class="step-index">3</span>
+          <strong>Handoff / 补足上下文</strong>
+          <p>只有 Git 无法表达的 next action、风险和 dirty intent 才写入 runtime handoff。</p>
+        </article>
+        <article class="transfer-step">
+          <span class="step-index">4</span>
+          <strong>Adopt / 新控制者接管</strong>
+          <p>读取 log、status、diff 和 handoff，然后在原 branch 与 worktree 上继续。</p>
+        </article>
+      </div>
+      <div class="invariant">
+        <span class="invariant-mark" aria-hidden="true">!</span>
+        <span>仅仅打开另一个 agent 会话不会自动完成控制转移；必须先让旧控制者停止写入。</span>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Durable and runtime evidence">
+      <header class="section-head">
+        <div>
+          <h2>What Persists / 哪些状态应该保存</h2>
+          <p>不建立永久协调数据库。Git 保存事实，runtime 只桥接尚未固化的上下文。</p>
+        </div>
+        <span class="badge">Minimal coordination state</span>
+      </header>
+      <div class="evidence">
+        <div class="evidence-item">
+          <h3>Git: durable facts</h3>
+          <ul>
+            <li><code>branch + base/head SHA</code>：工作树的时间线</li>
+            <li><code>commits + diff</code>：实际完成的修改</li>
+            <li><code>tests + reports</code>：可验证的功能证据</li>
+          </ul>
+        </div>
+        <div class="evidence-item">
+          <h3><code>.agents/runtime/HANDOFF.md</code>: optional context</h3>
+          <ul>
+            <li>尚未提交但有意保留的 dirty state</li>
+            <li>下一步、已运行验证、剩余风险和 integration owner</li>
+            <li>接管完成后删除或覆盖，不提升为默认项目真相</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>稳定规则：<strong>一个 worktree、一个 active controller、一个明确 integration owner。</strong></span>
+      <span>详细操作协议：<strong><code>.agents/governance/GUIDE.md</code></strong></span>
+    </footer>
+  </main>
+
+  <script>
+    const controls = document.querySelectorAll("[data-view]");
+
+    controls.forEach((control) => {
+      control.addEventListener("click", () => {
+        const view = control.dataset.view;
+        document.body.dataset.focus = view;
+        controls.forEach((candidate) => {
+          candidate.setAttribute("aria-pressed", String(candidate === control));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -21,13 +21,31 @@ The interactive [current repository map](repository-map.html) labels the concret
 paths as governance or functional. The diagrams below describe how those paths become necessary
 over time rather than replacing that ownership map.
 
+## Visual Contract
+
+Each image has one bounded semantic responsibility. Do not infer directory ownership or control
+authority from an image whose scope is functional evolution.
+
+| Image | It explains | It does not define |
+|---|---|---|
+| V0 | Minimum complete functional slice | Governance or agent routing |
+| V1 | Non-invasive `.agents/` sidecar | Worktree control topology |
+| V2 | Multiple functional environments, baselines, data, and executors | Governance ownership |
+| V3 | Experiment intent, immutable facts, evaluation, and reports | Agent coordination |
+| V4 | Contribution-to-evidence-to-publication traceability | A specific ML architecture |
+| Governing overview | Control modes, sidecar boundary, and delivery | Exact directory inventory |
+
+The exact repository boundary lives in [Repository Anatomy](repository-map.html). The exact
+human, main-agent, worktree, and worktree-agent authority model lives in
+[Worktree Control Model](worktree-control.html).
+
 ## V0: One Complete Vertical Slice
 
-![V0 simple research project](images/repo-evolution-v0.png)
+![V0 complete vertical slice](images/repo-evolution-v0.png)
 
-The implementation surface is small and the core idea is easy to see. This picture intentionally
-compresses supporting infrastructure. In a real repository, the first slice still pins its
-existing implementation, environment, data, executor, and smoke evaluation.
+The implementation surface is small and the core contribution is easy to see, but a useful
+result still closes the loop through existing substrate, environment, data, executor, and
+evaluation. The contribution is prominent without being depicted as sufficient by itself.
 
 At this stage, a singleton may remain inline:
 
@@ -37,19 +55,20 @@ infra.yaml
 experiment.yaml
 ```
 
-## V1: Agent-Ready Core
+## V1: Non-Invasive Agent Sidecar
 
-![V1 agent-ready core](images/repo-evolution-v1.png)
+![V1 non-invasive agent sidecar](images/repo-evolution-v1.png)
 
-The repository gains a thin `.agents/` sidecar and an executable project feedback loop:
+The repository gains a thin `.agents/` sidecar beside an independently executable project
+feedback loop:
 
 - bounded tasks;
 - code, tests, and evaluations;
-- short-lived pad and journal;
+- ignored runtime notes and handoffs;
 - reviewed durable knowledge.
 
-This stage reduces repeated orientation and explanation. Governance remains physically
-contained and smaller than the project surface it guides.
+Temporary runtime notes become memory only after review. The sidecar may read and invoke project
+interfaces, but project verification remains usable without it.
 
 ## V2: Infrastructure And Multiple Environments
 
@@ -67,9 +86,12 @@ source.lock       -> baselines/<id>/
 A stable command surface resolves logical names into runtime-specific values. Experiments do not
 scatter server paths or merge incompatible dependencies into one environment.
 
-## V3: Experiment Governance
+This image describes functional execution structure. It does not place `infra/`, `data/`, or
+environment definitions inside governance.
 
-![V3 experiment governance](images/repo-evolution-v3.png)
+## V3: Experiment Traceability
+
+![V3 experiment traceability](images/repo-evolution-v3.png)
 
 As runs become expensive, parallel, or citable, the repository separates:
 
@@ -84,9 +106,9 @@ new immutable runs instead of overwriting history.
 
 ![V4 scientific narrative and publication](images/repo-evolution-v4.png)
 
-Engineering complexity can grow while the contribution remains visible. A contribution index
-links the small innovation surface to its parameters, controlled substrate, run IDs, evidence,
-and publication outputs.
+Engineering complexity can grow while the domain-general core contribution remains visible. A
+contribution index links code and parameters through study definitions, run manifests, locked
+evidence, accepted claims, and publication outputs.
 
 Raw runs remain available for audit, but papers and human-facing reports consume curated,
 traceable evidence rather than terminal logs or copied metrics.
@@ -95,12 +117,13 @@ traceable evidence rather than terminal logs or copied metrics.
 
 ![Agent-native project governance](images/agent-native-project-governance.png)
 
-The default path keeps the human in one conversation with a main agent, which coordinates
-isolated worktree agents and integrates their output. When more conversational parallelism or
-lower-latency steering matters, the human may directly control selected worktree agents. Both
-modes can coexist, and either human or main agent may create or adopt the worktrees.
+The overview shows both control modes. In mediated mode the human talks through a main agent. In
+direct mode the human talks to a selected worktree-agent. Modes are per worktree, can coexist,
+and can switch after a checkpoint. Either human or main agent may create the worktree; creation,
+active control, and integration ownership remain separate decisions.
 
-Delivery advances the project; bounded maintenance periodically removes duplicate code, stale
-docs, obsolete memory, and unreferenced outputs.
+The same image also shows the non-invasive sidecar boundary and the delivery path from checkpoint
+through optional handoff, integration, verification, and validated outcome. Exact transfer rules
+remain in [Worktree Control Model](worktree-control.html).
 
 The template should evolve only when a repeated project cost justifies a new permanent mechanism.

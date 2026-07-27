@@ -29,6 +29,10 @@ The interactive **[Repository Anatomy Map](docs/repository-map.html)** shows the
 boundary, allowed interactions, and worktree control modes. [Repository Evolution](docs/EVOLUTION.md)
 describes when functional project structure should grow.
 
+The interactive **[Worktree Control Model](docs/worktree-control.html)** separately explains
+human, main-agent, worktree, and worktree-agent identity, authority, persistence, and control
+transfer.
+
 ## Non-Invasive Interaction
 
 Governance interacts through observable project interfaces:
