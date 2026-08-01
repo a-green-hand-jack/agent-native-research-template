@@ -31,6 +31,9 @@ required_paths:
   functional:
     - README.md
     - CONTRIBUTIONS.md
+    - LICENSE
+    - PROJECT.yaml
+    - SECURITY.md
     - configs/base.yaml
     - environments/main.yaml
     - evals/smoke.yaml
@@ -48,6 +51,7 @@ required_paths:
     - src/
     - tests/
     - tools/evidence.py
+    - tools/initialize_project.py
     - tools/research.py
 
 dependency_rules:

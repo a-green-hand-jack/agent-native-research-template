@@ -1,4 +1,4 @@
-.PHONY: setup hooks check format test smoke research-validate research-run verify
+.PHONY: setup hooks check format test smoke project-check research-validate research-run verify
 
 setup:
 	uv sync --group dev
@@ -20,10 +20,13 @@ test:
 smoke:
 	uv run pytest -q tests/smoke
 
+project-check:
+	uv run python tools/initialize_project.py check
+
 research-validate:
 	uv run python tools/research.py validate
 
 research-run:
 	uv run python tools/evidence.py run experiments/specs/smoke.yaml
 
-verify: check test research-validate
+verify: check test project-check research-validate
