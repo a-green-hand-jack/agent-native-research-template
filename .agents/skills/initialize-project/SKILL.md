@@ -34,15 +34,20 @@ uv run python tools/initialize_project.py apply \
   --dry-run
 ```
 
-Inspect the planned writes and removals. The initializer updates `PROJECT.yaml`, package metadata,
-the source package, smoke test, contribution index, smoke experiment, README, lockfile identity,
-and the project-specific governance contract when the sidecar is present.
+Inspect the planned writes and removals. The functional initializer updates `PROJECT.yaml`, package
+metadata, the source package, smoke test, contribution index, smoke experiment, README, and
+lockfile identity. It never reads or writes the governance sidecar.
 
 ## Apply And Complete The Slice
 
 Run the same command without `--dry-run`, then replace the initialized bootstrap implementation,
 configuration, evaluation, and experiment question with the first real vertical slice. The tool
 establishes a consistent identity; it does not invent the project's scientific contract.
+
+When the optional sidecar exists, update the project-specific section of
+`.agents/governance/CONTRACT.md` as a separate governance change. Record externally observable
+behavior, scientific claims under test, schemas, validity requirements, compatibility constraints,
+and explicit non-goals.
 
 ## Verify
 
@@ -67,7 +72,7 @@ Return:
 PROJECT.yaml identity
 renamed source and test paths
 updated contribution and experiment IDs
-project-specific contract status
+project-specific contract status, when the sidecar exists
 verification commands and results
 remaining bootstrap behavior that still needs a real implementation
 ```
