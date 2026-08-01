@@ -82,7 +82,9 @@ def extract_metrics(
             elif source["type"] == "json_file":
                 path = root / source["path"]
                 if not path.is_file():
-                    raise EvidenceError(f"metric {metric_id!r} JSON file is missing: {source['path']}")
+                    raise EvidenceError(
+                        f"metric {metric_id!r} JSON file is missing: {source['path']}"
+                    )
                 raw = read_key(json.loads(path.read_text(encoding="utf-8")), source["key"])
             else:
                 raise EvidenceError(f"metric {metric_id!r} has unsupported source")
