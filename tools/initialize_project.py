@@ -165,26 +165,6 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     first_break = readme.find("\n")
     readme = readme[: first_break + 1] + marker + readme[first_break + 1 :]
 
-    contract_path = root / ".agents/governance/CONTRACT.md"
-    contract = contract_path.read_text(encoding="utf-8") if contract_path.is_file() else None
-    if contract is not None:
-        heading = "## Project-Specific Contract"
-        start = contract.find(heading)
-        end = contract.find("\n## Completion Contract", start)
-        if start < 0 or end < 0:
-            raise InitializationError("project-specific contract section is missing")
-        section = (
-            f"{heading}\n\n"
-            f"- Project: {identity.project_name}\n"
-            f"- Distribution: `{identity.distribution_name}`\n"
-            f"- Python package: `{identity.package_name}`\n"
-            f"- Initial contribution: `{identity.contribution_id}`\n"
-            "- Replace this bootstrap contract with externally observable behavior, scientific "
-            "claims, schemas, numerical validity requirements, compatibility constraints, and "
-            "explicit non-goals as the first real slice is implemented.\n"
-        )
-        contract = contract[:start] + section + contract[end:]
-
     initialized_state = {
         "schema_version": 1,
         "initialized": True,
@@ -193,7 +173,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "package_name": identity.package_name,
         "contribution_id": identity.contribution_id,
     }
-    changes = {
+    return {
         STATE_PATH: dump_yaml(initialized_state),
         "pyproject.toml": pyproject,
         "uv.lock": uv_lock,
@@ -203,9 +183,6 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "tests/smoke/test_project.py": smoke_test,
         "README.md": readme,
     }
-    if contract is not None:
-        changes[".agents/governance/CONTRACT.md"] = contract
-    return changes
 
 
 def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = False) -> list[str]:
