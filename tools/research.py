@@ -333,9 +333,7 @@ def resolve_manifest(root: Path, value: str) -> Path:
     candidate = Path(value)
     if candidate.is_absolute():
         path = candidate
-    elif candidate.parts and candidate.parts[0] == "runs":
-        path = root / candidate
-    elif candidate.suffix == ".json":
+    elif candidate.suffix == ".json" or (candidate.parts and candidate.parts[0] == "runs"):
         path = root / candidate
     else:
         path = root / "runs" / candidate / "manifest.json"
