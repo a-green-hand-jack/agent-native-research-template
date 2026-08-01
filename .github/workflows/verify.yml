@@ -24,14 +24,17 @@ jobs:
       - name: Sync environment
         run: uv sync --frozen --group dev
 
-      - name: Lint
-        run: uv run ruff check .
+      - name: Verify project and research specifications
+        run: make verify
 
-      - name: Check formatting
-        run: uv run ruff format --check .
+      - name: Execute the smallest research loop
+        run: make research-run
 
-      - name: Test
-        run: uv run pytest -q
+      - name: Verify the project without governance
+        run: |
+          rm -rf .agents AGENTS.md .venv
+          uv sync --frozen --group dev
+          make verify
 
   governance:
     runs-on: ubuntu-latest
@@ -44,8 +47,5 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Sync validation dependency
-        run: uv sync --frozen --group dev
-
       - name: Validate optional governance sidecar
-        run: uv run python .agents/governance/tools/repo_check.py
+        run: uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
