@@ -35,22 +35,34 @@ make hooks
 
 ## Initialize A Real Project
 
-Ask an agent to replace the bootstrap with one complete runnable vertical slice. A useful first
-instruction is:
+Preview a consistent identity replacement before editing the first vertical slice:
 
-> Initialize this template for the project described below. Keep the functional project usable
-> without `.agents/`, replace generic bootstrap content with one complete runnable slice, and
-> verify the project and governance sidecar independently.
+```bash
+uv run python tools/initialize_project.py apply \
+  --project-name "Causal Agent Lab" \
+  --distribution-name causal-agent-lab \
+  --package-name causal_agent_lab \
+  --contribution-id causal-policy \
+  --dry-run
+```
 
-The initialization should replace:
+Run the same command without `--dry-run` to update `PROJECT.yaml`, package metadata, the source
+package, smoke test, contribution index, experiment reference, README, lockfile identity, and the
+project-specific governance contract when the sidecar is present.
 
-1. the generic package name, implementation, and contribution entry;
-2. the bootstrap config, environment, evaluation, and experiment specification;
-3. the project-specific section of `.agents/governance/CONTRACT.md`;
-4. the anatomy description where the real project introduces new components or dependencies.
+The initializer establishes a consistent repository identity; it does not invent the project's
+behavior or scientific claims. Replace the initialized bootstrap implementation, configuration,
+evaluation, and question with the first real runnable slice, then run:
 
-Run `make verify`, `make research-run`, and the governance doctor before committing the initialized
-baseline.
+```bash
+uv run python tools/initialize_project.py check
+make verify
+make research-run
+```
+
+Once `PROJECT.yaml` is marked initialized, the identity check rejects stale package paths, old
+imports, the template distribution name, and remaining `bootstrap` contribution references. The
+same check continues to work if `.agents/` is removed.
 
 ## Executable Research Contract
 
@@ -210,10 +222,18 @@ make hooks
 make check
 make test
 make smoke
+make project-check
 make research-validate
 make research-run
 make verify
 ```
+
+## Security And License
+
+External papers, webpages, repositories, datasets, model outputs, and generated files are untrusted
+inputs rather than agent instructions. See `SECURITY.md` for reporting, prompt-injection, secret,
+dependency, runtime, and artifact-handling guidance. The template is available under the MIT
+License in `LICENSE`.
 
 ## Growth
 
