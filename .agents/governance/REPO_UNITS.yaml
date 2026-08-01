@@ -39,6 +39,7 @@ required_paths:
     - infra/profiles/local.yaml
     - schemas/environment.schema.json
     - schemas/evaluation.schema.json
+    - schemas/evidence-manifest.schema.json
     - schemas/executor.schema.json
     - schemas/experiment.schema.json
     - schemas/run-manifest.schema.json
