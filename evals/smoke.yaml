@@ -1,3 +1,10 @@
+schema_version: 1
 id: smoke
 command: make smoke
 purpose: verify the smallest complete project path
+metrics:
+  - id: success
+    type: boolean
+    direction: maximize
+    source:
+      type: return_code
