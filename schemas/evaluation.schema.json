@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/evaluation.schema.json",
+  "title": "Evaluation Definition",
+  "description": "An executable protocol and its typed metrics.",
+  "type": "object",
+  "x-schema-version": 1,
+  "required": ["schema_version", "id", "command", "purpose", "metrics"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "command": {},
+    "purpose": {"type": "string", "minLength": 1},
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "direction", "source"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "type": {"enum": ["boolean", "integer", "number", "string"]},
+          "direction": {"enum": ["maximize", "minimize", "none"]},
+          "source": {"type": "object"}
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

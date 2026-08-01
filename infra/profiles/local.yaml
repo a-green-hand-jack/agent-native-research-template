@@ -1,7 +1,7 @@
+schema_version: 1
 id: local
 executor: local
 workspace_root: ${PROJECT_ROOT}
 artifact_root: ${PROJECT_ARTIFACT_ROOT}
 capabilities:
   - cpu
-

@@ -86,6 +86,25 @@ A run manifest records the resolved spec, Git revision and dirty-state hash, env
 executor and evaluation definitions, timestamps, return status, and checksums for captured logs.
 Retries receive new run IDs; existing evidence is not overwritten.
 
+## Versioned Research Definitions
+
+Research definitions use `schema_version: 1` and stable lowercase IDs. The repository ships
+portable JSON Schema documents under `schemas/`, while `tools/research.py` performs the stronger
+cross-file checks that JSON Schema alone cannot express.
+
+```text
+experiments/specs/**/*.yaml  experiment intent and research controls
+environments/**/*.yaml       dependency-set identity and lockfile
+evals/**/*.yaml              executable protocol and typed metric sources
+infra/profiles/**/*.yaml      logical executor and capabilities
+schemas/*.schema.json         portable structural contracts
+```
+
+Validation discovers definitions recursively and rejects duplicate IDs, unknown references,
+unversioned definitions, invalid metric directions or sources, missing locks, and commands that
+do not match their evaluation protocol. This allows projects to organize studies into nested
+directories without weakening global identity and traceability.
+
 ## Project First
 
 The repository has an intentionally asymmetric structure:

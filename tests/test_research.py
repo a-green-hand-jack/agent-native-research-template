@@ -13,7 +13,19 @@ research = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(research)
 
 
-def build_repository(root: Path) -> Path:
+def schema_document(title: str) -> str:
+    return json.dumps(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": title,
+            "type": "object",
+            "x-schema-version": 1,
+        }
+    )
+
+
+def build_repository(root: Path, *, nested: bool = True) -> Path:
+    spec_name = "experiments/specs/smoke/basic.yaml" if nested else "experiments/specs/smoke.yaml"
     files = {
         "CONTRIBUTIONS.md": (
             "| ID | Contribution | Code | Parameters | Evidence | Status |\n"
@@ -21,48 +33,79 @@ def build_repository(root: Path) -> Path:
             "| bootstrap | Demo | `src/` | `configs/base.yaml` | `evals/smoke.yaml` | bootstrap |\n"
         ),
         "configs/base.yaml": "seed: 0\n",
-        "environments/main.yaml": "id: main\nlockfile: uv.lock\n",
-        "evals/smoke.yaml": "id: smoke\ncommand: make smoke\n",
-        "infra/profiles/local.yaml": "id: local\nexecutor: local\n",
+        "environments/main.yaml": (
+            "schema_version: 1\nid: main\nbackend: uv\nlockfile: uv.lock\n"
+            "purpose: test environment\n"
+        ),
+        "evals/smoke.yaml": (
+            "schema_version: 1\nid: smoke\ncommand: make smoke\n"
+            "purpose: execute the smallest path\nmetrics:\n"
+            "  - id: success\n    type: boolean\n    direction: maximize\n"
+            "    source:\n      type: return_code\n"
+        ),
+        "infra/profiles/local.yaml": (
+            "schema_version: 1\nid: local\nexecutor: local\ncapabilities: [cpu]\n"
+        ),
         "uv.lock": "version = 1\n",
         "Makefile": ".PHONY: smoke\nsmoke:\n\t@printf 'ok\\n'\n",
-        "experiments/specs/smoke.yaml": (
-            "id: smoke\n"
-            "question: Does the smoke path work?\n"
-            "contribution: bootstrap\n"
-            "config: configs/base.yaml\n"
-            "environment: main\n"
-            "executor: local\n"
-            "evaluation: smoke\n"
-            "command: make smoke\n"
+        spec_name: (
+            "schema_version: 1\nid: smoke\nquestion: Does the smoke path work?\n"
+            "contribution: bootstrap\nconfig: configs/base.yaml\nenvironment: main\n"
+            "executor: local\nevaluation: smoke\ncommand: make smoke\n"
             "seed_policy:\n  mode: fixed\n  seeds: [0]\n"
-            "budget:\n  kind: smoke\n  max_runs: 1\n"
-            "stopping_rule: Stop after one attempt.\n"
-            "inclusion_criteria: Include every attempt.\n"
+            "budget:\n  max_runs: 1\n  max_wall_time_seconds: 60\n"
+            "stopping_rule:\n  type: after_runs\n  runs: 1\n"
+            "inclusion_criteria:\n  - Include every completed attempt.\n"
+            "artifacts: []\n"
         ),
     }
+    for relative_path in research.SCHEMA_DOCUMENTS.values():
+        files[relative_path] = schema_document(relative_path)
     for relative_name, content in files.items():
         path = root / relative_name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-    return root / "experiments/specs/smoke.yaml"
+    return root / spec_name
 
 
-def test_validate_smoke_spec(tmp_path: Path) -> None:
+def test_validate_recursively_discovers_specs(tmp_path: Path) -> None:
     spec_path = build_repository(tmp_path)
+    paths = research.validate_all(tmp_path)
+    assert paths == [spec_path]
     resolved = research.validate_spec(spec_path, tmp_path)
     assert resolved["spec"]["id"] == "smoke"
     assert resolved["argv"] == ["make", "smoke"]
 
 
-def test_validate_rejects_unknown_contribution(tmp_path: Path) -> None:
+def test_validate_rejects_duplicate_experiment_ids(tmp_path: Path) -> None:
     spec_path = build_repository(tmp_path)
-    text = spec_path.read_text(encoding="utf-8").replace(
-        "contribution: bootstrap", "contribution: missing"
+    duplicate = tmp_path / "experiments/specs/other/duplicate.yaml"
+    duplicate.parent.mkdir(parents=True)
+    duplicate.write_text(spec_path.read_text(encoding="utf-8"), encoding="utf-8")
+    with pytest.raises(research.SpecError, match="duplicate experiment ID"):
+        research.validate_all(tmp_path)
+
+
+def test_validate_rejects_invalid_metric_direction(tmp_path: Path) -> None:
+    build_repository(tmp_path)
+    evaluation = tmp_path / "evals/smoke.yaml"
+    evaluation.write_text(
+        evaluation.read_text(encoding="utf-8").replace("maximize", "up"),
+        encoding="utf-8",
     )
-    spec_path.write_text(text, encoding="utf-8")
-    with pytest.raises(research.SpecError, match="unknown contribution"):
-        research.validate_spec(spec_path, tmp_path)
+    with pytest.raises(research.SpecError, match="direction"):
+        research.validate_all(tmp_path)
+
+
+def test_validate_rejects_unversioned_definition(tmp_path: Path) -> None:
+    build_repository(tmp_path)
+    environment = tmp_path / "environments/main.yaml"
+    environment.write_text(
+        environment.read_text(encoding="utf-8").replace("schema_version: 1\n", ""),
+        encoding="utf-8",
+    )
+    with pytest.raises(research.SpecError, match="schema_version"):
+        research.validate_all(tmp_path)
 
 
 def test_run_and_promote_manifest(tmp_path: Path) -> None:
@@ -70,9 +113,10 @@ def test_run_and_promote_manifest(tmp_path: Path) -> None:
     manifest_path, return_code = research.run_experiment(spec_path, tmp_path)
     assert return_code == 0
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == 1
     assert manifest["status"] == "succeeded"
+    assert manifest["metrics"] == {"success": True}
     assert manifest["spec"]["sha256"]
-    assert manifest["config"]["sha256"]
     assert manifest["environment"]["lockfile_sha256"]
 
     promoted = research.promote_manifest(manifest["run_id"], tmp_path)
