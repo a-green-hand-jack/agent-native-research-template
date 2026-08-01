@@ -1,17 +1,24 @@
 # Evidence Manifests
 
-This directory contains reviewed, compact run manifests promoted from ignored local runs.
+This directory contains compact, reviewed evidence envelopes promoted from local run manifests.
+Raw logs, checkpoints, and large artifacts remain under ignored `runs/` paths or external storage.
 
-A normal execution writes raw logs and a manifest under `runs/<run-id>/`. After inspecting the
-run, promote its manifest with:
+Promote a run only after its artifact checksums and interpretation have been reviewed:
 
 ```bash
-uv run python tools/research.py promote <run-id>
+uv run python tools/research.py verify-run <run-id>
+uv run python tools/research.py promote <run-id> \
+  --decision accepted \
+  --note "Supports the stated smoke claim."
 ```
 
-Promoted manifests are immutable evidence records. A retry or corrected execution receives a new
-run ID and a new manifest rather than replacing an existing record.
+Each evidence file records:
 
-Keep large logs, datasets, checkpoints, and generated artifacts under `runs/` or external artifact
-storage. A promoted manifest records their repository-relative references and checksums; it does
-not make those large artifacts suitable for Git.
+- the source run ID, manifest path, and source-manifest SHA-256;
+- the promotion timestamp;
+- a review decision: `accepted`, `rejected`, or `inconclusive`;
+- an optional review note;
+- the complete immutable run manifest.
+
+Do not edit a promoted evidence file in place. A corrected execution receives a new run ID and a
+new evidence envelope. Reports should cite the promoted run ID and evidence file hash.

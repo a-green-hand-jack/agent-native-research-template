@@ -21,7 +21,7 @@ and executes the bootstrap experiment, then writes an immutable local manifest u
 Inspect the run before promoting its compact manifest into durable evidence:
 
 ```bash
-uv run python tools/research.py promote <run-id>
+uv run python tools/evidence.py promote <run-id> --decision accepted
 ```
 
 Raw logs and large artifacts remain ignored under `runs/` or in external storage. Reviewed compact
@@ -74,8 +74,11 @@ The public interface is:
 ```bash
 uv run python tools/research.py validate
 uv run python tools/research.py validate experiments/specs/<name>.yaml
-uv run python tools/research.py run experiments/specs/<name>.yaml
-uv run python tools/research.py promote <run-id>
+uv run python tools/evidence.py run experiments/specs/<name>.yaml
+uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
+uv run python tools/evidence.py replay <run-id>
+uv run python tools/evidence.py verify-run <run-id>
+uv run python tools/evidence.py promote <run-id> --decision accepted
 ```
 
 Validation rejects missing research controls, unknown contribution IDs, missing config paths,
@@ -83,14 +86,22 @@ unknown environment or evaluation IDs, ambiguous executors, mismatched evaluatio
 missing environment locks.
 
 A run manifest records the resolved spec, Git revision and dirty-state hash, environment lock,
-executor and evaluation definitions, timestamps, return status, and checksums for captured logs.
-Retries receive new run IDs; existing evidence is not overwritten.
+executor and evaluation definitions, typed metrics, declared artifacts, timestamps, return status,
+and checksums. Retries and replays receive new run IDs linked through `parent_run_id`; existing runs
+and evidence are never overwritten.
+
+Before replay, the runner compares the recorded hashes for the spec, config, environment, lockfile,
+executor, and evaluation against the current checkout. Drift stops the replay unless the operator
+explicitly passes `--allow-drift`. `verify-run` separately checks every recorded artifact checksum.
+
+Evidence promotion verifies the run first, then stores an immutable envelope containing the source
+manifest hash and a review decision of `accepted`, `rejected`, or `inconclusive`.
 
 ## Versioned Research Definitions
 
 Research definitions use `schema_version: 1` and stable lowercase IDs. The repository ships
-portable JSON Schema documents under `schemas/`, while `tools/research.py` performs the stronger
-cross-file checks that JSON Schema alone cannot express.
+portable JSON Schema documents under `schemas/`, while `tools/research.py` and
+`tools/evidence.py` perform the stronger cross-file checks that JSON Schema alone cannot express.
 
 ```text
 experiments/specs/**/*.yaml  experiment intent and research controls

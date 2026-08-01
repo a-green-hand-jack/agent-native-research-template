@@ -1,21 +1,21 @@
 ---
 name: run-experiment
-description: Execute and evaluate a reproducible project experiment. Use for training, inference, rollouts, benchmark runs, sweeps, ablations, or any result that must be compared or cited later.
+description: Execute, verify, replay, and promote a reproducible project experiment. Use for training, inference, rollouts, benchmark runs, sweeps, ablations, or any result that must be compared or cited later.
 ---
 
 # Run Experiment
 
-Separate intended experiment design, observed execution facts, and later interpretation.
+Separate experiment intent, observed execution facts, verification, and interpretation.
 
 ## Prepare
 
-1. Identify the question and the evaluation that can answer it.
+1. Identify the question and evaluation that can answer it.
 2. Start from a versioned experiment spec.
 3. Resolve the contribution, config, environment, executor, and evaluation.
-4. Declare the seed policy, resource budget, stopping rule, and inclusion criteria before
-   observing results.
+4. Declare seed policy, resource budget, stopping rule, inclusion criteria, metrics, and artifacts
+   before observing results.
 5. Commit a checkpoint before an expensive run whenever practical.
-6. Validate the spec and run the smallest smoke path:
+6. Validate the definitions and run the smallest smoke path:
 
 ```bash
 uv run python tools/research.py validate experiments/specs/<name>.yaml
@@ -24,46 +24,69 @@ make smoke
 
 ## Execute
 
-Use the public project runner rather than reconstructing the command manually:
+Use the evidence-aware runner:
 
 ```bash
-uv run python tools/research.py run experiments/specs/<name>.yaml
+uv run python tools/evidence.py run experiments/specs/<name>.yaml
+```
+
+For a retry or deliberately derived execution, name the parent run:
+
+```bash
+uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
 ```
 
 Each execution receives a unique run ID and writes an ignored local manifest under
-`runs/<run-id>/manifest.json`. The manifest captures:
+`runs/<run-id>/manifest.json`. The manifest records Git state, the resolved spec, versioned
+configuration and environment hashes, typed metrics, declared artifact checksums, timestamps,
+status, and optional parent identity.
 
-```text
-run ID and parent run
-base Git SHA and dirty-state hash
-resolved spec and spec hash
-environment definition and lock hash
-executor and evaluation definitions
-seed policy, budget, stopping rule, and inclusion criteria
-command, timestamps, return status
-captured log paths and checksums
-```
+## Verify And Replay
 
-Do not overwrite a failed or superseded run. A retry is a new run linked to its parent when the
-project adds retry orchestration.
-
-## Evaluate And Promote Evidence
-
-1. Normalize outputs through the project's evaluation interface.
-2. Keep raw logs and large artifacts under `runs/` or external artifact storage.
-3. Record exclusions and failures rather than deleting inconvenient evidence.
-4. Inspect the local manifest and associated artifacts.
-5. Promote only a reviewed compact manifest:
+Verify every recorded artifact before using or promoting a result:
 
 ```bash
-uv run python tools/research.py promote <run-id>
+uv run python tools/evidence.py verify-run <run-id>
 ```
 
-Promoted manifests live under `evidence/manifests/` and are immutable. Reports cite promoted run
-IDs and evidence hashes; they do not copy terminal values as untraceable facts.
+Replay checks the recorded spec, config, environment, lockfile, executor, and evaluation hashes
+against the current checkout before executing:
+
+```bash
+uv run python tools/evidence.py replay <run-id>
+```
+
+Do not use `--allow-drift` unless the divergence is intentional and will be explained in the new
+run's report. A replay is a new run linked to its parent; it never overwrites the original.
+
+## Promote Evidence
+
+Keep raw logs and large artifacts under `runs/` or external storage. After reviewing the run,
+promote an immutable evidence envelope with an explicit interpretation:
+
+```bash
+uv run python tools/evidence.py promote <run-id> \
+  --decision accepted \
+  --note "Evidence supports the stated claim."
+```
+
+The decision is `accepted`, `rejected`, or `inconclusive`. Promoted evidence records the source
+manifest checksum, review decision, review note, and complete run manifest.
 
 ## Handoff
 
-Return the question, spec path, run IDs, evaluation result, anomalies, artifact locations,
-reproduction command, promoted evidence path when applicable, and whether the evidence supports,
-contradicts, or leaves the question unresolved.
+Return:
+
+```text
+question and spec path
+run ID and optional parent run ID
+validation and artifact-verification evidence
+metrics and evaluation errors
+artifact locations and checksums
+reproduction or replay command
+promotion path and review decision, when applicable
+whether the evidence supports, contradicts, or leaves the question unresolved
+```
+
+Do not delete failed runs, edit promoted evidence, or copy terminal values into reports without a
+traceable run ID.

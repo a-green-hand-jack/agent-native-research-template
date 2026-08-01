@@ -22,13 +22,40 @@
     "artifacts"
   ],
   "properties": {
-    "schema_version": {"const": 1},
-    "run_id": {"type": "string", "minLength": 1},
-    "parent_run_id": {"type": ["string", "null"]},
-    "status": {"enum": ["succeeded", "failed"]},
-    "return_code": {"type": "integer"},
-    "metrics": {"type": "object"},
-    "artifacts": {"type": "array"}
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent_run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed"
+      ]
+    },
+    "return_code": {
+      "type": "integer"
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "artifacts": {
+      "type": "array"
+    },
+    "evaluation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   },
   "additionalProperties": true
 }
