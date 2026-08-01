@@ -1,7 +1,16 @@
 id: smoke
+question: Does the smallest complete project path execute successfully?
 contribution: bootstrap
 config: configs/base.yaml
 environment: main
 executor: local
 evaluation: smoke
 command: make smoke
+seed_policy:
+  mode: fixed
+  seeds: [0]
+budget:
+  kind: smoke
+  max_runs: 1
+stopping_rule: Stop after the first completed attempt.
+inclusion_criteria: Include every attempted run, including failures.
