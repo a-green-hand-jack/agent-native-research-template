@@ -24,6 +24,6 @@ research-validate:
 	uv run python tools/research.py validate
 
 research-run:
-	uv run python tools/research.py run experiments/specs/smoke.yaml
+	uv run python tools/evidence.py run experiments/specs/smoke.yaml
 
 verify: check test research-validate
