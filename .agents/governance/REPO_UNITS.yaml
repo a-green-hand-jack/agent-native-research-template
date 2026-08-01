@@ -34,12 +34,14 @@ required_paths:
     - configs/base.yaml
     - environments/main.yaml
     - evals/smoke.yaml
+    - evidence/manifests/README.md
     - experiments/specs/smoke.yaml
     - infra/profiles/local.yaml
     - Makefile
     - pyproject.toml
     - src/
     - tests/
+    - tools/research.py
 
 dependency_rules:
   - from: functional

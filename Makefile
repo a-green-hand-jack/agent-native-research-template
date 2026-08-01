@@ -1,7 +1,9 @@
-.PHONY: setup check format test smoke verify
+.PHONY: setup hooks check format test smoke research-validate research-run verify
 
 setup:
 	uv sync --group dev
+
+hooks:
 	uv run pre-commit install
 
 check:
@@ -18,4 +20,10 @@ test:
 smoke:
 	uv run pytest -q tests/smoke
 
-verify: check test
+research-validate:
+	uv run python tools/research.py validate
+
+research-run:
+	uv run python tools/research.py run experiments/specs/smoke.yaml
+
+verify: check test research-validate
