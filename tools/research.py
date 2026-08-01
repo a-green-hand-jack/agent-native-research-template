@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import shlex
 import subprocess
 import sys
@@ -279,6 +280,12 @@ def run_experiment(path: Path, root: Path = ROOT) -> tuple[Path, int]:
         "finished_at": finished_at,
         "return_code": process.returncode,
         "question": spec["question"],
+        "contribution": spec["contribution"],
+        "config": {
+            "path": relative(resolved["config_path"]),
+            "sha256": sha256_file(resolved["config_path"]),
+        },
+        "data": spec.get("data"),
         "spec": {
             "path": relative(resolved["spec_path"]),
             "sha256": sha256_file(resolved["spec_path"]),
@@ -304,7 +311,14 @@ def run_experiment(path: Path, root: Path = ROOT) -> tuple[Path, int]:
             "definition": relative(resolved["evaluation_path"]),
             "definition_sha256": sha256_file(resolved["evaluation_path"]),
         },
+        "hardware": {
+            "platform": platform.platform(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+            "cpu_count": os.cpu_count(),
+        },
         "command": resolved["argv"],
+        "metrics": {"return_code": process.returncode},
         "artifacts": [
             {"path": relative(stdout_path), "sha256": sha256_file(stdout_path)},
             {"path": relative(stderr_path), "sha256": sha256_file(stderr_path)},
