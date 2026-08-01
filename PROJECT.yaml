@@ -1,0 +1,6 @@
+schema_version: 1
+initialized: false
+project_name: Agent-Native Research Template
+distribution_name: agent-native-project
+package_name: project
+contribution_id: bootstrap
