@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize Project"
+  short_description: "Replace template identity and bootstrap paths consistently."
+  default_prompt: "Initialize this repository with an explicit project, distribution, package, and contribution identity; run the residue check and verify the first runnable slice."
