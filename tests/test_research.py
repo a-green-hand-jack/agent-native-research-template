@@ -72,6 +72,7 @@ def test_run_and_promote_manifest(tmp_path: Path) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["status"] == "succeeded"
     assert manifest["spec"]["sha256"]
+    assert manifest["config"]["sha256"]
     assert manifest["environment"]["lockfile_sha256"]
 
     promoted = research.promote_manifest(manifest["run_id"], tmp_path)
