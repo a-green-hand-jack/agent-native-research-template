@@ -47,6 +47,7 @@ required_paths:
     - pyproject.toml
     - src/
     - tests/
+    - tools/evidence.py
     - tools/research.py
 
 dependency_rules:
