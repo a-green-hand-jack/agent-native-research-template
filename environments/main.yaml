@@ -1,5 +1,5 @@
+schema_version: 1
 id: main
 backend: uv
 lockfile: uv.lock
 purpose: project code and lightweight control tooling
-
