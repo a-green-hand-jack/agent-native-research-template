@@ -47,12 +47,13 @@ uv run python tools/initialize_project.py apply \
 ```
 
 Run the same command without `--dry-run` to update `PROJECT.yaml`, package metadata, the source
-package, smoke test, contribution index, experiment reference, README, lockfile identity, and the
-project-specific governance contract when the sidecar is present.
+package, smoke test, contribution index, experiment reference, README, and lockfile identity. The
+functional initializer never reads or writes the governance sidecar.
 
 The initializer establishes a consistent repository identity; it does not invent the project's
-behavior or scientific claims. Replace the initialized bootstrap implementation, configuration,
-evaluation, and question with the first real runnable slice, then run:
+behavior or scientific claims. When the optional sidecar exists, update its project-specific
+Contract separately. Replace the initialized bootstrap implementation, configuration, evaluation,
+and question with the first real runnable slice, then run:
 
 ```bash
 uv run python tools/initialize_project.py check
