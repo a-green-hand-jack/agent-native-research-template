@@ -21,7 +21,7 @@ and executes the bootstrap experiment, then writes an immutable local manifest u
 Inspect the run before promoting its compact manifest into durable evidence:
 
 ```bash
-uv run python tools/research.py promote <run-id>
+uv run python tools/evidence.py promote <run-id> --decision accepted
 ```
 
 Raw logs and large artifacts remain ignored under `runs/` or in external storage. Reviewed compact
@@ -74,11 +74,11 @@ The public interface is:
 ```bash
 uv run python tools/research.py validate
 uv run python tools/research.py validate experiments/specs/<name>.yaml
-uv run python tools/research.py run experiments/specs/<name>.yaml
-uv run python tools/research.py run experiments/specs/<name>.yaml --parent <run-id>
-uv run python tools/research.py replay <run-id>
-uv run python tools/research.py verify-run <run-id>
-uv run python tools/research.py promote <run-id> --decision accepted
+uv run python tools/evidence.py run experiments/specs/<name>.yaml
+uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
+uv run python tools/evidence.py replay <run-id>
+uv run python tools/evidence.py verify-run <run-id>
+uv run python tools/evidence.py promote <run-id> --decision accepted
 ```
 
 Validation rejects missing research controls, unknown contribution IDs, missing config paths,
@@ -100,8 +100,8 @@ manifest hash and a review decision of `accepted`, `rejected`, or `inconclusive`
 ## Versioned Research Definitions
 
 Research definitions use `schema_version: 1` and stable lowercase IDs. The repository ships
-portable JSON Schema documents under `schemas/`, while `tools/research.py` performs the stronger
-cross-file checks that JSON Schema alone cannot express.
+portable JSON Schema documents under `schemas/`, while `tools/research.py` and
+`tools/evidence.py` perform the stronger cross-file checks that JSON Schema alone cannot express.
 
 ```text
 experiments/specs/**/*.yaml  experiment intent and research controls
