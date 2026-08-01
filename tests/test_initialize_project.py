@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import shutil
 import sys
 from pathlib import Path
 
@@ -24,11 +23,11 @@ def build_template(root: Path) -> None:
             "package_name: project\ncontribution_id: bootstrap\n"
         ),
         "pyproject.toml": (
-            "[project]\nname = \"agent-native-project\"\nversion = \"0.1.0\"\n"
-            "description = \"Bootstrap package for an agent-native research project\"\n"
-            "[tool.hatch.build.targets.wheel]\npackages = [\"src/project\"]\n"
+            '[project]\nname = "agent-native-project"\nversion = "0.1.0"\n'
+            'description = "Bootstrap package for an agent-native research project"\n'
+            '[tool.hatch.build.targets.wheel]\npackages = ["src/project"]\n'
         ),
-        "uv.lock": "[[package]]\nname = \"agent-native-project\"\n",
+        "uv.lock": '[[package]]\nname = "agent-native-project"\n',
         "CONTRIBUTIONS.md": (
             "| ID | Contribution | Code | Parameters | Evidence | Status |\n"
             "|---|---|---|---|---|---|\n"
@@ -48,10 +47,6 @@ def build_template(root: Path) -> None:
             '    assert template_status() == "ready"\n'
         ),
         "README.md": "# Agent-Native Research Template\n\nTemplate description.\n",
-        ".agents/governance/CONTRACT.md": (
-            "# Contract\n\n## Project-Specific Contract\n\nReplace this section.\n\n"
-            "## Completion Contract\n\nComplete.\n"
-        ),
     }
     for relative, content in files.items():
         path = root / relative
@@ -115,8 +110,7 @@ def test_invalid_identity_is_rejected(tmp_path: Path) -> None:
         initializer.apply_changes(tmp_path, invalid)
 
 
-def test_apply_without_sidecar_still_works(tmp_path: Path) -> None:
+def test_apply_is_functional_only(tmp_path: Path) -> None:
     build_template(tmp_path)
-    shutil.rmtree(tmp_path / ".agents")
     initializer.apply_changes(tmp_path, identity())
     assert initializer.check_project(tmp_path) == []
