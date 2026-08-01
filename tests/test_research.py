@@ -44,8 +44,7 @@ def build_repository(root: Path, *, nested: bool = True) -> Path:
             "    source:\n      type: return_code\n"
         ),
         "infra/profiles/local.yaml": (
-            "schema_version: 1\nid: local\nexecutor: local\n"
-            "capabilities: [cpu]\n"
+            "schema_version: 1\nid: local\nexecutor: local\ncapabilities: [cpu]\n"
         ),
         "uv.lock": "version = 1\n",
         "Makefile": ".PHONY: smoke\nsmoke:\n\t@printf 'ok\\n'\n",
