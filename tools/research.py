@@ -234,8 +234,10 @@ def validate_seed_policy(value: object) -> None:
     mode = value.get("mode")
     if mode == "fixed":
         seeds = value.get("seeds")
-        if not isinstance(seeds, list) or not seeds or not all(
-            isinstance(seed, int) and not isinstance(seed, bool) for seed in seeds
+        if (
+            not isinstance(seeds, list)
+            or not seeds
+            or not all(isinstance(seed, int) and not isinstance(seed, bool) for seed in seeds)
         ):
             raise SpecError("fixed seed_policy requires a non-empty integer seeds list")
         if len(seeds) != len(set(seeds)):
@@ -262,9 +264,7 @@ def validate_budget(value: object) -> None:
             positive_integer(value[field], f"budget.{field}")
             recognized = True
     if not recognized:
-        raise SpecError(
-            "budget must declare max_runs, max_wall_time_seconds, or max_cost_units"
-        )
+        raise SpecError("budget must declare max_runs, max_wall_time_seconds, or max_cost_units")
 
 
 def validate_stopping_rule(value: object) -> None:
@@ -344,9 +344,7 @@ def validate_spec(
     if missing:
         raise SpecError(f"{relative_name(path, root)} missing fields: {', '.join(sorted(missing))}")
     if spec.get("schema_version") != SCHEMA_VERSION:
-        raise SpecError(
-            f"{relative_name(path, root)} schema_version must be {SCHEMA_VERSION}"
-        )
+        raise SpecError(f"{relative_name(path, root)} schema_version must be {SCHEMA_VERSION}")
 
     validate_identifier(spec.get("id"), "experiment ID")
     for field in ("question", "contribution", "environment", "executor", "evaluation"):
