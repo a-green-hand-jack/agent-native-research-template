@@ -37,6 +37,11 @@ required_paths:
     - evidence/manifests/README.md
     - experiments/specs/smoke.yaml
     - infra/profiles/local.yaml
+    - schemas/environment.schema.json
+    - schemas/evaluation.schema.json
+    - schemas/executor.schema.json
+    - schemas/experiment.schema.json
+    - schemas/run-manifest.schema.json
     - Makefile
     - pyproject.toml
     - src/
