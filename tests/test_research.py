@@ -120,7 +120,9 @@ def test_run_manifest(tmp_path: Path) -> None:
     assert manifest["environment"]["lockfile_sha256"]
 
 
-def test_research_tool_has_no_evidence_promotion_surface(capsys: pytest.CaptureFixture[str]) -> None:
+def test_research_tool_has_no_evidence_promotion_surface(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert not hasattr(research, "promote_manifest")
     with pytest.raises(SystemExit) as exc_info:
         research.build_parser().parse_args(["promote", "run-id"])
