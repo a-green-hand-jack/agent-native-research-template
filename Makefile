@@ -1,4 +1,4 @@
-.PHONY: setup hooks check format test smoke project-check research-validate research-run verify
+.PHONY: setup hooks check format test smoke project-check research-validate research-run template-e2e verify
 
 setup:
 	uv sync --group dev
@@ -29,5 +29,8 @@ research-validate:
 
 research-run:
 	uv run python tools/evidence.py run experiments/specs/smoke.yaml
+
+template-e2e:
+	uv run python tools/verify_template_e2e.py
 
 verify: check test project-check research-validate
