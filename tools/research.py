@@ -600,23 +600,8 @@ def resolve_manifest(root: Path, value: str) -> Path:
     try:
         path.relative_to((root / "runs").resolve())
     except ValueError as exc:
-        raise SpecError("only manifests under runs/ can be promoted") from exc
+        raise SpecError("only manifests under runs/ are supported") from exc
     return path
-
-
-def promote_manifest(value: str, root: Path = ROOT) -> Path:
-    source = resolve_manifest(root, value)
-    manifest = load_json(source)
-    if manifest.get("schema_version") != SCHEMA_VERSION:
-        raise SpecError(f"manifest schema_version must be {SCHEMA_VERSION}: {source}")
-    run_id = manifest.get("run_id")
-    if not isinstance(run_id, str) or not run_id:
-        raise SpecError(f"manifest has no run_id: {source}")
-    destination = root / "evidence" / "manifests" / f"{run_id}.json"
-    if destination.exists():
-        raise SpecError(f"evidence manifest already exists: {relative_name(destination, root)}")
-    write_json(destination, manifest)
-    return destination
 
 
 def spec_paths(root: Path, values: list[str]) -> list[Path]:
@@ -636,9 +621,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = subparsers.add_parser("run", help="execute a validated experiment spec")
     run.add_argument("spec", help="repository-relative spec path")
-
-    promote = subparsers.add_parser("promote", help="copy a local run manifest into evidence")
-    promote.add_argument("run", help="run ID or manifest path")
     return parser
 
 
@@ -655,10 +637,6 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             manifest_path, return_code = run_experiment(root / args.spec, root)
             print(relative_name(manifest_path, root))
             return return_code
-        if args.command_name == "promote":
-            destination = promote_manifest(args.run, root)
-            print(relative_name(destination, root))
-            return 0
     except (SpecError, OSError) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
