@@ -15,12 +15,18 @@ Separate experiment intent, observed execution facts, verification, and interpre
 4. Declare seed policy, resource budget, stopping rule, inclusion criteria, metrics, and artifacts
    before observing results.
 5. Commit a checkpoint before an expensive run whenever practical.
-6. Validate the definitions and run the smallest smoke path:
+6. Validate both the definition graph and the built-in runner's supported execution controls:
 
 ```bash
 uv run python tools/research.py validate experiments/specs/<name>.yaml
+uv run python tools/evidence.py validate experiments/specs/<name>.yaml
 make smoke
 ```
+
+The built-in runner executes exactly one fixed seed, exports it as `RESEARCH_SEED`, enforces a
+positive wall-time limit, and accepts only `after_runs: 1`. Use an external scheduler for sweeps,
+random or range seeds, cost accounting, or metric-driven stopping; each attempt must still produce
+a separate run manifest.
 
 ## Execute
 
@@ -38,8 +44,9 @@ uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-
 
 Each execution receives a unique run ID and writes an ignored local manifest under
 `runs/<run-id>/manifest.json`. The manifest records Git state, the resolved spec, versioned
-configuration and environment hashes, typed metrics, declared artifact checksums, timestamps,
-status, and optional parent identity.
+configuration and environment hashes, the selected seed, termination reason, typed metrics,
+timestamps, status, and optional parent identity. Declared artifacts are copied into
+`runs/<run-id>/artifacts/`; the manifest records the snapshot checksum and original source path.
 
 ## Verify And Replay
 
@@ -80,9 +87,10 @@ Return:
 ```text
 question and spec path
 run ID and optional parent run ID
+selected seed and termination reason
 validation and artifact-verification evidence
 metrics and evaluation errors
-artifact locations and checksums
+snapshot and source artifact locations with checksums
 reproduction or replay command
 promotion path and review decision, when applicable
 whether the evidence supports, contradicts, or leaves the question unresolved
