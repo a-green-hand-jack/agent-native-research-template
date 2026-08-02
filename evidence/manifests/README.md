@@ -3,11 +3,22 @@
 This directory contains compact, reviewed evidence envelopes promoted from local run manifests.
 Raw logs, checkpoints, and large artifacts remain under ignored `runs/` paths or external storage.
 
+The built-in local runner deliberately supports one bounded execution rather than pretending to be
+a sweep scheduler. A runnable spec must declare exactly one fixed seed, `max_runs: 1`, a positive
+`max_wall_time_seconds`, and `stopping_rule: {type: after_runs, runs: 1}`. The selected seed is
+exposed to the command as `RESEARCH_SEED`. Multi-seed, random, range, cost-accounted, and
+metric-driven execution must be delegated to an external scheduler that creates separate runs.
+
+Declared artifacts are copied into `runs/<run-id>/artifacts/` before they are recorded. The run
+manifest keeps both the immutable snapshot path and the original `source_path`; later runs may
+replace the original output without invalidating the earlier run.
+
 Promote a run only after its artifact checksums and interpretation have been reviewed. Evidence
 verification and promotion belong exclusively to `tools/evidence.py`; `tools/research.py` validates
-and executes experiment specifications but does not create durable evidence:
+and executes low-level experiment specifications but does not create durable evidence:
 
 ```bash
+uv run python tools/evidence.py validate experiments/specs/<name>.yaml
 uv run python tools/evidence.py verify-run <run-id>
 uv run python tools/evidence.py promote <run-id> \
   --decision accepted \
