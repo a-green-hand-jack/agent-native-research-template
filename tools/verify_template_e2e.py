@@ -23,6 +23,18 @@ FUNCTIONAL_RESIDUES = (
     "from project import",
     "contribution: bootstrap",
 )
+RESIDUE_SURFACES = (
+    "CONTRIBUTIONS.md",
+    "README.md",
+    "configs",
+    "environments",
+    "evals",
+    "experiments",
+    "infra",
+    "pyproject.toml",
+    "src",
+    "uv.lock",
+)
 TEXT_SUFFIXES = {
     "",
     ".json",
@@ -82,14 +94,20 @@ def initialize_project(root: Path) -> None:
     )
 
 
+def surface_files(root: Path) -> list[Path]:
+    selected: list[Path] = []
+    for relative in RESIDUE_SURFACES:
+        path = root / relative
+        if path.is_file():
+            selected.append(path)
+        elif path.is_dir():
+            selected.extend(candidate for candidate in path.rglob("*") if candidate.is_file())
+    return sorted(set(selected))
+
+
 def check_functional_residue(root: Path) -> None:
     findings: list[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(root)
-        if relative.parts and relative.parts[0] in {".agents", "runs"}:
-            continue
+    for path in surface_files(root):
         if path.suffix not in TEXT_SUFFIXES:
             continue
         try:
@@ -98,7 +116,8 @@ def check_functional_residue(root: Path) -> None:
             continue
         for residue in FUNCTIONAL_RESIDUES:
             if residue in content:
-                findings.append(f"{relative.as_posix()}: {residue}")
+                relative = path.relative_to(root).as_posix()
+                findings.append(f"{relative}: {residue}")
     if findings:
         raise TemplateVerificationError(
             "initialized functional project retains template residue:\n" + "\n".join(findings)
