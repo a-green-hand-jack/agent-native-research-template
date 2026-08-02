@@ -53,7 +53,17 @@ project-specific behavioral, scientific, and interface contracts below these sha
   evaluation protocol.
 - Expensive runs begin from a committed checkpoint whenever practical.
 - A run records its Git revision, dirty patch state, resolved config, environment identity, data
-  identity, seed, executor, hardware, timestamps, metrics, and artifact references.
+  identity, seed, executor, hardware, timestamps, metrics, artifact references, and termination
+  reason.
+- `tools/evidence.py` is the canonical bounded local runner. It executes exactly one fixed seed,
+  exposes that seed as `RESEARCH_SEED`, requires and enforces a positive wall-time limit, and
+  accepts only a one-run stopping rule.
+- Multi-seed, range, random, cost-accounted, or metric-driven execution requires an external
+  scheduler. Unsupported controls are rejected before the local command starts; each externally
+  scheduled attempt still creates a separate run.
+- Declared artifacts are copied into the owning `runs/<run-id>/artifacts/` directory before their
+  checksums are recorded. The manifest retains the original source path for provenance, while
+  verification reads the run-scoped snapshot.
 - Run facts are immutable. Retries create new runs linked to their parent.
 - Accepted reports cite run IDs; paper values are generated from locked evidence rather than
   copied from terminal output.
