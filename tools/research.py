@@ -4,12 +4,10 @@ import argparse
 import hashlib
 import json
 import os
-import platform
 import re
 import shlex
 import subprocess
 import sys
-import uuid
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -500,92 +498,6 @@ def extract_return_code_metrics(
     return metrics
 
 
-def run_experiment(path: Path, root: Path = ROOT) -> tuple[Path, int]:
-    validate_schema_documents(root)
-    resolved = validate_spec(path, root)
-    spec = resolved["spec"]
-    git = git_state(root)
-    head_label = (git["commit"] or "nogit")[:8]
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    run_id = f"{timestamp}-{spec['id']}-{head_label}-{uuid.uuid4().hex[:8]}"
-    run_dir = root / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
-
-    started_at = utc_now()
-    process = subprocess.run(
-        resolved["argv"],
-        cwd=root,
-        check=False,
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    finished_at = utc_now()
-
-    stdout_path = run_dir / "stdout.log"
-    stderr_path = run_dir / "stderr.log"
-    stdout_path.write_text(process.stdout, encoding="utf-8")
-    stderr_path.write_text(process.stderr, encoding="utf-8")
-
-    def relative(value: Path | None) -> str | None:
-        return relative_name(value, root) if value is not None else None
-
-    manifest = {
-        "schema_version": SCHEMA_VERSION,
-        "run_id": run_id,
-        "parent_run_id": None,
-        "status": "succeeded" if process.returncode == 0 else "failed",
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "return_code": process.returncode,
-        "question": spec["question"],
-        "contribution": spec["contribution"],
-        "config": {
-            "path": relative(resolved["config_path"]),
-            "sha256": sha256_file(resolved["config_path"]),
-        },
-        "data": spec.get("data"),
-        "spec": {
-            "path": relative(resolved["spec_path"]),
-            "sha256": sha256_file(resolved["spec_path"]),
-            "resolved": spec,
-        },
-        "git": git,
-        "environment": {
-            "id": spec["environment"],
-            "definition": relative(resolved["environment_path"]),
-            "definition_sha256": sha256_file(resolved["environment_path"]),
-            "lockfile": relative(resolved["lockfile_path"]),
-            "lockfile_sha256": sha256_file(resolved["lockfile_path"]),
-        },
-        "executor": {
-            "id": spec["executor"],
-            "definition": relative(resolved["executor_path"]),
-            "definition_sha256": sha256_file(resolved["executor_path"]),
-        },
-        "evaluation": {
-            "id": spec["evaluation"],
-            "definition": relative(resolved["evaluation_path"]),
-            "definition_sha256": sha256_file(resolved["evaluation_path"]),
-        },
-        "hardware": {
-            "platform": platform.platform(),
-            "machine": platform.machine(),
-            "processor": platform.processor(),
-            "cpu_count": os.cpu_count(),
-        },
-        "command": resolved["argv"],
-        "metrics": extract_return_code_metrics(resolved["evaluation"], process.returncode),
-        "artifacts": [
-            {"path": relative(stdout_path), "sha256": sha256_file(stdout_path)},
-            {"path": relative(stderr_path), "sha256": sha256_file(stderr_path)},
-        ],
-    }
-    manifest_path = run_dir / "manifest.json"
-    write_json(manifest_path, manifest)
-    return manifest_path, process.returncode
-
-
 def resolve_manifest(root: Path, value: str) -> Path:
     candidate = Path(value)
     if candidate.is_absolute():
@@ -612,35 +524,26 @@ def spec_paths(root: Path, values: list[str]) -> list[Path]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Validate and execute versioned reproducible research specifications."
+        description="Validate versioned reproducible research specifications."
     )
     subparsers = parser.add_subparsers(dest="command_name", required=True)
 
     validate = subparsers.add_parser("validate", help="validate one or all experiment specs")
     validate.add_argument("specs", nargs="*", help="repository-relative spec paths")
-
-    run = subparsers.add_parser("run", help="execute a validated experiment spec")
-    run.add_argument("spec", help="repository-relative spec path")
     return parser
 
 
 def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.command_name == "validate":
-            paths = spec_paths(root, args.specs)
-            validate_all(root, paths)
-            for path in paths:
-                print(f"OK {relative_name(path, root)}")
-            return 0
-        if args.command_name == "run":
-            manifest_path, return_code = run_experiment(root / args.spec, root)
-            print(relative_name(manifest_path, root))
-            return return_code
+        paths = spec_paths(root, args.specs)
+        validate_all(root, paths)
+        for path in paths:
+            print(f"OK {relative_name(path, root)}")
+        return 0
     except (SpecError, OSError) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
-    return 2
 
 
 if __name__ == "__main__":
