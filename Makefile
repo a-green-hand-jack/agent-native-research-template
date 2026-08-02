@@ -25,6 +25,7 @@ project-check:
 
 research-validate:
 	uv run python tools/research.py validate
+	uv run python tools/evidence.py validate
 
 research-run:
 	uv run python tools/evidence.py run experiments/specs/smoke.yaml

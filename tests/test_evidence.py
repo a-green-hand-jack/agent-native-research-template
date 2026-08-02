@@ -25,7 +25,7 @@ def configure_outputs(root: Path) -> Path:
         ".PHONY: smoke\nsmoke:\n"
         "\t@mkdir -p outputs\n"
         "\t@printf '{\"score\": 0.75}' > outputs/metrics.json\n"
-        "\t@printf 'accuracy=0.75\\n'\n",
+        "\t@printf 'accuracy=0.75 seed=%s\\n' \"$$RESEARCH_SEED\"\n",
         encoding="utf-8",
     )
     (root / "evals/smoke.yaml").write_text(
@@ -40,29 +40,99 @@ def configure_outputs(root: Path) -> Path:
         encoding="utf-8",
     )
     text = spec.read_text(encoding="utf-8").replace(
-        "artifacts: []", "artifacts:\n  - path: outputs/metrics.json\n    required: true"
+        "artifacts: []",
+        "artifacts:\n  - path: outputs/metrics.json\n    required: true",
     )
     spec.write_text(text, encoding="utf-8")
     return spec
 
 
-def test_run_extracts_metrics_and_declared_artifacts(tmp_path: Path) -> None:
+def artifact_snapshot(manifest: dict[str, object]) -> dict[str, str]:
+    artifacts = manifest["artifacts"]
+    assert isinstance(artifacts, list)
+    for artifact in artifacts:
+        if isinstance(artifact, dict) and artifact.get("source_path") == "outputs/metrics.json":
+            return artifact
+    raise AssertionError("declared artifact snapshot was not recorded")
+
+
+def test_run_extracts_metrics_and_snapshots_declared_artifacts(tmp_path: Path) -> None:
     spec = configure_outputs(tmp_path)
     manifest_path, code = evidence.run_spec(spec, tmp_path)
     assert code == 0
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["metrics"] == {"accuracy": 0.75, "score": 0.75, "success": True}
-    assert any(item["path"] == "outputs/metrics.json" for item in manifest["artifacts"])
+    assert manifest["seed"] == 0
+    assert manifest["seed_environment_variable"] == "RESEARCH_SEED"
+    assert manifest["termination"] == {"reason": "completed"}
+    snapshot = artifact_snapshot(manifest)
+    assert snapshot["path"].startswith(f"runs/{manifest['run_id']}/artifacts/")
+    assert (tmp_path / snapshot["path"]).read_text(encoding="utf-8") == '{"score": 0.75}'
     assert manifest["evaluation_errors"] == []
 
 
-def test_verify_run_detects_artifact_tampering(tmp_path: Path) -> None:
+def test_verify_run_uses_snapshot_after_source_is_overwritten(tmp_path: Path) -> None:
     spec = configure_outputs(tmp_path)
     manifest_path, _ = evidence.run_spec(spec, tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     (tmp_path / "outputs/metrics.json").write_text("{}", encoding="utf-8")
+    assert evidence.verify_run(manifest["run_id"], tmp_path)["run_id"] == manifest["run_id"]
+
+
+def test_verify_run_detects_snapshot_tampering(tmp_path: Path) -> None:
+    spec = configure_outputs(tmp_path)
+    manifest_path, _ = evidence.run_spec(spec, tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    snapshot = artifact_snapshot(manifest)
+    (tmp_path / snapshot["path"]).write_text("{}", encoding="utf-8")
     with pytest.raises(evidence.EvidenceError, match="checksum mismatch"):
         evidence.verify_run(manifest["run_id"], tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("seeds: [0]", "seeds: [0, 1]", "exactly one fixed seed"),
+        ("max_runs: 1", "max_runs: 2", "exactly one execution"),
+        (
+            "type: after_runs\n  runs: 1",
+            "type: metric_threshold\n  metric: success\n  operator: '=='\n  value: 1",
+            "supports only stopping_rule",
+        ),
+    ],
+)
+def test_local_runner_rejects_unsupported_controls(
+    tmp_path: Path,
+    old: str,
+    new: str,
+    message: str,
+) -> None:
+    spec = configure_outputs(tmp_path)
+    spec.write_text(spec.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+    with pytest.raises(evidence.EvidenceError, match=message):
+        evidence.run_spec(spec, tmp_path)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_local_runner_enforces_wall_time_budget(tmp_path: Path) -> None:
+    spec = build_repository(tmp_path)
+    (tmp_path / "Makefile").write_text(
+        ".PHONY: smoke\nsmoke:\n\t@python -c 'import time; time.sleep(2)'\n",
+        encoding="utf-8",
+    )
+    text = spec.read_text(encoding="utf-8").replace(
+        "max_wall_time_seconds: 60",
+        "max_wall_time_seconds: 1",
+    )
+    spec.write_text(text, encoding="utf-8")
+    manifest_path, code = evidence.run_spec(spec, tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert code == evidence.TIMEOUT_RETURN_CODE
+    assert manifest["status"] == "failed"
+    assert manifest["termination"] == {
+        "reason": "timeout",
+        "max_wall_time_seconds": 1,
+    }
 
 
 def test_parent_run_is_recorded(tmp_path: Path) -> None:

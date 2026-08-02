@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import platform
 import re
+import shutil
+import subprocess
 import sys
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,10 +21,12 @@ import research
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DECISIONS = ("accepted", "rejected", "inconclusive")
+SEED_ENVIRONMENT_VARIABLE = "RESEARCH_SEED"
+TIMEOUT_RETURN_CODE = 124
 
 
 class EvidenceError(ValueError):
-    """Raised when a run cannot be verified, replayed, or promoted."""
+    """Raised when a run cannot be executed, verified, replayed, or promoted."""
 
 
 def utc_now() -> str:
@@ -94,24 +101,195 @@ def extract_metrics(
     return metrics, errors
 
 
-def declared_artifacts(spec: dict[str, Any], root: Path) -> tuple[list[dict[str, Any]], list[str]]:
+def supported_execution_controls(spec: dict[str, Any]) -> tuple[int, int]:
+    seed_policy = spec["seed_policy"]
+    if seed_policy.get("mode") != "fixed" or len(seed_policy.get("seeds", [])) != 1:
+        raise EvidenceError(
+            "the local runner supports exactly one fixed seed; use an external scheduler for "
+            "multi-seed, range, or random execution"
+        )
+    seed = seed_policy["seeds"][0]
+
+    budget = spec["budget"]
+    if budget.get("max_runs", 1) != 1:
+        raise EvidenceError(
+            "the local runner supports exactly one execution; use an external scheduler for "
+            "max_runs greater than 1"
+        )
+    if "max_cost_units" in budget:
+        raise EvidenceError(
+            "the local runner has no cost accounting and cannot enforce budget.max_cost_units"
+        )
+    timeout = budget.get("max_wall_time_seconds")
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
+        raise EvidenceError(
+            "the local runner requires a positive budget.max_wall_time_seconds so every run is "
+            "bounded"
+        )
+
+    stopping_rule = spec["stopping_rule"]
+    if stopping_rule.get("type") != "after_runs" or stopping_rule.get("runs") != 1:
+        raise EvidenceError(
+            "the local runner supports only stopping_rule {type: after_runs, runs: 1}; use an "
+            "external scheduler for budget- or metric-driven stopping"
+        )
+    return seed, timeout
+
+
+def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any]:
+    resolved = research.validate_spec(spec_path, root)
+    seed, timeout = supported_execution_controls(resolved["spec"])
+    return {**resolved, "seed": seed, "timeout": timeout}
+
+
+def timeout_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
+
+
+def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
+    resolved = validate_supported_spec(spec_path, root)
+    spec = resolved["spec"]
+    seed = resolved["seed"]
+    timeout = resolved["timeout"]
+    git = research.git_state(root)
+    head_label = (git["commit"] or "nogit")[:8]
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    run_id = f"{timestamp}-{spec['id']}-{head_label}-{uuid.uuid4().hex[:8]}"
+    run_dir = root / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=False)
+
+    environment = os.environ.copy()
+    environment[SEED_ENVIRONMENT_VARIABLE] = str(seed)
+    started_at = utc_now()
+    try:
+        process = subprocess.run(
+            resolved["argv"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            env=environment,
+            timeout=timeout,
+        )
+        return_code = process.returncode
+        stdout = process.stdout
+        stderr = process.stderr
+        termination = {"reason": "completed"}
+    except subprocess.TimeoutExpired as exc:
+        return_code = TIMEOUT_RETURN_CODE
+        stdout = timeout_text(exc.stdout)
+        stderr = timeout_text(exc.stderr)
+        termination = {
+            "reason": "timeout",
+            "max_wall_time_seconds": timeout,
+        }
+    finished_at = utc_now()
+
+    stdout_path = run_dir / "stdout.log"
+    stderr_path = run_dir / "stderr.log"
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(stderr, encoding="utf-8")
+
+    def relative(value: Path | None) -> str | None:
+        return research.relative_name(value, root) if value is not None else None
+
+    manifest = {
+        "schema_version": research.SCHEMA_VERSION,
+        "run_id": run_id,
+        "parent_run_id": None,
+        "status": "succeeded" if return_code == 0 else "failed",
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "return_code": return_code,
+        "termination": termination,
+        "seed": seed,
+        "seed_environment_variable": SEED_ENVIRONMENT_VARIABLE,
+        "question": spec["question"],
+        "contribution": spec["contribution"],
+        "config": {
+            "path": relative(resolved["config_path"]),
+            "sha256": research.sha256_file(resolved["config_path"]),
+        },
+        "data": spec.get("data"),
+        "spec": {
+            "path": relative(resolved["spec_path"]),
+            "sha256": research.sha256_file(resolved["spec_path"]),
+            "resolved": spec,
+        },
+        "git": git,
+        "environment": {
+            "id": spec["environment"],
+            "definition": relative(resolved["environment_path"]),
+            "definition_sha256": research.sha256_file(resolved["environment_path"]),
+            "lockfile": relative(resolved["lockfile_path"]),
+            "lockfile_sha256": research.sha256_file(resolved["lockfile_path"]),
+        },
+        "executor": {
+            "id": spec["executor"],
+            "definition": relative(resolved["executor_path"]),
+            "definition_sha256": research.sha256_file(resolved["executor_path"]),
+        },
+        "evaluation": {
+            "id": spec["evaluation"],
+            "definition": relative(resolved["evaluation_path"]),
+            "definition_sha256": research.sha256_file(resolved["evaluation_path"]),
+        },
+        "hardware": {
+            "platform": platform.platform(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+            "cpu_count": os.cpu_count(),
+        },
+        "command": resolved["argv"],
+        "metrics": research.extract_return_code_metrics(resolved["evaluation"], return_code),
+        "artifacts": [
+            {"path": relative(stdout_path), "sha256": research.sha256_file(stdout_path)},
+            {"path": relative(stderr_path), "sha256": research.sha256_file(stderr_path)},
+        ],
+    }
+    manifest_path = run_dir / "manifest.json"
+    research.write_json(manifest_path, manifest)
+    return manifest_path, return_code
+
+
+def declared_artifacts(
+    spec: dict[str, Any],
+    root: Path,
+    run_dir: Path,
+) -> tuple[list[dict[str, Any]], list[str]]:
     records: list[dict[str, Any]] = []
     errors: list[str] = []
     seen: set[str] = set()
+    resolved_root = root.resolve()
     for declaration in spec.get("artifacts", []):
         pattern = declaration["path"]
         matches = sorted(path for path in root.glob(pattern) if path.is_file())
         if declaration.get("required", False) and not matches:
             errors.append(f"required artifact pattern matched no files: {pattern}")
         for path in matches:
-            relative = research.relative_name(path, root)
+            try:
+                resolved_source = path.resolve()
+                resolved_source.relative_to(resolved_root)
+                relative = research.relative_name(path, root)
+            except ValueError:
+                errors.append(f"declared artifact resolves outside the repository: {path}")
+                continue
             if relative in seen or relative.startswith("runs/"):
                 continue
             seen.add(relative)
+            destination = run_dir / "artifacts" / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(resolved_source, destination)
             records.append(
                 {
-                    "path": relative,
-                    "sha256": research.sha256_file(path),
+                    "path": research.relative_name(destination, root),
+                    "source_path": relative,
+                    "sha256": research.sha256_file(destination),
                     "kind": declaration.get("kind", "declared"),
                 }
             )
@@ -125,6 +303,7 @@ def enrich_manifest(
     parent_run_id: str | None,
 ) -> tuple[Path, int]:
     manifest = research.load_json(manifest_path)
+    run_dir = manifest_path.parent
     stdout_path = root / manifest["artifacts"][0]["path"]
     evaluation_path = root / manifest["evaluation"]["definition"]
     evaluation = research.load_yaml(evaluation_path)
@@ -134,7 +313,11 @@ def enrich_manifest(
         stdout=stdout_path.read_text(encoding="utf-8"),
         root=root,
     )
-    artifacts, artifact_errors = declared_artifacts(manifest["spec"]["resolved"], root)
+    artifacts, artifact_errors = declared_artifacts(
+        manifest["spec"]["resolved"],
+        root,
+        run_dir,
+    )
     errors.extend(artifact_errors)
     existing = {artifact["path"] for artifact in manifest["artifacts"]}
     manifest["artifacts"].extend(
@@ -158,7 +341,7 @@ def run_spec(
         parent = verify_run(parent_run_id, root)
         if parent["run_id"] != parent_run_id:
             raise EvidenceError("parent run identity does not match its manifest")
-    manifest_path, _ = research.run_experiment(spec_path, root)
+    manifest_path, _ = run_once(spec_path, root)
     return enrich_manifest(manifest_path, root, parent_run_id=parent_run_id)
 
 
@@ -263,11 +446,27 @@ def promote_manifest(
     return destination
 
 
+def validate_specs(values: list[str], root: Path = ROOT) -> list[Path]:
+    paths = research.spec_paths(root, values)
+    research.validate_all(root, paths)
+    for path in paths:
+        validate_supported_spec(path, root)
+    return paths
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Verify, replay, and promote research evidence.")
+    parser = argparse.ArgumentParser(
+        description="Validate, run, verify, replay, and promote evidence."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    run = subparsers.add_parser("run", help="run a spec with full evidence extraction")
+    validate = subparsers.add_parser(
+        "validate",
+        help="validate research definitions and local-runner execution controls",
+    )
+    validate.add_argument("specs", nargs="*")
+
+    run = subparsers.add_parser("run", help="run one supported spec with full evidence extraction")
     run.add_argument("spec")
     run.add_argument("--parent")
 
@@ -288,6 +487,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.command == "validate":
+            paths = validate_specs(args.specs, root)
+            for path in paths:
+                print(f"OK {research.relative_name(path, root)}")
+            return 0
         if args.command == "run":
             path, code = run_spec(root / args.spec, root, parent_run_id=args.parent)
             print(research.relative_name(path, root))

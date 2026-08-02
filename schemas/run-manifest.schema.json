@@ -44,11 +44,62 @@
     "return_code": {
       "type": "integer"
     },
+    "seed": {
+      "type": "integer"
+    },
+    "seed_environment_variable": {
+      "const": "RESEARCH_SEED"
+    },
+    "termination": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "completed",
+            "timeout"
+          ]
+        },
+        "max_wall_time_seconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "metrics": {
       "type": "object"
     },
     "artifacts": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
     },
     "evaluation_errors": {
       "type": "array",
