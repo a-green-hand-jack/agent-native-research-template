@@ -108,7 +108,7 @@ def test_validate_rejects_unversioned_definition(tmp_path: Path) -> None:
         research.validate_all(tmp_path)
 
 
-def test_run_and_promote_manifest(tmp_path: Path) -> None:
+def test_run_manifest(tmp_path: Path) -> None:
     spec_path = build_repository(tmp_path)
     manifest_path, return_code = research.run_experiment(spec_path, tmp_path)
     assert return_code == 0
@@ -119,6 +119,10 @@ def test_run_and_promote_manifest(tmp_path: Path) -> None:
     assert manifest["spec"]["sha256"]
     assert manifest["environment"]["lockfile_sha256"]
 
-    promoted = research.promote_manifest(manifest["run_id"], tmp_path)
-    assert promoted.is_file()
-    assert json.loads(promoted.read_text(encoding="utf-8"))["run_id"] == manifest["run_id"]
+
+def test_research_tool_has_no_evidence_promotion_surface(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not hasattr(research, "promote_manifest")
+    with pytest.raises(SystemExit) as exc_info:
+        research.build_parser().parse_args(["promote", "run-id"])
+    assert exc_info.value.code == 2
+    assert "invalid choice" in capsys.readouterr().err
