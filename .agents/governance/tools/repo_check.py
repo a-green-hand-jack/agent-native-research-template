@@ -51,6 +51,16 @@ REQUIRED_EXPERIMENT_FIELDS = {
     "evaluation",
     "command",
 }
+DEV_GUIDE_PATH = ".agents/skills/dev-guide/SKILL.md"
+GUIDANCE_ROUTES = {
+    "AGENTS.md": (DEV_GUIDE_PATH,),
+    DEV_GUIDE_PATH: (
+        ".agents/governance/ANATOMY.md",
+        ".agents/governance/CONTRACT.md",
+        ".agents/governance/REPO_UNITS.yaml",
+        ".agents/governance/GUIDE.md",
+    ),
+}
 
 
 def project_files() -> list[Path]:
@@ -233,6 +243,19 @@ def check_skills(errors: list[str]) -> None:
             seen_names.add(name)
 
 
+def check_guidance_routes(errors: list[str]) -> None:
+    for source, targets in GUIDANCE_ROUTES.items():
+        path = ROOT / source
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"ROUTE-001 cannot read guidance source {source}: {exc}")
+            continue
+        for target in targets:
+            if target not in text:
+                errors.append(f"ROUTE-002 {source} must route to {target}")
+
+
 def check_experiment_specs(errors: list[str]) -> None:
     for path in sorted((ROOT / "experiments" / "specs").glob("*.yaml")):
         data = load_yaml(path, errors)
@@ -339,6 +362,7 @@ def main() -> int:
         unit_counts = check_repository_units(manifest, errors)
     check_yaml(errors)
     check_skills(errors)
+    check_guidance_routes(errors)
     check_experiment_specs(errors)
     check_tracked_state(errors)
     check_runtime_ignores(errors)
@@ -353,8 +377,8 @@ def main() -> int:
     print(
         "OK repository structure, units "
         f"(functional={unit_counts['functional']}, governance={unit_counts['governance']}), "
-        "sidecar boundary, runtime isolation, guidance overlays, YAML, skills, experiment specs, "
-        "and tracked state"
+        "sidecar boundary, runtime isolation, guidance routes and overlays, YAML, skills, "
+        "experiment specs, and tracked state"
     )
     return 0
 

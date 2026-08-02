@@ -3,13 +3,10 @@
 The project is primary. Agent governance is an optional, non-runtime sidecar under `.agents/`.
 This root file exists only because agent tools discover `AGENTS.md` here.
 
-Before changing the project:
-
-1. Read `.agents/governance/CONTRACT.md`.
-2. Read `.agents/governance/ANATOMY.md`.
-3. Classify ownership through `.agents/governance/REPO_UNITS.yaml`.
-4. Load `.agents/governance/GUIDE.md` or a project skill only when the task needs it.
-5. Inspect Git state and choose the smallest verification that proves the outcome.
+Before changing code, configuration, tests, documentation, experiments, or governance, read
+`.agents/skills/dev-guide/SKILL.md`. It owns the development workflow and routes the task to the
+repository's structural facts, behavioral promises, ownership boundary, focused validation, and
+side-effect gates without duplicating those sources here.
 
 ## Boundary
 
@@ -46,4 +43,5 @@ Human-to-main-agent is the default routing mode, not a permanent topology.
 - Only the current controller writes to a worktree. Before control changes, leave a coherent Git
   checkpoint and, when context is not obvious, an ignored `.agents/runtime/HANDOFF.md`.
 
-Read `.agents/governance/GUIDE.md` for adoption, switching, and integration procedures.
+The development guide routes to `.agents/governance/GUIDE.md` when worktree adoption, switching,
+or integration procedures are needed.
