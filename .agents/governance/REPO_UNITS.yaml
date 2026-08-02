@@ -27,6 +27,7 @@ required_paths:
     - .agents/memory/INDEX.md
     - .agents/runtime/.gitignore
     - .agents/skills/
+    - .agents/skills/dev-guide/SKILL.md
     - AGENTS.md
   functional:
     - README.md
