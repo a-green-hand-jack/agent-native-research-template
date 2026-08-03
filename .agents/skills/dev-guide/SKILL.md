@@ -80,6 +80,23 @@ report an interrupted or timed-out command as passing.
 Passing tests cannot excuse a violated Contract. Prose cannot excuse a failing executable check.
 Before handoff, inspect the final diff against the human instruction and name every untested risk.
 
+## Prove The Exact Pull Request Head
+
+Local validation is necessary but does not prove that GitHub evaluated the exact commit proposed
+for merge. Before merging a pull request:
+
+1. resolve and record the current PR head SHA and base SHA;
+2. confirm the diff and review state still match the approved scope;
+3. require a successful GitHub Actions run or commit status attached to that exact head SHA;
+4. re-run CI after a rebase, conflict resolution, generated lockfile change, bot update, or any
+   other head movement;
+5. use the expected head SHA in the merge operation so GitHub rejects concurrent changes;
+6. record the run or status evidence in the pull request and final handoff.
+
+A successful run for an ancestor, a synthetic merge commit with a different head, or another
+branch is not exact-head merge evidence. A successful check is still not permission to merge;
+explicit authorization remains a separate gate.
+
 ## Apply The Side-Effect Gate
 
 Reading, analysis, local edits, local validation, and local reports do not authorize remote or
@@ -107,6 +124,7 @@ selected baseline and branch or worktree
 relevant Anatomy and Contract paths
 changed files and ownership classification
 validation commands and results
+exact tested head SHA and GitHub Actions run or commit status
 experiment or evidence IDs when applicable
 remaining risks and untested surfaces
 external side effects performed under explicit authorization
