@@ -17,6 +17,12 @@ import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
+TOOLS_DIR = Path(__file__).resolve().parent
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+import input_identity
+
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = 1
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -378,6 +384,7 @@ def validate_spec(
 
     spec = load_yaml(path)
     validate_document(spec, "experiment", path, root)
+    resolved_inputs = input_identity.resolve_inputs(spec.get("inputs", []), root)
     missing = REQUIRED_EXPERIMENT_FIELDS - spec.keys()
     if missing:
         raise SpecError(f"{relative_name(path, root)} missing fields: {', '.join(sorted(missing))}")
@@ -444,6 +451,7 @@ def validate_spec(
         "executor": executor,
         "lockfile_path": lockfile_path,
         "argv": argv,
+        "inputs": resolved_inputs,
     }
 
 
@@ -581,7 +589,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         for path in paths:
             print(f"OK {relative_name(path, root)}")
         return 0
-    except (SpecError, OSError) as exc:
+    except (SpecError, input_identity.InputIdentityError, OSError) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
 

@@ -6,6 +6,6 @@ package_name: project
 contribution_id: bootstrap
 template:
   name: agent-native-research-template
-  version: 1
+  version: 2
   initialized_from_commit: null
   applied_migrations: []

@@ -9,6 +9,10 @@ a sweep scheduler. A runnable spec must declare exactly one fixed seed, `max_run
 exposed to the command as `RESEARCH_SEED`. Multi-seed, random, range, cost-accounted, and
 metric-driven execution must be delegated to an external scheduler that creates separate runs.
 
+Generic input declarations use `path`, `uri`, or `opaque` identities. Repository path inputs are
+hashed before execution and checked again before replay. URI and opaque identities are recorded as
+declared and are never fetched implicitly. See `docs/INPUT_IDENTITY.md`.
+
 Declared artifacts are copied into `runs/<run-id>/artifacts/` before they are recorded. The run
 manifest keeps both the immutable snapshot path and the original `source_path`; later runs may
 replace the original output without invalidating the earlier run.
@@ -16,7 +20,8 @@ replace the original output without invalidating the earlier run.
 The JSON Schema documents under `schemas/` are executable contracts, not examples. Draft 2020-12
 validation checks each experiment, environment, executor, evaluation, run manifest, and evidence
 envelope at its owning boundary. Python validation remains responsible for cross-file references,
-repository paths, global identifiers, command agreement, and artifact checksums.
+repository paths, global identifiers, command agreement, input hashing, replay drift, and artifact
+checksums.
 
 Promote a run only after its artifact checksums and interpretation have been reviewed. Evidence
 execution, verification, replay, and promotion belong exclusively to `tools/evidence.py`;
@@ -33,6 +38,7 @@ uv run python tools/evidence.py promote <run-id> \
 Each evidence file records:
 
 - the source run ID, manifest path, and source-manifest SHA-256;
+- resolved input identities and immutable artifact snapshots;
 - the promotion timestamp;
 - a review decision: `accepted`, `rejected`, or `inconclusive`;
 - an optional review note;

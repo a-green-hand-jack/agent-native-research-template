@@ -20,6 +20,43 @@
         }
       ]
     },
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["id", "kind", "path"],
+          "properties": {
+            "id": {"$ref": "#/$defs/identifier"},
+            "kind": {"const": "path"},
+            "path": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "kind", "uri"],
+          "properties": {
+            "id": {"$ref": "#/$defs/identifier"},
+            "kind": {"const": "uri"},
+            "uri": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "kind", "value"],
+          "properties": {
+            "id": {"$ref": "#/$defs/identifier"},
+            "kind": {"const": "opaque"},
+            "value": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "seed_policy": {
       "oneOf": [
         {
@@ -133,6 +170,10 @@
     "executor": {"$ref": "#/$defs/identifier"},
     "evaluation": {"$ref": "#/$defs/identifier"},
     "command": {"$ref": "#/$defs/command"},
+    "inputs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/input"}
+    },
     "seed_policy": {"$ref": "#/$defs/seed_policy"},
     "budget": {"$ref": "#/$defs/budget"},
     "stopping_rule": {"$ref": "#/$defs/stopping_rule"},

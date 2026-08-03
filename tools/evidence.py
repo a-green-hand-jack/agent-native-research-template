@@ -17,6 +17,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import input_identity
 import research
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -216,6 +217,7 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
             "sha256": research.sha256_file(resolved["config_path"]),
         },
         "data": spec.get("data"),
+        "inputs": resolved["inputs"],
         "spec": {
             "path": relative(resolved["spec_path"]),
             "sha256": research.sha256_file(resolved["spec_path"]),
@@ -401,6 +403,7 @@ def recorded_input_drift(manifest: dict[str, Any], root: Path) -> list[str]:
             drift.append(f"{label} is missing: {relative}")
         elif research.sha256_file(path) != expected:
             drift.append(f"{label} changed: {relative}")
+    drift.extend(input_identity.recorded_input_drift(manifest.get("inputs", []), root))
     return drift
 
 
