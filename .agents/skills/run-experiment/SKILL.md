@@ -22,6 +22,7 @@ Separate experiment intent, observed execution facts, verification, and interpre
 uv run python tools/research.py validate experiments/specs/<name>.yaml
 uv run python tools/evidence.py validate experiments/specs/<name>.yaml
 uv run python tools/evidence.py plan experiments/specs/<name>.yaml
+uv run python tools/evidence.py preflight experiments/specs/<name>.yaml
 make smoke
 ```
 
@@ -48,7 +49,10 @@ For a retry or deliberately derived execution, name the parent run:
 uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
 ```
 
-Review the deterministic plan and its SHA-256 before execution. A multi-cell plan requires an
+Review the deterministic plan and its SHA-256, then review preflight's resolved logical asset
+bindings. Use `--phase generation` or `--phase evaluation` to prove oracle isolation.
+
+A multi-cell plan requires an
 external scheduler; the built-in runner executes exactly one cell.
 
 Each execution receives a unique run ID and writes an ignored local manifest under

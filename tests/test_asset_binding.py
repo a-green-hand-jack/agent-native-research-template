@@ -11,12 +11,16 @@ TOOLS = Path(__file__).resolve().parents[1] / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-ASSET_SPEC = importlib.util.spec_from_file_location("asset_binding_tool", TOOLS / "asset_binding.py")
+ASSET_SPEC = importlib.util.spec_from_file_location(
+    "asset_binding_tool", TOOLS / "asset_binding.py"
+)
 assert ASSET_SPEC and ASSET_SPEC.loader
 asset_binding = importlib.util.module_from_spec(ASSET_SPEC)
 ASSET_SPEC.loader.exec_module(asset_binding)
 
-PLAN_SPEC = importlib.util.spec_from_file_location("experiment_plan_tool", TOOLS / "experiment_plan.py")
+PLAN_SPEC = importlib.util.spec_from_file_location(
+    "experiment_plan_tool", TOOLS / "experiment_plan.py"
+)
 assert PLAN_SPEC and PLAN_SPEC.loader
 experiment_plan = importlib.util.module_from_spec(PLAN_SPEC)
 PLAN_SPEC.loader.exec_module(experiment_plan)

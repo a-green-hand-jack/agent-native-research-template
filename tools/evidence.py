@@ -17,6 +17,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import asset_binding
 import experiment_plan
 import input_identity
 import research
@@ -146,6 +147,9 @@ def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any
             "the local runner executes exactly one plan cell; use an external scheduler "
             "for matrix plans"
         )
+    preflight = asset_binding.resolve_assets(
+        resolved["spec"], resolved["executor"], root, phase="all"
+    )
     seed, timeout = supported_execution_controls(resolved["spec"])
     return {
         **resolved,
@@ -153,6 +157,7 @@ def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any
         "timeout": timeout,
         "plan": plan["resolved"],
         "plan_sha256": plan["sha256"],
+        "asset_preflight": preflight,
     }
 
 
@@ -178,6 +183,7 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
 
     environment = os.environ.copy()
     environment[SEED_ENVIRONMENT_VARIABLE] = str(seed)
+    environment.update(asset_binding.environment_for_assets(resolved["asset_preflight"]))
     started_at = utc_now()
     try:
         process = subprocess.run(
@@ -235,6 +241,7 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
         },
         "data": spec.get("data"),
         "inputs": resolved["inputs"],
+        "asset_bindings": resolved["asset_preflight"],
         "spec": {
             "path": relative(resolved["spec_path"]),
             "sha256": research.sha256_file(resolved["spec_path"]),
@@ -421,6 +428,8 @@ def recorded_input_drift(manifest: dict[str, Any], root: Path) -> list[str]:
         elif research.sha256_file(path) != expected:
             drift.append(f"{label} changed: {relative}")
     drift.extend(input_identity.recorded_input_drift(manifest.get("inputs", []), root))
+    asset_records = manifest.get("asset_bindings", {}).get("assets", [])
+    drift.extend(asset_binding.recorded_asset_drift(asset_records, root))
     return drift
 
 
@@ -493,6 +502,12 @@ def build_parser() -> argparse.ArgumentParser:
     plan = subparsers.add_parser("plan", help="emit a deterministic side-effect-free plan")
     plan.add_argument("spec")
 
+    preflight = subparsers.add_parser(
+        "preflight", help="resolve and validate logical asset bindings"
+    )
+    preflight.add_argument("spec")
+    preflight.add_argument("--phase", choices=sorted(asset_binding.PHASES), default="all")
+
     run = subparsers.add_parser("run", help="run one supported spec with full evidence extraction")
     run.add_argument("spec")
     run.add_argument("--parent")
@@ -522,6 +537,13 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         if args.command == "plan":
             print(experiment_plan.render_plan(root / args.spec, root), end="")
             return 0
+        if args.command == "preflight":
+            resolved = research.validate_spec(root / args.spec, root)
+            preflight = asset_binding.resolve_assets(
+                resolved["spec"], resolved["executor"], root, phase=args.phase
+            )
+            print(json.dumps(preflight, indent=2, sort_keys=True))
+            return 0
         if args.command == "run":
             path, code = run_spec(root / args.spec, root, parent_run_id=args.parent)
             print(research.relative_name(path, root))
@@ -545,6 +567,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             return 0
     except (
         EvidenceError,
+        asset_binding.AssetBindingError,
         experiment_plan.PlanError,
         research.SpecError,
         OSError,

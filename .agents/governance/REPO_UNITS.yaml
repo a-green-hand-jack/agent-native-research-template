@@ -38,7 +38,9 @@ required_paths:
   - PROJECT.yaml
   - README.md
   - SECURITY.md
+  - assets/registry.yaml
   - configs/base.yaml
+  - docs/ASSET_BINDINGS.md
   - docs/EXPERIMENT_PLANS.md
   - docs/INPUT_IDENTITY.md
   - docs/REFERENCE_IMPLEMENTATION.md
@@ -48,6 +50,7 @@ required_paths:
   - experiments/specs/smoke.yaml
   - infra/profiles/local.yaml
   - pyproject.toml
+  - schemas/asset-registry.schema.json
   - schemas/environment.schema.json
   - schemas/evaluation.schema.json
   - schemas/evidence-manifest.schema.json
@@ -56,6 +59,7 @@ required_paths:
   - schemas/run-manifest.schema.json
   - src/
   - tests/
+  - tools/asset_binding.py
   - tools/ci_policy.py
   - tools/evidence.py
   - tools/experiment_plan.py

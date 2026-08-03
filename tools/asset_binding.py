@@ -6,9 +6,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 import input_identity
+import yaml
 
 REGISTRY_PATH = Path("assets/registry.yaml")
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -57,15 +56,23 @@ def load_registry(root: Path) -> dict[str, dict[str, Any]]:
         if identifier in records:
             raise AssetBindingError(f"duplicate asset ID: {identifier}")
         if role not in ROLES:
-            raise AssetBindingError(f"asset {identifier} role must be one of: {', '.join(sorted(ROLES))}")
+            raise AssetBindingError(
+                f"asset {identifier} role must be one of: {', '.join(sorted(ROLES))}"
+            )
         if expected_type not in {"file", "directory", "any"}:
-            raise AssetBindingError(f"asset {identifier} expected_type must be file, directory, or any")
+            raise AssetBindingError(
+                f"asset {identifier} expected_type must be file, directory, or any"
+            )
         if not isinstance(declaration.get("reconstructable"), bool):
             raise AssetBindingError(f"asset {identifier} reconstructable must be boolean")
         for field in ("min_bytes", "max_bytes"):
             value = declaration.get(field)
-            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 0):
-                raise AssetBindingError(f"asset {identifier} {field} must be a non-negative integer")
+            if value is not None and (
+                not isinstance(value, int) or isinstance(value, bool) or value < 0
+            ):
+                raise AssetBindingError(
+                    f"asset {identifier} {field} must be a non-negative integer"
+                )
         if declaration.get("min_bytes", 0) > declaration.get("max_bytes", float("inf")):
             raise AssetBindingError(f"asset {identifier} min_bytes exceeds max_bytes")
         records[identifier] = declaration
@@ -90,7 +97,9 @@ def requirement_records(spec: dict[str, Any]) -> list[dict[str, str]]:
             raise AssetBindingError(f"duplicate experiment asset requirement: {identifier}")
         seen.add(identifier)
         if phase not in PHASES:
-            raise AssetBindingError(f"asset requirement {identifier} phase must be all, generation, or evaluation")
+            raise AssetBindingError(
+                f"asset requirement {identifier} phase must be all, generation, or evaluation"
+            )
         if access not in ACCESS_MODES:
             raise AssetBindingError(f"asset requirement {identifier} access must be read or write")
         records.append({"id": identifier, "phase": phase, "access": access})
@@ -163,7 +172,9 @@ def resolve_path_binding(
     if requirement["access"] == "read" and not exists:
         raise AssetBindingError(f"asset binding {identifier} does not exist: {rendered}")
     if requirement["access"] == "write" and exists and registry.get("immutable_output", False):
-        raise AssetBindingError(f"immutable output asset already exists: {identifier} -> {rendered}")
+        raise AssetBindingError(
+            f"immutable output asset already exists: {identifier} -> {rendered}"
+        )
 
     expected_type = registry["expected_type"]
     if not exists:
@@ -256,8 +267,11 @@ def resolve_assets(
 ) -> dict[str, Any]:
     if phase not in PHASES:
         raise AssetBindingError("preflight phase must be all, generation, or evaluation")
-    registry = load_registry(root)
     requirements = requirement_records(spec)
+    if not requirements:
+        empty = {"phase": phase, "assets": []}
+        return {**empty, "sha256": canonical_hash(empty)}
+    registry = load_registry(root)
     bindings = executor.get("asset_bindings", {})
     if not isinstance(bindings, dict):
         raise AssetBindingError("executor asset_bindings must be a mapping")
