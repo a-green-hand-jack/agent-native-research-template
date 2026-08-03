@@ -30,6 +30,23 @@ jobs:
       - name: Apply and format scoped integration
         run: |
           uv sync --frozen --group dev
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/apply_metric_patch.py")
+          text = path.read_text(encoding="utf-8")
+          old = (
+              '        "        input_identity.InputIdentityError,\\n",\n'
+              '        "        input_identity.InputIdentityError,\\n        metric_observation.MetricObservationError,\\n",\n'
+          )
+          new = (
+              '        "        experiment_plan.PlanError,\\n",\n'
+              '        "        experiment_plan.PlanError,\\n        metric_observation.MetricObservationError,\\n",\n'
+          )
+          if text.count(old) != 1:
+              raise RuntimeError("metric exception insertion target changed")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
           uv run python tools/apply_metric_patch.py
           uv run ruff check --fix tools/metric_observation.py tests/test_metric_observation.py tests/test_metric_evidence.py
           uv run ruff format tools tests
