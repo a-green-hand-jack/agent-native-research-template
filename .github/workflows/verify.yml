@@ -30,6 +30,9 @@ jobs:
       - name: Execute the smallest research loop
         run: make research-run
 
+      - name: Initialize and verify a real project copy
+        run: make template-e2e
+
       - name: Verify the project without governance
         run: |
           rm -rf .agents AGENTS.md .venv
