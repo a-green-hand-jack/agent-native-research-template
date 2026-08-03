@@ -45,6 +45,7 @@ required_paths:
   - docs/INPUT_IDENTITY.md
   - docs/PHASE_RECOVERY.md
   - docs/REFERENCE_IMPLEMENTATION.md
+  - docs/RUN_STATUS.md
   - environments/main.yaml
   - evals/smoke.yaml
   - evidence/manifests/README.md
@@ -58,6 +59,7 @@ required_paths:
   - schemas/executor.schema.json
   - schemas/experiment.schema.json
   - schemas/run-manifest.schema.json
+  - schemas/run-result.schema.json
   - src/
   - tests/
   - tools/asset_binding.py
@@ -68,6 +70,7 @@ required_paths:
   - tools/input_identity.py
   - tools/phase_graph.py
   - tools/research.py
+  - tools/run_state.py
   - tools/template_compat.py
   - tools/verify_template_e2e.py
 dependency_rules:

@@ -23,6 +23,10 @@ envelope at its owning boundary. Python validation remains responsible for cross
 repository paths, global identifiers, command agreement, input hashing, replay drift, and artifact
 checksums.
 
+A run's `state.json` is non-terminal progress; `result.json` is the atomic terminal completion
+record. Status is never inferred from process or accelerator idleness. Missing terminal evidence
+is incomplete, and verification is a read-only projection rather than a mutation.
+
 Promote a run only after its artifact checksums and interpretation have been reviewed. Evidence
 execution, verification, replay, and promotion belong exclusively to `tools/evidence.py`;
 `tools/research.py` validates research definitions and supplies shared non-executing utilities:

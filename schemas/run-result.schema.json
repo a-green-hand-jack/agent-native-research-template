@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/run-result.schema.json",
+  "title": "Terminal Run Result",
+  "description": "Atomic terminal completion evidence derived from one immutable run manifest.",
+  "type": "object",
+  "x-schema-version": 1,
+  "required": [
+    "result_version",
+    "run_id",
+    "state",
+    "terminal",
+    "recorded_at",
+    "manifest_sha256",
+    "return_code",
+    "termination",
+    "completion"
+  ],
+  "properties": {
+    "result_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["failed", "incomplete", "succeeded"]},
+    "terminal": {"const": true},
+    "recorded_at": {"type": "string", "minLength": 1},
+    "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "return_code": {"type": ["integer", "null"]},
+    "termination": {"type": ["object", "null"]},
+    "completion": {
+      "type": "object",
+      "required": [
+        "required_artifacts",
+        "required_metrics",
+        "missing_artifacts",
+        "missing_metrics",
+        "failed_phases",
+        "incomplete_phases",
+        "evaluation_errors",
+        "complete"
+      ],
+      "properties": {
+        "required_artifacts": {"type": "array", "items": {"type": "string"}},
+        "required_metrics": {"type": "array", "items": {"type": "string"}},
+        "missing_artifacts": {"type": "array", "items": {"type": "string"}},
+        "missing_metrics": {"type": "array", "items": {"type": "string"}},
+        "failed_phases": {"type": "array", "items": {"type": "string"}},
+        "incomplete_phases": {"type": "array", "items": {"type": "string"}},
+        "evaluation_errors": {"type": "array", "items": {"type": "string"}},
+        "complete": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

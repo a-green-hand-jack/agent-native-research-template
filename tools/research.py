@@ -48,6 +48,7 @@ SCHEMA_DOCUMENTS = {
     "executor": "schemas/executor.schema.json",
     "asset registry": "schemas/asset-registry.schema.json",
     "run manifest": "schemas/run-manifest.schema.json",
+    "run result": "schemas/run-result.schema.json",
     "evidence manifest": "schemas/evidence-manifest.schema.json",
 }
 

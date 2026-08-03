@@ -71,6 +71,8 @@ source path.
 Verify every recorded artifact before using or promoting a result:
 
 ```bash
+uv run python tools/evidence.py status <run-id>
+uv run python tools/evidence.py results <run-id>
 uv run python tools/evidence.py verify-run <run-id>
 ```
 
