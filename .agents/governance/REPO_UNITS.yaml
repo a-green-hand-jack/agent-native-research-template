@@ -28,7 +28,10 @@ required_paths:
   - .agents/memory/INDEX.md
   - .agents/runtime/.gitignore
   - .agents/skills/
+  - .agents/skills/adopt-research-template/SKILL.md
   - .agents/skills/dev-guide/SKILL.md
+  - .agents/skills/initialize-project/SKILL.md
+  - .agents/skills/update-from-template/SKILL.md
   - AGENTS.md
   functional:
   - .github/dependabot.yml
