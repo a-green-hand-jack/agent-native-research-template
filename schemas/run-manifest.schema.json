@@ -23,6 +23,9 @@
         },
         "sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "resolved": {
+          "type": "object"
         }
       },
       "additionalProperties": false
