@@ -51,15 +51,36 @@ REQUIRED_EXPERIMENT_FIELDS = {
     "evaluation",
 }
 DEV_GUIDE_PATH = ".agents/skills/dev-guide/SKILL.md"
+INITIALIZE_PROJECT_SKILL = ".agents/skills/initialize-project/SKILL.md"
+ADOPT_TEMPLATE_SKILL = ".agents/skills/adopt-research-template/SKILL.md"
+UPDATE_TEMPLATE_SKILL = ".agents/skills/update-from-template/SKILL.md"
 INFLUENCES_PATH = ".agents/governance/INFLUENCES.md"
+LIFECYCLE_SKILLS = (
+    INITIALIZE_PROJECT_SKILL,
+    ADOPT_TEMPLATE_SKILL,
+    UPDATE_TEMPLATE_SKILL,
+)
 GUIDANCE_ROUTES = {
-    "README.md": (INFLUENCES_PATH,),
+    "README.md": (INFLUENCES_PATH, *LIFECYCLE_SKILLS),
     "AGENTS.md": (DEV_GUIDE_PATH, INFLUENCES_PATH),
     DEV_GUIDE_PATH: (
         ".agents/governance/ANATOMY.md",
         ".agents/governance/CONTRACT.md",
         ".agents/governance/REPO_UNITS.yaml",
         ".agents/governance/GUIDE.md",
+        *LIFECYCLE_SKILLS,
+    ),
+    INITIALIZE_PROJECT_SKILL: (
+        ADOPT_TEMPLATE_SKILL,
+        UPDATE_TEMPLATE_SKILL,
+        "tools/initialize_project.py",
+        "tools/template_compat.py",
+        "--cli-name",
+    ),
+    UPDATE_TEMPLATE_SKILL: (
+        ADOPT_TEMPLATE_SKILL,
+        "PROJECT.yaml",
+        "tools/template_compat.py",
     ),
     INFLUENCES_PATH: (
         "https://lingtai.ai/",

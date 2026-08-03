@@ -44,6 +44,21 @@ The systems have distinct jobs:
 - **Contract** defines what the system promises;
 - **code, tests, schemas, manifests, and reviewed evidence** prove the current state.
 
+## Route Repository Lifecycle Work
+
+Choose exactly one lifecycle procedure from repository state, not from the desired end appearance:
+
+- use `.agents/skills/initialize-project/SKILL.md` only for a fresh, uninitialized repository
+  created from this template;
+- use `.agents/skills/adopt-research-template/SKILL.md` for a mature repository without trusted
+  template provenance or for selective adoption that must preserve another architecture;
+- use `.agents/skills/update-from-template/SKILL.md` for an initialized downstream repository with
+  trusted `PROJECT.yaml` provenance and a reviewed target template version or commit.
+
+Do not run the initializer as an adoption tool. Do not merge the template default branch as an
+update tool. When provenance is uncertain, prefer capability-level adoption over claiming a safe
+synchronization base.
+
 ## Make The Smallest Complete Change
 
 Before editing, state the relevant invariant, the intended variation axis, and the explicit

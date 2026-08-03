@@ -54,13 +54,14 @@ uv run python tools/initialize_project.py apply \
   --project-name "Causal Agent Lab" \
   --distribution-name causal-agent-lab \
   --package-name causal_agent_lab \
+  --cli-name causal-agent \
   --contribution-id causal-policy \
   --dry-run
 ```
 
 Run the same command without `--dry-run` to update `PROJECT.yaml`, package metadata, the source
-package, smoke test, contribution index, experiment reference, README, and lockfile identity. The
-functional initializer never reads or writes the governance sidecar.
+package, installed CLI, smoke test, contribution index, experiment reference, README, and lockfile
+identity. The functional initializer never reads or writes the governance sidecar.
 
 The initializer establishes a consistent repository identity; it does not invent the project's
 behavior or scientific claims. When the optional sidecar exists, update its project-specific
@@ -74,8 +75,25 @@ make research-run
 ```
 
 Once `PROJECT.yaml` is marked initialized, the identity check rejects stale package paths, old
-imports, the template distribution name, and remaining `bootstrap` contribution references. The
-same check continues to work if `.agents/` is removed.
+imports, the template distribution and CLI names, and remaining `bootstrap` contribution
+references. The same check continues to work if `.agents/` is removed.
+
+## Repository Lifecycle Skills
+
+The optional governance sidecar separates three repository lifecycle cases:
+
+- [Initialize Project](.agents/skills/initialize-project/SKILL.md) is only for a fresh repository
+  created from this template and still carrying the uninitialized bootstrap identity;
+- [Adopt Research Template](.agents/skills/adopt-research-template/SKILL.md) assesses selective,
+  ownership-aware adoption into an existing mature repository without forcing the Python/uv
+  reference stack or overwriting project-owned behavior;
+- [Update From Template](.agents/skills/update-from-template/SKILL.md) handles registered migrations
+  and reviewable upstream-difference assessment for initialized downstream repositories with
+  trusted template provenance.
+
+The initializer is not an adoption tool, and merging the template default branch is not an update
+procedure. Adoption and update begin with a clean baseline, capability and ownership analysis,
+staged issue-sized changes, downstream-specific validation, and exact-head CI evidence.
 
 ## Executable Research Contract
 
