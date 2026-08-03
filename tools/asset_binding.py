@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -98,6 +97,24 @@ def requirement_records(spec: dict[str, Any]) -> list[dict[str, str]]:
     return records
 
 
+def safe_repository_target(root: Path, value: object, field: str) -> tuple[Path, str]:
+    if not isinstance(value, str) or not value.strip():
+        raise AssetBindingError(f"{field} must be a non-empty repository-relative path")
+    raw = Path(value)
+    if raw.is_absolute() or ".." in raw.parts or "\\" in value:
+        raise AssetBindingError(f"{field} must be a normalized repository-relative path")
+    lexical = root
+    for part in raw.parts:
+        lexical /= part
+        if lexical.is_symlink():
+            raise AssetBindingError(f"{field} must not traverse a symbolic link: {value}")
+    try:
+        (root / raw).resolve().relative_to(root.resolve())
+    except ValueError as exc:
+        raise AssetBindingError(f"{field} resolves outside the repository: {value}") from exc
+    return root / raw, raw.as_posix()
+
+
 def external_path(value: object, field: str) -> tuple[Path, str]:
     if not isinstance(value, str) or not value.strip():
         raise AssetBindingError(f"{field} must be a non-empty absolute path")
@@ -126,23 +143,44 @@ def resolve_path_binding(
     root: Path,
 ) -> dict[str, Any]:
     scope = declaration.get("scope", "repository")
+    field = f"asset binding {identifier}.path"
     if scope == "repository":
-        try:
-            path, rendered = input_identity.normalized_repository_path(
-                root, declaration.get("path"), f"asset binding {identifier}.path"
-            )
-        except input_identity.InputIdentityError as exc:
-            raise AssetBindingError(str(exc)) from exc
+        if requirement["access"] == "read":
+            try:
+                path, rendered = input_identity.normalized_repository_path(
+                    root, declaration.get("path"), field
+                )
+            except input_identity.InputIdentityError as exc:
+                raise AssetBindingError(str(exc)) from exc
+        else:
+            path, rendered = safe_repository_target(root, declaration.get("path"), field)
     elif scope == "external":
-        path, rendered = external_path(declaration.get("path"), f"asset binding {identifier}.path")
-        if not path.exists():
-            raise AssetBindingError(f"asset binding {identifier} does not exist: {rendered}")
+        path, rendered = external_path(declaration.get("path"), field)
     else:
         raise AssetBindingError(f"asset binding {identifier} scope must be repository or external")
 
-    if requirement["access"] == "write" and path.exists() and registry.get("immutable_output", False):
+    exists = path.exists()
+    if requirement["access"] == "read" and not exists:
+        raise AssetBindingError(f"asset binding {identifier} does not exist: {rendered}")
+    if requirement["access"] == "write" and exists and registry.get("immutable_output", False):
         raise AssetBindingError(f"immutable output asset already exists: {identifier} -> {rendered}")
+
     expected_type = registry["expected_type"]
+    if not exists:
+        planned_type = expected_type if expected_type != "any" else "file"
+        return {
+            "id": identifier,
+            "role": registry["role"],
+            "phase": requirement["phase"],
+            "access": requirement["access"],
+            "kind": "path",
+            "scope": scope,
+            "path": rendered,
+            "path_type": planned_type,
+            "exists": False,
+            "reconstructable": registry["reconstructable"],
+        }
+
     actual_type = "directory" if path.is_dir() else "file" if path.is_file() else "other"
     if expected_type != "any" and actual_type != expected_type:
         raise AssetBindingError(
@@ -176,6 +214,7 @@ def resolve_path_binding(
         "scope": scope,
         "path": rendered,
         "path_type": actual_type,
+        "exists": True,
         "sha256": digest,
         "file_count": file_count,
         "size_bytes": size_bytes,
@@ -255,3 +294,40 @@ def environment_for_assets(preflight: dict[str, Any]) -> dict[str, str]:
         if record.get("kind") == "path":
             environment[f"RESEARCH_ASSET_{identifier}"] = str(record["path"])
     return environment
+
+
+def recorded_asset_drift(records: object, root: Path) -> list[str]:
+    if not isinstance(records, list):
+        return ["recorded asset bindings are not a list"]
+    drift: list[str] = []
+    for record in records:
+        if (
+            not isinstance(record, dict)
+            or record.get("kind") != "path"
+            or record.get("access") != "read"
+        ):
+            continue
+        identifier = str(record.get("id", "unknown"))
+        scope = record.get("scope", "repository")
+        try:
+            if scope == "repository":
+                path, _ = input_identity.normalized_repository_path(
+                    root, record.get("path"), f"recorded asset {identifier}.path"
+                )
+            else:
+                path, _ = external_path(record.get("path"), f"recorded asset {identifier}.path")
+                if not path.exists():
+                    raise AssetBindingError(f"recorded asset {identifier} is missing")
+            if path.is_dir():
+                digest, file_count = input_identity.directory_identity(path)
+            else:
+                digest = input_identity.sha256_file(path)
+                file_count = 1
+        except (AssetBindingError, input_identity.InputIdentityError, OSError) as exc:
+            drift.append(f"asset {identifier}: {exc}")
+            continue
+        if digest != record.get("sha256"):
+            drift.append(f"asset {identifier} changed: {record.get('path')}")
+        elif file_count != record.get("file_count"):
+            drift.append(f"asset {identifier} file count changed: {record.get('path')}")
+    return drift
