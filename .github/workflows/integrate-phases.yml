@@ -30,6 +30,7 @@ jobs:
       - name: Apply and format scoped integration
         run: |
           uv sync --frozen --group dev
+          sed -i '/^    by_id = {phase\["id"\]: phase for phase in phases}$/d' tools/phase_graph.py
           uv run python tools/apply_phase_patch.py
           uv run ruff check --fix tools/phase_graph.py tests/test_phase_graph.py tests/test_phase_recovery_evidence.py
           uv run ruff format tools tests
