@@ -52,13 +52,49 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("tools/evidence.py")
-          text = path.read_text(encoding="utf-8")
+          evidence = Path("tools/evidence.py")
+          text = evidence.read_text(encoding="utf-8")
           marker = 'SEED_ENVIRONMENT_VARIABLE = "RESEARCH_SEED"\n'
           replacement = marker + "TIMEOUT_RETURN_CODE = phase_graph.TIMEOUT_RETURN_CODE\n"
           if text.count(marker) != 1:
               raise RuntimeError("timeout compatibility insertion target changed")
-          path.write_text(text.replace(marker, replacement), encoding="utf-8")
+          evidence.write_text(text.replace(marker, replacement), encoding="utf-8")
+
+          phase_graph = Path("tools/phase_graph.py")
+          text = phase_graph.read_text(encoding="utf-8")
+          old = (
+              '    return {\n'
+              '        "phases": results,\n'
+              '        "stdout": "".join(stdout_parts),\n'
+              '        "stderr": "".join(stderr_parts),\n'
+              '        "return_code": overall_return_code,\n'
+              '        "termination": {\n'
+              '            "reason": "completed" if overall_return_code == 0 else "phase_failed"\n'
+              '        },\n'
+          )
+          new = (
+              '    if overall_return_code == 0:\n'
+              '        overall_termination: dict[str, Any] = {"reason": "completed"}\n'
+              '    else:\n'
+              '        timeout_termination = next(\n'
+              '            (\n'
+              '                record["termination"]\n'
+              '                for record in results\n'
+              '                if record.get("termination", {}).get("reason") == "timeout"\n'
+              '            ),\n'
+              '            None,\n'
+              '        )\n'
+              '        overall_termination = timeout_termination or {"reason": "phase_failed"}\n'
+              '    return {\n'
+              '        "phases": results,\n'
+              '        "stdout": "".join(stdout_parts),\n'
+              '        "stderr": "".join(stderr_parts),\n'
+              '        "return_code": overall_return_code,\n'
+              '        "termination": overall_termination,\n'
+          )
+          if text.count(old) != 1:
+              raise RuntimeError("phase termination aggregation target changed")
+          phase_graph.write_text(text.replace(old, new), encoding="utf-8")
           PY
           uv run ruff check --fix tools/phase_graph.py tests/test_phase_graph.py tests/test_phase_recovery_evidence.py
           uv run ruff format tools tests
