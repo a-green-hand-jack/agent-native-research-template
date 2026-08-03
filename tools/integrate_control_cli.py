@@ -13,18 +13,6 @@ WORKFLOW_PATCH_MARKER = """    count=1,
 # Ownership and contract."""
 
 text = WRAPPER.read_text(encoding="utf-8")
-old_order = '''    if "dependencies = []" in content:
-        content = content.replace("dependencies = []", runtime_dependencies)
-    content = content.replace('    "jsonschema>=4.23",\n', "")
-    content = content.replace('    "pyyaml>=6.0",\n', "")'''
-new_order = '''    content = content.replace('    "jsonschema>=4.23",\n', "")
-    content = content.replace('    "pyyaml>=6.0",\n', "")
-    if "dependencies = []" in content:
-        content = content.replace("dependencies = []", runtime_dependencies)'''
-if text.count(old_order) != 1:
-    raise RuntimeError("unexpected runtime dependency migration order")
-text = text.replace(old_order, new_order)
-
 migration_start = text.index("new_migration = '''")
 migration_end = text.index("'''\nedit(\"tools/template_compat.py\"", migration_start)
 migration_source = text[migration_start:migration_end]
@@ -42,6 +30,21 @@ if text.count(old) != 1:
 WRAPPER.write_text(text.replace(old, replacement), encoding="utf-8")
 
 runpy.run_path(str(WRAPPER))
+
+# Move dev-dependency removal before the new runtime dependency block is written.
+compat_path = ROOT / "tools/template_compat.py"
+compat_text = compat_path.read_text(encoding="utf-8")
+old_order = '''    if "dependencies = []" in content:
+        content = content.replace("dependencies = []", runtime_dependencies)
+    content = content.replace('    "jsonschema>=4.23",\\n', "")
+    content = content.replace('    "pyyaml>=6.0",\\n', "")'''
+new_order = '''    content = content.replace('    "jsonschema>=4.23",\\n', "")
+    content = content.replace('    "pyyaml>=6.0",\\n', "")
+    if "dependencies = []" in content:
+        content = content.replace("dependencies = []", runtime_dependencies)'''
+if compat_text.count(old_order) != 1:
+    raise RuntimeError("unexpected generated runtime dependency migration order")
+compat_path.write_text(compat_text.replace(old_order, new_order), encoding="utf-8")
 
 # Exercise migration 2 against the version-2 contract, independently of the v3 migration test.
 test_path = ROOT / "tests/test_template_compat.py"
