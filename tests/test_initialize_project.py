@@ -23,7 +23,7 @@ def build_template(root: Path) -> None:
             "package_name: project\ncli_name: researchctl\ncontribution_id: bootstrap\n"
             "template:\n"
             "  name: agent-native-research-template\n"
-            "  version: 3\n"
+            "  version: 4\n"
             "  initialized_from_commit: null\n"
             "  applied_migrations: []\n"
         ),
@@ -107,19 +107,19 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     )
     assert state["template"] == {
         "name": "agent-native-research-template",
-        "version": 3,
+        "version": 4,
         "initialized_from_commit": "unknown",
         "applied_migrations": [],
     }
     readme = (tmp_path / "README.md").read_text(encoding="utf-8")
-    assert "Initialized from Agent-Native Research Template v3 at `unknown`" in readme
+    assert "Initialized from Agent-Native Research Template v4 at `unknown`" in readme
 
 
 def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
     build_template(tmp_path)
     project = tmp_path / "PROJECT.yaml"
     project.write_text(
-        project.read_text(encoding="utf-8").replace("version: 3", "version: 4"),
+        project.read_text(encoding="utf-8").replace("version: 4", "version: 5"),
         encoding="utf-8",
     )
     assert any("newer than supported" in error for error in initializer.check_project(tmp_path))

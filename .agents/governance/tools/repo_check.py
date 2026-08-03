@@ -49,7 +49,6 @@ REQUIRED_EXPERIMENT_FIELDS = {
     "environment",
     "executor",
     "evaluation",
-    "command",
 }
 DEV_GUIDE_PATH = ".agents/skills/dev-guide/SKILL.md"
 GUIDANCE_ROUTES = {
@@ -266,6 +265,12 @@ def check_experiment_specs(errors: list[str]) -> None:
         if missing:
             errors.append(
                 f"EXP-002 {path.relative_to(ROOT)} missing fields: {', '.join(sorted(missing))}"
+            )
+        has_command = "command" in data
+        has_phases = "phases" in data
+        if has_command == has_phases:
+            errors.append(
+                f"EXP-003 {path.relative_to(ROOT)} must declare exactly one of command or phases"
             )
 
 

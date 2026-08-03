@@ -35,6 +35,7 @@ def configure_phase_spec(root: Path) -> Path:
         "Path('outputs/score.txt').write_text('1\\n')"
     )
     spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+    spec.pop("command", None)
     spec["phases"] = [
         {
             "id": "generation",

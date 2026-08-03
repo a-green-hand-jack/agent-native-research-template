@@ -2,68 +2,29 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/schemas/evaluation.schema.json",
   "title": "Evaluation Definition",
-  "description": "An executable protocol and its typed metrics.",
+  "description": "A metric extraction protocol without an execution command.",
   "type": "object",
   "x-schema-version": 1,
   "$defs": {
-    "identifier": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]*$"
-    },
-    "command": {
-      "oneOf": [
-        {
-          "type": "string",
-          "minLength": 1
-        },
-        {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      ]
-    },
+    "identifier": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
     "source": {
       "oneOf": [
         {
           "type": "object",
-          "required": [
-            "type"
-          ],
-          "properties": {
-            "type": {
-              "const": "return_code"
-            }
-          },
+          "required": ["type"],
+          "properties": {"type": {"const": "return_code"}},
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": [
-            "type",
-            "pattern"
-          ],
+          "required": ["type", "pattern"],
           "properties": {
-            "type": {
-              "const": "stdout_regex"
-            },
-            "pattern": {
-              "type": "string",
-              "minLength": 1
-            },
+            "type": {"const": "stdout_regex"},
+            "pattern": {"type": "string", "minLength": 1},
             "group": {
               "oneOf": [
-                {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                {
-                  "type": "string",
-                  "minLength": 1
-                }
+                {"type": "integer", "minimum": 0},
+                {"type": "string", "minLength": 1}
               ]
             }
           },
@@ -71,43 +32,21 @@
         },
         {
           "type": "object",
-          "required": [
-            "type",
-            "path",
-            "key"
-          ],
+          "required": ["type", "path", "key"],
           "properties": {
-            "type": {
-              "const": "json_file"
-            },
-            "path": {
-              "type": "string",
-              "minLength": 1
-            },
-            "key": {
-              "type": "string",
-              "minLength": 1
-            }
+            "type": {"const": "json_file"},
+            "path": {"type": "string", "minLength": 1},
+            "key": {"type": "string", "minLength": 1}
           },
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": [
-            "type",
-            "reason"
-          ],
+          "required": ["type", "reason"],
           "properties": {
-            "type": {
-              "const": "missing"
-            },
+            "type": {"const": "missing"},
             "reason": {
-              "enum": [
-                "not_applicable",
-                "not_measured",
-                "empty_population",
-                "evaluation_error"
-              ]
+              "enum": ["not_applicable", "not_measured", "empty_population", "evaluation_error"]
             }
           },
           "additionalProperties": false
@@ -115,27 +54,11 @@
       ]
     }
   },
-  "required": [
-    "schema_version",
-    "id",
-    "command",
-    "purpose",
-    "metrics"
-  ],
+  "required": ["schema_version", "id", "purpose", "metrics"],
   "properties": {
-    "schema_version": {
-      "const": 1
-    },
-    "id": {
-      "$ref": "#/$defs/identifier"
-    },
-    "command": {
-      "$ref": "#/$defs/command"
-    },
-    "purpose": {
-      "type": "string",
-      "minLength": 1
-    },
+    "schema_version": {"const": 1},
+    "id": {"$ref": "#/$defs/identifier"},
+    "purpose": {"type": "string", "minLength": 1},
     "metrics": {
       "type": "array",
       "minItems": 1,
@@ -153,41 +76,12 @@
           "observation_count"
         ],
         "properties": {
-          "id": {
-            "$ref": "#/$defs/identifier"
-          },
-          "type": {
-            "enum": [
-              "boolean",
-              "integer",
-              "number",
-              "string"
-            ]
-          },
-          "direction": {
-            "enum": [
-              "maximize",
-              "minimize",
-              "none"
-            ]
-          },
-          "source": {
-            "$ref": "#/$defs/source"
-          },
-          "unit": {
-            "type": "string",
-            "minLength": 1
-          },
-          "aggregation": {
-            "enum": [
-              "single",
-              "mean",
-              "sum",
-              "min",
-              "max",
-              "rate"
-            ]
-          },
+          "id": {"$ref": "#/$defs/identifier"},
+          "type": {"enum": ["boolean", "integer", "number", "string"]},
+          "direction": {"enum": ["maximize", "minimize", "none"]},
+          "source": {"$ref": "#/$defs/source"},
+          "unit": {"type": "string", "minLength": 1},
+          "aggregation": {"enum": ["single", "mean", "sum", "min", "max", "rate"]},
           "resource_mode": {
             "enum": [
               "single_process",
@@ -198,20 +92,11 @@
               "device_aggregate"
             ]
           },
-          "sample_count": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "observation_count": {
-            "type": "integer",
-            "minimum": 1
-          },
+          "sample_count": {"type": "integer", "minimum": 1},
+          "observation_count": {"type": "integer", "minimum": 1},
           "dispersion": {
             "type": "object",
-            "required": [
-              "kind",
-              "value"
-            ],
+            "required": ["kind", "value"],
             "properties": {
               "kind": {
                 "enum": [
@@ -221,9 +106,7 @@
                   "confidence_interval"
                 ]
               },
-              "value": {
-                "type": "number"
-              }
+              "value": {"type": "number"}
             },
             "additionalProperties": false
           }
@@ -232,5 +115,5 @@
       }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

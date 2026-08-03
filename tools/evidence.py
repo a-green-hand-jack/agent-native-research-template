@@ -17,6 +17,7 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 import asset_binding
+import execution_environment
 import experiment_plan
 import input_identity
 import metric_observation
@@ -199,8 +200,9 @@ def run_once(
     run_state.write_progress(run_dir, "planned", plan_sha256=resolved["plan_sha256"])
     run_state.write_progress(run_dir, "submitted", executor=spec["executor"])
 
-    environment = os.environ.copy()
-    environment[SEED_ENVIRONMENT_VARIABLE] = str(seed)
+    environment, environment_evidence = execution_environment.resolve_environment(
+        resolved["executor"], root, seed
+    )
     started_at = utc_now()
     run_state.write_progress(run_dir, "running", started_at=started_at)
     execution = phase_graph.execute_phases(
@@ -245,6 +247,7 @@ def run_once(
         "config": {
             "path": relative(resolved["config_path"]),
             "sha256": research.sha256_file(resolved["config_path"]),
+            "resolved": resolved["config"],
         },
         "data": spec.get("data"),
         "inputs": resolved["inputs"],
@@ -266,6 +269,7 @@ def run_once(
             "id": spec["executor"],
             "definition": relative(resolved["executor_path"]),
             "definition_sha256": research.sha256_file(resolved["executor_path"]),
+            "execution_environment": environment_evidence,
         },
         "evaluation": {
             "id": spec["evaluation"],
@@ -278,7 +282,6 @@ def run_once(
             "processor": platform.processor(),
             "cpu_count": os.cpu_count(),
         },
-        "command": resolved["argv"],
         "phases": execution["phases"],
         "recovery": execution["recovery"],
         "metrics": research.extract_return_code_metrics(resolved["evaluation"], return_code),
@@ -665,6 +668,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         EvidenceError,
         asset_binding.AssetBindingError,
         experiment_plan.PlanError,
+        execution_environment.ExecutionEnvironmentError,
         metric_observation.MetricObservationError,
         phase_graph.PhaseGraphError,
         research.SpecError,

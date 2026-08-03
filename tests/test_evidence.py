@@ -29,7 +29,7 @@ def configure_outputs(root: Path) -> Path:
         encoding="utf-8",
     )
     (root / "evals/smoke.yaml").write_text(
-        "schema_version: 1\nid: smoke\ncommand: make smoke\n"
+        "schema_version: 1\nid: smoke\n"
         "purpose: execute the smallest path\nmetrics:\n"
         "  - id: success\n    type: boolean\n    direction: maximize\n"
         "    unit: boolean\n    aggregation: single\n"

@@ -5,6 +5,11 @@ workspace_root: ${PROJECT_ROOT}
 artifact_root: ${PROJECT_ARTIFACT_ROOT}
 capabilities:
 - cpu
+environment:
+  PYTHONUNBUFFERED: "1"
+inherit_environment:
+- PATH
+- HOME
 asset_bindings:
   source-tree:
     kind: path

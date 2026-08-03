@@ -6,7 +6,6 @@ config: configs/base.yaml
 environment: main
 executor: local
 evaluation: smoke
-command: make smoke
 inputs:
 - id: smoke-source
   kind: path

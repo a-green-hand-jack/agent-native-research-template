@@ -48,13 +48,28 @@ Bindings may use `path`, `uri`, or `opaque`. Repository paths are content-hashed
 paths must be absolute. URI and opaque records are durable declarations and are not fetched. Opaque
 values must not contain secrets.
 
+The same profile owns the explicit process-environment policy:
+
+```yaml
+environment:
+  PYTHONUNBUFFERED: "1"
+inherit_environment:
+  - PATH
+  - HOME
+```
+
+Only these declared values, inherited variables, phase-scoped asset exports, and the canonical seed
+binding reach the experiment process. The full host environment is never copied. Inherited values
+are recorded in evidence by name and SHA-256, while explicit non-secret values are recorded in the
+plan and run manifest.
+
 ## Preflight
 
 Run preflight without starting the experiment:
 
 ```bash
-uv run python tools/evidence.py preflight experiments/specs/<name>.yaml
-uv run python tools/evidence.py preflight experiments/specs/<name>.yaml --phase generation
+uv run researchctl experiment preflight experiments/specs/<name>.yaml
+uv run researchctl experiment preflight experiments/specs/<name>.yaml --phase generation
 ```
 
 Preflight checks binding presence, role/type compatibility, readability, size limits, checksums,
@@ -62,15 +77,19 @@ path escape and symlink rules, and immutable-output overwrite rules. The output 
 stable binding SHA-256.
 
 A phase receives only assets declared for that phase or for `all`. A generation preflight therefore
-does not expose evaluation-only oracles. The current one-command runner uses the `all` preflight;
-phase-scoped execution uses the narrower result.
+does not expose evaluation-only oracles. Phase-scoped execution uses the corresponding narrower
+binding result.
 
-Resolved path bindings are exported only to the executing process as
+Resolved path bindings are exported only to the executing phase as
 `RESEARCH_ASSET_<NORMALIZED_ID>`. URI and opaque records remain evidence metadata and are never
 turned into credentials or fetched implicitly.
 
 ## Identity boundary
 
-Changing only physical bindings in an executor profile does not change the scientific plan hash.
-The resolved binding identity is recorded separately in run evidence so a result remains traceable
-to the actual files, URIs, or opaque provider references used.
+Changing only physical asset bindings in an executor profile does not change the scientific
+protocol identity. It changes the resolved binding identity recorded in run evidence.
+
+Changing the executor environment declaration changes the deterministic execution plan because it
+can affect process behavior. Inherited host values are resolved at execution time and recorded by
+hash, so a later replay can detect that the actual binding changed without writing potentially
+sensitive values into durable evidence.

@@ -21,6 +21,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import execution_environment
 import input_identity
 import metric_observation
 
@@ -36,7 +37,6 @@ REQUIRED_EXPERIMENT_FIELDS = {
     "environment",
     "executor",
     "evaluation",
-    "command",
     "seed_policy",
     "budget",
     "stopping_rule",
@@ -229,6 +229,10 @@ def validate_executor(record: dict[str, Any], path: Path, root: Path) -> None:
     if not isinstance(record.get("executor"), str) or not record["executor"].strip():
         raise SpecError(f"{relative_name(path, root)} executor must be a non-empty string")
     validate_string_list(record.get("capabilities"), "executor capabilities")
+    try:
+        execution_environment.declared_environment(record, root)
+    except execution_environment.ExecutionEnvironmentError as exc:
+        raise SpecError(str(exc)) from exc
 
 
 def validate_metric(metric: object, evaluation_path: Path, root: Path) -> str:
@@ -275,7 +279,6 @@ def validate_metric(metric: object, evaluation_path: Path, root: Path) -> str:
 
 def validate_evaluation(record: dict[str, Any], path: Path, root: Path) -> None:
     validate_identifier(record.get("id"), "evaluation ID")
-    command_argv(record.get("command"))
     if not isinstance(record.get("purpose"), str) or not record["purpose"].strip():
         raise SpecError(f"{relative_name(path, root)} purpose must be a non-empty string")
     metrics = record.get("metrics")
@@ -396,6 +399,10 @@ def validate_spec(
     spec = load_yaml(path)
     validate_document(spec, "experiment", path, root)
     resolved_inputs = input_identity.resolve_inputs(spec.get("inputs", []), root)
+    has_command = "command" in spec
+    has_phases = "phases" in spec
+    if has_command == has_phases:
+        raise SpecError("experiment must declare exactly one of command or phases")
     missing = REQUIRED_EXPERIMENT_FIELDS - spec.keys()
     if missing:
         raise SpecError(f"{relative_name(path, root)} missing fields: {', '.join(sorted(missing))}")
@@ -425,15 +432,11 @@ def validate_spec(
         raise SpecError(f"unknown executor ID: {spec['executor']}")
 
     config_path = repository_path(root, spec["config"], "config")
+    config = load_yaml(config_path)
     environment_path, environment = environments[spec["environment"]]
     evaluation_path, evaluation = evaluations[spec["evaluation"]]
     executor_path, executor = executors[spec["executor"]]
-    argv = command_argv(spec["command"])
-    if command_argv(evaluation["command"]) != argv:
-        raise SpecError(
-            f"spec command does not match evaluation {spec['evaluation']!r}: "
-            f"{evaluation['command']!r}"
-        )
+    argv = command_argv(spec["command"]) if "command" in spec else []
     lockfile_path = repository_path(root, environment["lockfile"], "environment lockfile")
 
     artifacts = spec.get("artifacts", [])
@@ -451,9 +454,11 @@ def validate_spec(
             raise SpecError(f"artifacts[{index}].required must be boolean")
 
     return {
+        "root": root,
         "spec": spec,
         "spec_path": path,
         "config_path": config_path,
+        "config": config,
         "environment_path": environment_path,
         "environment": environment,
         "evaluation_path": evaluation_path,
@@ -606,6 +611,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         SpecError,
         input_identity.InputIdentityError,
         metric_observation.MetricObservationError,
+        execution_environment.ExecutionEnvironmentError,
         OSError,
     ) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
