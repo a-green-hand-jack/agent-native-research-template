@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/archive-manifest.schema.json",
+  "title": "Archive Manifest",
+  "type": "object",
+  "x-schema-version": 1,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "verification": {
+      "type": "object",
+      "required": ["method", "verified_at", "sha256"],
+      "properties": {
+        "method": {"enum": ["local_readback", "external_evidence"]},
+        "verified_at": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "evidence": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "copy": {
+      "type": "object",
+      "required": ["id", "location", "fault_domain", "verification"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "location": {"type": "string", "minLength": 1},
+        "fault_domain": {"type": "string", "minLength": 1},
+        "verification": {"$ref": "#/$defs/verification"}
+      },
+      "additionalProperties": false
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "kind", "sha256", "reconstructable", "copies"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "kind": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "reconstructable": {"type": "boolean"},
+        "logical_identity": {"type": "string", "minLength": 1},
+        "copies": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/copy"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": ["id", "kind", "required_asset_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "kind": {"enum": ["run", "worktree", "branch", "provider"]},
+        "required_asset_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "unique_untracked_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "pending_actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "archive_id", "assets"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "archive_id": {"$ref": "#/$defs/identifier"},
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/asset"}
+    },
+    "retirement_targets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/target"}
+    }
+  },
+  "additionalProperties": false
+}
