@@ -102,6 +102,24 @@ uv run python tools/evidence.py promote <run-id> \
 The decision is `accepted`, `rejected`, or `inconclusive`. Promoted evidence records the source
 manifest checksum, review decision, review note, and complete run manifest.
 
+## Archive And Retirement
+
+Before retiring a run, worktree, branch, provider, server, or volume, create and verify an
+archive inventory. Local copies are re-read; external copies require verifier evidence.
+Non-reconstructable assets need two independent verified fault domains.
+
+```bash
+uv run python tools/archive.py create <run-id> \
+  --copy /absolute/archive/root-a::fault-domain-a \
+  --copy /absolute/archive/root-b::fault-domain-b
+uv run python tools/archive.py verify archives/local/<run-id>.json
+uv run python tools/archive.py retirement-preflight \
+  archives/local/<run-id>.json --target-kind run --target <run-id>
+```
+
+These commands do not delete anything. Review the decision and obtain separate explicit
+authorization before any stop or deletion action.
+
 ## Handoff
 
 Return:
@@ -116,6 +134,7 @@ metrics and evaluation errors
 snapshot and source artifact locations with checksums
 reproduction or replay command
 promotion path and review decision, when applicable
+archive manifest, verified fault domains, and retirement blockers, when applicable
 whether the evidence supports, contradicts, or leaves the question unresolved
 ```
 

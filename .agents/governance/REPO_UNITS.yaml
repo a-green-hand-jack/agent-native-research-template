@@ -38,8 +38,11 @@ required_paths:
   - PROJECT.yaml
   - README.md
   - SECURITY.md
+  - archives/.gitignore
+  - archives/README.md
   - assets/registry.yaml
   - configs/base.yaml
+  - docs/ARCHIVE_RETIREMENT.md
   - docs/ASSET_BINDINGS.md
   - docs/EXPERIMENT_PLANS.md
   - docs/INPUT_IDENTITY.md
@@ -53,6 +56,7 @@ required_paths:
   - experiments/specs/smoke.yaml
   - infra/profiles/local.yaml
   - pyproject.toml
+  - schemas/archive-manifest.schema.json
   - schemas/asset-registry.schema.json
   - schemas/environment.schema.json
   - schemas/evaluation.schema.json
@@ -63,6 +67,7 @@ required_paths:
   - schemas/run-result.schema.json
   - src/
   - tests/
+  - tools/archive.py
   - tools/asset_binding.py
   - tools/ci_policy.py
   - tools/evidence.py
