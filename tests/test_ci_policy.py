@@ -18,7 +18,9 @@ VALID_TEMPLATE = """## Related issue
 """
 
 
-def write_policy_files(root: Path, *, workflow: str | None = None, template: str | None = None) -> None:
+def write_policy_files(
+    root: Path, *, workflow: str | None = None, template: str | None = None
+) -> None:
     workflow_path = root / ci_policy.WORKFLOW_PATH
     workflow_path.parent.mkdir(parents=True, exist_ok=True)
     workflow_path.write_text(
@@ -52,14 +54,7 @@ def test_valid_policy_passes(tmp_path: Path) -> None:
 def test_pull_request_trigger_is_required(tmp_path: Path) -> None:
     write_policy_files(
         tmp_path,
-        workflow=(
-            "name: Verify\n"
-            "on:\n"
-            "  push:\n"
-            "permissions:\n"
-            "  contents: read\n"
-            "jobs: {}\n"
-        ),
+        workflow=("name: Verify\non:\n  push:\npermissions:\n  contents: read\njobs: {}\n"),
     )
     assert "verify workflow must run on pull_request" in ci_policy.validation_errors(tmp_path)
 
@@ -68,12 +63,7 @@ def test_top_level_write_permission_is_rejected(tmp_path: Path) -> None:
     write_policy_files(
         tmp_path,
         workflow=(
-            "name: Verify\n"
-            "on:\n"
-            "  pull_request:\n"
-            "permissions:\n"
-            "  contents: write\n"
-            "jobs: {}\n"
+            "name: Verify\non:\n  pull_request:\npermissions:\n  contents: write\njobs: {}\n"
         ),
     )
     assert (
@@ -117,7 +107,9 @@ def test_checkout_must_use_exact_pull_request_head(tmp_path: Path) -> None:
             f"      - uses: actions/checkout@{PINNED}\n"
         ),
     )
-    assert any("exact pull-request head" in error for error in ci_policy.validation_errors(tmp_path))
+    assert any(
+        "exact pull-request head" in error for error in ci_policy.validation_errors(tmp_path)
+    )
 
 
 def test_merge_evidence_markers_are_required(tmp_path: Path) -> None:
