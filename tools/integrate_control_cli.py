@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import runpy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+BASE = ROOT / "tools/integrate_control_cli_base.py"
+
+# This marker is intentionally rewritten by the already-running scoped workflow snapshot.
+WORKFLOW_PATCH_MARKER = """    count=1,
+)
+
+# Ownership and contract."""
 
 
 def edit(relative: str, old: str, new: str, *, count: int = 1) -> None:
@@ -14,224 +22,212 @@ def edit(relative: str, old: str, new: str, *, count: int = 1) -> None:
     path.write_text(text.replace(old, new), encoding="utf-8")
 
 
-def append_after(relative: str, marker: str, addition: str) -> None:
-    edit(relative, marker, marker + addition)
+# The preserved base script expects two identical E2E execution blocks.
+base_text = BASE.read_text(encoding="utf-8")
+marker = "    count=1,\n)\n\n# Ownership and contract."
+if base_text.count(marker) != 1:
+    raise RuntimeError("unexpected E2E marker in preserved integration base")
+BASE.write_text(base_text.replace(marker, "    count=2,\n)\n\n# Ownership and contract."), encoding="utf-8")
 
+runpy.run_path(str(BASE))
 
-# Initializer: CLI name is part of one atomic project identity.
-edit("tools/initialize_project.py", "TEMPLATE_VERSION = 2", "TEMPLATE_VERSION = 3")
-edit(
-    "tools/initialize_project.py",
-    '    "package_name": "project",\n    "contribution_id": "bootstrap",',
-    '    "package_name": "project",\n    "cli_name": "researchctl",\n    "contribution_id": "bootstrap",',
-)
-append_after(
-    "tools/initialize_project.py",
-    'CONTRIBUTION_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")\n',
-    'CLI_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")\n',
-)
-edit(
-    "tools/initialize_project.py",
-    "    package_name: str\n    contribution_id: str",
-    "    package_name: str\n    cli_name: str\n    contribution_id: str",
-)
-edit(
-    "tools/initialize_project.py",
-    '    if not CONTRIBUTION_PATTERN.fullmatch(identity.contribution_id):\n        raise InitializationError("contribution ID must be a stable lowercase identifier")',
-    '    if not CLI_PATTERN.fullmatch(identity.cli_name):\n        raise InitializationError(\n            "CLI name must use lowercase letters, digits, and single hyphens"\n        )\n    if not CONTRIBUTION_PATTERN.fullmatch(identity.contribution_id):\n        raise InitializationError("contribution ID must be a stable lowercase identifier")',
-)
-edit(
-    "tools/initialize_project.py",
-    '    if identity.contribution_id == TEMPLATE_STATE["contribution_id"]:\n        raise InitializationError("contribution ID must replace the template value")',
-    '    if identity.cli_name == TEMPLATE_STATE["cli_name"]:\n        raise InitializationError("CLI name must replace the template value")\n    if identity.contribution_id == TEMPLATE_STATE["contribution_id"]:\n        raise InitializationError("contribution ID must replace the template value")',
-)
-edit(
-    "tools/initialize_project.py",
-    '    for key in TEMPLATE_STATE:\n        if not isinstance(state.get(key), str) or not state[key].strip():\n            errors.append(f"PROJECT.yaml {key} must be a non-empty string")',
-    '    template_version = (state.get("template") or {}).get("version", 0)\n    for key in TEMPLATE_STATE:\n        if key == "cli_name" and template_version < 3 and state.get("initialized") is True:\n            continue\n        if not isinstance(state.get(key), str) or not state[key].strip():\n            errors.append(f"PROJECT.yaml {key} must be a non-empty string")',
-)
-edit(
-    "tools/initialize_project.py",
-    "    pyproject = replace_required(\n        pyproject,\n        'packages = [\"src/project\"]',\n        f'packages = [\"src/{identity.package_name}\"]',\n        \"pyproject.toml\",\n    )",
-    "    pyproject = replace_required(\n        pyproject,\n        'packages = [\"src/project\", \"tools\"]',\n        f'packages = [\"src/{identity.package_name}\", \"tools\"]',\n        \"pyproject.toml\",\n    )\n    pyproject = replace_required(\n        pyproject,\n        'researchctl = \"tools.control_cli:main\"',\n        f'{identity.cli_name} = \"tools.control_cli:main\"',\n        \"pyproject.toml\",\n    )",
-)
-edit(
-    "tools/initialize_project.py",
-    '    revision = git_revision(root)\n    readme = read_required(root, "README.md")',
-    '    makefile = read_required(root, "Makefile").replace("researchctl", identity.cli_name)\n\n    revision = git_revision(root)\n    readme = read_required(root, "README.md").replace("researchctl", identity.cli_name)',
-)
-edit(
-    "tools/initialize_project.py",
-    '        "package_name": identity.package_name,\n        "contribution_id": identity.contribution_id,',
-    '        "package_name": identity.package_name,\n        "cli_name": identity.cli_name,\n        "contribution_id": identity.contribution_id,',
-)
-edit(
-    "tools/initialize_project.py",
-    '        "pyproject.toml": pyproject,\n        "uv.lock": uv_lock,',
-    '        "pyproject.toml": pyproject,\n        "Makefile": makefile,\n        "uv.lock": uv_lock,',
-)
-edit(
-    "tools/initialize_project.py",
-    '    identity = ProjectIdentity(\n        project_name=state["project_name"],\n        distribution_name=state["distribution_name"],\n        package_name=state["package_name"],\n        contribution_id=state["contribution_id"],\n    )',
-    '    if state["template"]["version"] < TEMPLATE_VERSION:\n        return [\n            f"project template version {state[\'template\'][\'version\']} requires migration "\n            f"to {TEMPLATE_VERSION}"\n        ]\n\n    identity = ProjectIdentity(\n        project_name=state["project_name"],\n        distribution_name=state["distribution_name"],\n        package_name=state["package_name"],\n        cli_name=state["cli_name"],\n        contribution_id=state["contribution_id"],\n    )',
-)
-edit(
-    "tools/initialize_project.py",
-    '            f\'packages = ["src/{identity.package_name}"]\',',
-    '            f\'packages = ["src/{identity.package_name}", "tools"]\',\n            f\'{identity.cli_name} = "tools.control_cli:main"\',',
-)
-edit(
-    "tools/initialize_project.py",
-    '        "tests/smoke/test_project.py",\n        f"src/{identity.package_name}/__init__.py",',
-    '        "tests/smoke/test_project.py",\n        f"src/{identity.package_name}/__init__.py",\n        "Makefile",\n        "README.md",',
-)
-edit(
-    "tools/initialize_project.py",
-    '    if (root / "src/project").exists():',
-    '    template_cli_entry = f\'{TEMPLATE_STATE["cli_name"]} = "tools.control_cli:main"\'\n    if identity.cli_name != TEMPLATE_STATE["cli_name"]:\n        pyproject_content = (root / "pyproject.toml").read_text(encoding="utf-8")\n        if template_cli_entry in pyproject_content:\n            errors.append("initialized project retains template CLI entry")\n    if (root / "src/project").exists():',
-)
-edit(
-    "tools/initialize_project.py",
-    '    apply.add_argument("--package-name", required=True)\n    apply.add_argument("--contribution-id", required=True)',
-    '    apply.add_argument("--package-name", required=True)\n    apply.add_argument("--cli-name", required=True)\n    apply.add_argument("--contribution-id", required=True)',
-)
-edit(
-    "tools/initialize_project.py",
-    '            package_name=args.package_name,\n            contribution_id=args.contribution_id,',
-    '            package_name=args.package_name,\n            cli_name=args.cli_name,\n            contribution_id=args.contribution_id,',
-)
-
-# Explicit v2 -> v3 downstream migration.
-insert = '''\n\ndef migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:\n    cli_name = state["distribution_name"]\n    if not initialize_project.CLI_PATTERN.fullmatch(cli_name):\n        raise TemplateCompatibilityError(\n            "distribution_name cannot be used as a CLI name; choose a valid lowercase hyphenated name"\n        )\n    state["cli_name"] = cli_name\n    relative = "pyproject.toml"\n    path = root / relative\n    content = path.read_text(encoding="utf-8")\n    template_entry = 'researchctl = "tools.control_cli:main"'\n    configured_entry = f'{cli_name} = "tools.control_cli:main"'\n    if template_entry in content:\n        content = content.replace(template_entry, configured_entry)\n    elif configured_entry not in content:\n        marker = "[dependency-groups]"\n        if marker not in content:\n            raise TemplateCompatibilityError("pyproject.toml has no dependency-groups section")\n        content = content.replace(marker, f'[project.scripts]\\n{configured_entry}\\n\\n{marker}')\n    initialize_project.write_text(path, content)\n    return [f"write {relative}"]\n'''
-edit(
-    "tools/template_compat.py",
-    "\n\nMIGRATIONS: dict[int, Migration] = {2: migrate_to_v2}",
-    insert + "\n\nMIGRATIONS: dict[int, Migration] = {2: migrate_to_v2, 3: migrate_to_v3}",
-)
-
-# Initializer tests mirror the real template identity.
+# The reduced initializer fixture must include every identity-owned surface.
 edit(
     "tests/test_initialize_project.py",
-    '            "package_name: project\\ncontribution_id: bootstrap\\n"',
-    '            "package_name: project\\ncli_name: researchctl\\ncontribution_id: bootstrap\\n"',
-)
-edit("tests/test_initialize_project.py", '            "  version: 2\\n"', '            "  version: 3\\n"')
-edit(
-    "tests/test_initialize_project.py",
-    "            '[tool.hatch.build.targets.wheel]\\npackages = [\"src/project\"]\\n'",
-    "            '[project.scripts]\\nresearchctl = \"tools.control_cli:main\"\\n'\n            '[tool.hatch.build.targets.wheel]\\npackages = [\"src/project\", \"tools\"]\\n'",
-)
-edit(
-    "tests/test_initialize_project.py",
-    '        package_name="causal_agent_lab",\n        contribution_id="causal-policy",',
-    '        package_name="causal_agent_lab",\n        cli_name="causal-lab",\n        contribution_id="causal-policy",',
-)
-edit(
-    "tests/test_initialize_project.py",
-    '    assert state["package_name"] == "causal_agent_lab"',
-    '    assert state["package_name"] == "causal_agent_lab"\n    assert state["cli_name"] == "causal-lab"\n    assert \'causal-lab = "tools.control_cli:main"\' in (\n        tmp_path / "pyproject.toml"\n    ).read_text(encoding="utf-8")',
-)
-edit("tests/test_initialize_project.py", '        "version": 2,', '        "version": 3,')
-edit(
-    "tests/test_initialize_project.py",
-    '    assert "Initialized from Agent-Native Research Template v2 at `unknown`" in readme',
-    '    assert "Initialized from Agent-Native Research Template v3 at `unknown`" in readme',
-)
-edit(
-    "tests/test_initialize_project.py",
-    '.replace("version: 2", "version: 3")',
-    '.replace("version: 3", "version: 4")',
-)
-edit(
-    "tests/test_initialize_project.py",
-    '        package_name="bad-name",\n        contribution_id="bootstrap",',
-    '        package_name="bad-name",\n        cli_name="Bad CLI",\n        contribution_id="bootstrap",',
+    "        \"uv.lock\": '[[package]]\\nname = \"agent-native-project\"\\n',\n        \"CONTRIBUTIONS.md\": (",
+    "        \"uv.lock\": '[[package]]\\nname = \"agent-native-project\"\\n',\n"
+    "        \"Makefile\": (\n"
+    "            \".PHONY: research-validate research-run verify\\n\"\n"
+    "            \"research-validate:\\n\\tuv run researchctl experiment validate\\n\"\n"
+    "            \"research-run:\\n\\tuv run researchctl experiment run experiments/specs/smoke.yaml\\n\"\n"
+    "            \"verify: research-validate\\n\"\n"
+    "        ),\n"
+    "        \"CONTRIBUTIONS.md\": (",
 )
 
-# E2E proves the initialized, renamed, installed CLI before and after sidecar removal.
+# Avoid a lint-only ambiguity in the generated compatibility message.
 edit(
-    "tools/verify_template_e2e.py",
-    '            "--package-name",\n            "template_e2e_project",\n            "--contribution-id",',
-    '            "--package-name",\n            "template_e2e_project",\n            "--cli-name",\n            "template-e2e",\n            "--contribution-id",',
-)
-edit(
-    "tools/verify_template_e2e.py",
-    '    "contribution: bootstrap",\n)',
-    '    "contribution: bootstrap",\n    \'researchctl = "tools.control_cli:main"\',\n)',
-)
-edit(
-    "tools/verify_template_e2e.py",
-    '    "pyproject.toml",\n    "src",',
-    '    "pyproject.toml",\n    "Makefile",\n    "PROJECT.yaml",\n    "src",',
-)
-edit(
-    "tools/verify_template_e2e.py",
-    'def verify_latest_run(root: Path) -> None:',
-    'def verify_latest_run(root: Path, cli_name: str = "template-e2e") -> None:',
-)
-edit(
-    "tools/verify_template_e2e.py",
-    '            sys.executable,\n            "tools/evidence.py",\n            "verify-run",',
-    '            "uv",\n            "run",\n            cli_name,\n            "experiment",\n            "verify-run",',
-    count=1,
-)
-edit(
-    "tools/verify_template_e2e.py",
-    '    run(["make", "verify"], root)\n    run(["make", "research-run"], root)',
-    '    run(["uv", "run", "template-e2e", "--help"], root)\n    run(["make", "verify"], root)\n    run(["make", "research-run"], root)',
-    count=1,
+    "tools/initialize_project.py",
+    "        return [\n"
+    "            f\"project template version {state['template']['version']} requires migration \"\n"
+    "            f\"to {TEMPLATE_VERSION}\"\n"
+    "        ]",
+    "        return [\n"
+    "            f\"project template version {state['template']['version']} requires migration to {TEMPLATE_VERSION}\"\n"
+    "        ]",
 )
 
-# Ownership and contract.
-edit(
-    ".agents/governance/REPO_UNITS.yaml",
-    "  - tools/ci_policy.py\n",
-    "  - tools/ci_policy.py\n  - tools/control_cli.py\n",
-)
-edit(
-    ".agents/governance/REPO_UNITS.yaml",
-    "  - tools/\n" if False else "  - tools/archive.py\n",
-    "  - tools/archive.py\n  - tools/__init__.py\n",
-)
-edit(
-    ".agents/governance/CONTRACT.md",
-    "## Execution Invariants\n",
-    "## Execution Invariants\n\n- The installed project CLI is the only public experiment and archive control surface. Its name is\n  recorded in `PROJECT.yaml` and may be replaced atomically during initialization. Legacy\n  `tools/*.py` entry points are compatibility adapters, not independent implementations.\n",
-)
+old_migration = '''def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
+    cli_name = state["distribution_name"]
+    if not initialize_project.CLI_PATTERN.fullmatch(cli_name):
+        raise TemplateCompatibilityError(
+            "distribution_name cannot be used as a CLI name; choose a valid lowercase hyphenated name"
+        )
+    state["cli_name"] = cli_name
+    relative = "pyproject.toml"
+    path = root / relative
+    content = path.read_text(encoding="utf-8")
+    template_entry = 'researchctl = "tools.control_cli:main"'
+    configured_entry = f'{cli_name} = "tools.control_cli:main"'
+    if template_entry in content:
+        content = content.replace(template_entry, configured_entry)
+    elif configured_entry not in content:
+        marker = "[dependency-groups]"
+        if marker not in content:
+            raise TemplateCompatibilityError("pyproject.toml has no dependency-groups section")
+        content = content.replace(marker, f'[project.scripts]\n{configured_entry}\n\n{marker}')
+    initialize_project.write_text(path, content)
+    return [f"write {relative}"]
+'''
+new_migration = '''def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
+    cli_name = state["distribution_name"]
+    if not initialize_project.CLI_PATTERN.fullmatch(cli_name):
+        raise TemplateCompatibilityError(
+            "distribution_name cannot be used as a CLI name; choose a valid lowercase hyphenated name"
+        )
+    state["cli_name"] = cli_name
+    changes: list[str] = []
 
-# README and skills use one generic control surface.
-for relative in ["README.md", ".agents/skills/run-experiment/SKILL.md", "docs/ARCHIVE_RETIREMENT.md"]:
-    path = ROOT / relative
-    text = path.read_text(encoding="utf-8")
-    text = text.replace("uv run python tools/research.py validate", "uv run researchctl experiment validate")
-    text = text.replace("uv run python tools/evidence.py ", "uv run researchctl experiment ")
-    text = text.replace("uv run python tools/archive.py ", "uv run researchctl archive ")
-    path.write_text(text, encoding="utf-8")
-
-# Compatibility scripts clearly identify the canonical public route.
-for relative, group in [
-    ("tools/evidence.py", "experiment"),
-    ("tools/archive.py", "archive"),
-    ("tools/research.py", "experiment validate"),
-]:
-    path = ROOT / relative
-    text = path.read_text(encoding="utf-8")
-    marker = 'if __name__ == "__main__":\n'
-    if marker not in text:
-        raise RuntimeError(f"{relative}: missing main adapter")
-    notice = (
-        marker
-        + '    print("DEPRECATED: use the installed project CLI '
-        + group
-        + ' command", file=sys.stderr)\n'
+    pyproject_path = root / "pyproject.toml"
+    content = pyproject_path.read_text(encoding="utf-8")
+    runtime_dependencies = (
+        'dependencies = [\n'
+        '    "jsonschema>=4.23",\n'
+        '    "pyyaml>=6.0",\n'
+        ']'
     )
-    text = text.replace(marker, notice, 1)
-    path.write_text(text, encoding="utf-8")
+    if "dependencies = []" in content:
+        content = content.replace("dependencies = []", runtime_dependencies)
+    content = content.replace('    "jsonschema>=4.23",\n', "")
+    content = content.replace('    "pyyaml>=6.0",\n', "")
+    configured_entry = f'{cli_name} = "tools.control_cli:main"'
+    template_entry = 'researchctl = "tools.control_cli:main"'
+    if template_entry in content:
+        content = content.replace(template_entry, configured_entry)
+    elif configured_entry not in content:
+        marker = "[dependency-groups]"
+        if marker not in content:
+            raise TemplateCompatibilityError("pyproject.toml has no dependency-groups section")
+        content = content.replace(marker, f"[project.scripts]\n{configured_entry}\n\n{marker}")
+    package_marker = f'packages = ["src/{state["package_name"]}"]'
+    package_replacement = f'packages = ["src/{state["package_name"]}", "tools"]'
+    if package_marker in content:
+        content = content.replace(package_marker, package_replacement)
+    elif package_replacement not in content:
+        raise TemplateCompatibilityError("pyproject.toml does not expose the initialized package")
+    initialize_project.write_text(pyproject_path, content)
+    changes.append("write pyproject.toml")
 
-# Template state version and docs.
-project = ROOT / "PROJECT.yaml"
-text = project.read_text(encoding="utf-8").replace("  version: 2\n", "  version: 3\n")
-project.write_text(text, encoding="utf-8")
+    makefile_path = root / "Makefile"
+    if makefile_path.is_file():
+        makefile = makefile_path.read_text(encoding="utf-8")
+        makefile = makefile.replace(
+            "uv run python tools/research.py validate\n\tuv run python tools/evidence.py validate",
+            f"uv run {cli_name} experiment validate",
+        )
+        makefile = makefile.replace(
+            "uv run python tools/evidence.py run experiments/specs/smoke.yaml",
+            f"uv run {cli_name} experiment run experiments/specs/smoke.yaml",
+        )
+        if "control-cli:" not in makefile:
+            makefile = makefile.replace(
+                "research-validate:\n",
+                f"control-cli:\n\tuv run {cli_name} --help >/dev/null\n\nresearch-validate:\n",
+            )
+            makefile = makefile.replace("verify: ", "verify: control-cli ")
+        initialize_project.write_text(makefile_path, makefile)
+        changes.append("write Makefile")
 
-# Remove this one-shot integration source before the final product commit.
+    readme_path = root / "README.md"
+    if readme_path.is_file():
+        readme = readme_path.read_text(encoding="utf-8")
+        readme = readme.replace("uv run python tools/research.py validate", f"uv run {cli_name} experiment validate")
+        readme = readme.replace("uv run python tools/evidence.py ", f"uv run {cli_name} experiment ")
+        readme = readme.replace("uv run python tools/archive.py ", f"uv run {cli_name} archive ")
+        initialize_project.write_text(readme_path, readme)
+        changes.append("write README.md")
+    return changes
+'''
+edit("tools/template_compat.py", old_migration, new_migration)
+
+# Update compatibility tests to exercise the full v1 -> v2 -> v3 chain.
+edit(
+    "tests/test_template_compat.py",
+    "    assert compat.migrate(tmp_path, 2) == []",
+    "    assert compat.migrate(tmp_path, 3) == []",
+)
+edit(
+    "tests/test_template_compat.py",
+    '        "project template version 1 requires migration to 2"',
+    '        "project template version 1 requires migration to 3"',
+)
+edit(
+    "tests/test_template_compat.py",
+    "    assert compat.compatibility_errors(tmp_path) == []\n\n\ndef test_check_reports_missing_future_migration(",
+    "    assert compat.compatibility_errors(tmp_path) == [\n"
+    "        \"project template version 2 requires migration to 3\"\n"
+    "    ]\n\n\n"
+    "def test_version_3_migration_installs_configured_control_surface(tmp_path: Path) -> None:\n"
+    "    initialized_project(tmp_path)\n"
+    "    state = compat.initialize_project.load_yaml(tmp_path / \"PROJECT.yaml\")\n"
+    "    state[\"template\"][\"version\"] = 2\n"
+    "    state[\"template\"][\"applied_migrations\"] = [2]\n"
+    "    state.pop(\"cli_name\")\n"
+    "    compat.initialize_project.write_text(\n"
+    "        tmp_path / \"PROJECT.yaml\", compat.initialize_project.dump_yaml(state)\n"
+    "    )\n"
+    "    (tmp_path / \"pyproject.toml\").write_text(\n"
+    "        '[project]\\nname = \"causal-agent-lab\"\\nversion = \"0.1.0\"\\n'\n"
+    "        'description = \"Causal Agent Lab\"\\ndependencies = []\\n\\n'\n"
+    "        '[dependency-groups]\\ndev = [\\n'\n"
+    "        '    \"jsonschema>=4.23\",\\n    \"pyyaml>=6.0\",\\n    \"pytest>=8.0\",\\n]\\n\\n'\n"
+    "        '[tool.hatch.build.targets.wheel]\\npackages = [\"src/causal_agent_lab\"]\\n',\n"
+    "        encoding=\"utf-8\",\n"
+    "    )\n"
+    "    (tmp_path / \"Makefile\").write_text(\n"
+    "        '.PHONY: research-validate research-run verify\\n'\n"
+    "        'research-validate:\\n\\tuv run python tools/research.py validate\\n'\n"
+    "        '\\tuv run python tools/evidence.py validate\\n'\n"
+    "        'research-run:\\n\\tuv run python tools/evidence.py run experiments/specs/smoke.yaml\\n'\n"
+    "        'verify: research-validate\\n',\n"
+    "        encoding=\"utf-8\",\n"
+    "    )\n"
+    "    changes = compat.migrate(tmp_path, 3)\n"
+    "    assert changes == [\"write pyproject.toml\", \"write Makefile\", \"write README.md\"]\n"
+    "    migrated = compat.initialize_project.load_yaml(tmp_path / \"PROJECT.yaml\")\n"
+    "    assert migrated[\"cli_name\"] == \"causal-agent-lab\"\n"
+    "    assert migrated[\"template\"][\"version\"] == 3\n"
+    "    assert migrated[\"template\"][\"applied_migrations\"] == [2, 3]\n"
+    "    pyproject = (tmp_path / \"pyproject.toml\").read_text(encoding=\"utf-8\")\n"
+    "    assert 'causal-agent-lab = \"tools.control_cli:main\"' in pyproject\n"
+    "    assert 'packages = [\"src/causal_agent_lab\", \"tools\"]' in pyproject\n"
+    "    assert '\"jsonschema>=4.23\"' in pyproject.split(\"[dependency-groups]\", 1)[0]\n"
+    "    makefile = (tmp_path / \"Makefile\").read_text(encoding=\"utf-8\")\n"
+    "    assert \"uv run causal-agent-lab experiment validate\" in makefile\n"
+    "    assert \"control-cli:\" in makefile\n\n\n"
+    "def test_check_reports_missing_future_migration(",
+)
+edit(
+    "tests/test_template_compat.py",
+    '    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 3)\n    assert compat.compatibility_errors(tmp_path) == [\n        "project template version 2 requires migration to 3"\n    ]\n    with pytest.raises(compat.TemplateCompatibilityError, match="missing migration"):\n        compat.migrate(tmp_path, 3)',
+    '    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 4)\n    assert compat.compatibility_errors(tmp_path) == [\n        "project template version 3 requires migration to 4"\n    ]\n    with pytest.raises(compat.TemplateCompatibilityError, match="missing migration"):\n        compat.migrate(tmp_path, 4)',
+)
+edit(
+    "tests/test_template_compat.py",
+    '    state["template"]["version"] = 3',
+    '    state["template"]["version"] = 4',
+)
+edit(
+    "tests/test_template_compat.py",
+    "        compat.migrate(tmp_path, 2)\n\n\ndef test_uninitialized_template_cannot_run_downstream_migrations",
+    "        compat.migrate(tmp_path, 3)\n\n\ndef test_uninitialized_template_cannot_run_downstream_migrations",
+)
+edit(
+    "tests/test_template_compat.py",
+    "        compat.migrate(tmp_path, 2)\n",
+    "        compat.migrate(tmp_path, 3)\n",
+    count=1,
+)
+
+# Remove both one-shot integration layers after successful execution.
 Path(__file__).unlink()
