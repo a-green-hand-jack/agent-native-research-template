@@ -41,8 +41,8 @@ old_v3 = '''def test_version_3_migration_installs_configured_control_surface(tmp
 new_v3 = '''def test_version_3_migration_installs_configured_control_surface(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 3)
     initialized_project(tmp_path)
+    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 3)
 '''
 if text.count(old_v3) != 1:
     raise RuntimeError("unexpected version-3 migration test signature")
