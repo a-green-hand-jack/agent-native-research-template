@@ -23,6 +23,17 @@ agent reads them.
 - Keep credentials out of prompts, logs, run manifests, evidence files, commits, and test fixtures.
 - Use least-privilege credentials and isolated environments for unknown workloads.
 
+## Dependency And Workflow Supply Chain
+
+GitHub Actions used by the template are pinned to immutable commit SHAs. Human-readable version
+comments may identify the reviewed upstream release, but the SHA is the executable source of truth.
+Dependabot checks GitHub Actions and uv-managed Python dependencies on a weekly schedule and groups
+related updates into bounded reviewable pull requests.
+
+A dependency update is not trusted merely because automation opened it. Review the upstream change,
+resolved lockfile, permission changes, workflow diff, and full CI result before merging. Do not
+replace a pinned action SHA with a mutable tag, branch, or floating major reference.
+
 ## Agent And Runtime Boundaries
 
 Agent runtimes and their generated state are execution surfaces, not trusted project truth.
