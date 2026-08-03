@@ -60,6 +60,22 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - Applying the current template version is a no-op. Future migrations update the migration ledger
   only after their declared changes complete and the resulting project passes compatibility checks.
 
+## Change Integration Invariants
+
+- Pull-request validation must run on the `pull_request` event under read-only top-level workflow
+  permissions. External Actions are pinned to immutable full commit SHAs.
+- Every merge cites a successful GitHub Actions run or commit status attached to the exact pull
+  request head SHA being merged. A historical run for an ancestor, another branch, or a stale base
+  is not merge evidence.
+- Any head movement, including a rebase, conflict resolution, generated lockfile update, bot commit,
+  or manual edit, invalidates prior merge evidence and requires a new successful check.
+- Merge operations use an expected head SHA so concurrent changes are rejected rather than merged
+  implicitly.
+- Local validation supplements the exact-head remote check; neither passing local tests nor passing
+  CI grants merge permission. Explicit authorization remains an independent side-effect gate.
+- Pull requests record the related issue, tested head SHA, validation commands, Actions run or
+  commit status, Contract/Anatomy assessment, migration or rollback plan, and remaining risks.
+
 ## Execution Invariants
 
 - A runnable experiment resolves its code revision, config, environment, structured inputs,

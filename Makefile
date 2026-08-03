@@ -1,4 +1,4 @@
-.PHONY: setup hooks check format test smoke project-check template-compat research-validate research-run template-e2e verify
+.PHONY: setup hooks check format test smoke project-check template-compat ci-policy research-validate research-run template-e2e verify
 
 setup:
 	uv sync --group dev
@@ -26,6 +26,9 @@ project-check:
 template-compat:
 	uv run python tools/template_compat.py check
 
+ci-policy:
+	uv run python tools/ci_policy.py
+
 research-validate:
 	uv run python tools/research.py validate
 	uv run python tools/evidence.py validate
@@ -36,4 +39,4 @@ research-run:
 template-e2e:
 	uv run python tools/verify_template_e2e.py
 
-verify: check test project-check template-compat research-validate
+verify: check test project-check template-compat ci-policy research-validate
