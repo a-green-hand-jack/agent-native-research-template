@@ -32,6 +32,7 @@ jobs:
         run: |
           uv sync --frozen --group dev
           uv run python tools/apply_asset_patch.py
+          uv run ruff check --fix tools/asset_binding.py tests/test_asset_binding.py
           uv run ruff format tools tests
           rm tools/apply_asset_patch.py
           rm .github/workflows/integrate-assets.yml
