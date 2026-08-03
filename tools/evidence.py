@@ -21,6 +21,7 @@ import experiment_plan
 import input_identity
 import phase_graph
 import research
+import run_state
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DECISIONS = ("accepted", "rejected", "inconclusive")
@@ -178,10 +179,13 @@ def run_once(
     run_id = f"{timestamp}-{spec['id']}-{head_label}-{uuid.uuid4().hex[:8]}"
     run_dir = root / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
+    run_state.write_progress(run_dir, "planned", plan_sha256=resolved["plan_sha256"])
+    run_state.write_progress(run_dir, "submitted", executor=spec["executor"])
 
     environment = os.environ.copy()
     environment[SEED_ENVIRONMENT_VARIABLE] = str(seed)
     started_at = utc_now()
+    run_state.write_progress(run_dir, "running", started_at=started_at)
     execution = phase_graph.execute_phases(
         spec,
         resolved["executor"],
@@ -345,7 +349,12 @@ def enrich_manifest(
     manifest["status"] = "succeeded" if manifest["return_code"] == 0 and not errors else "failed"
     research.validate_document(manifest, "run manifest", manifest_path, root)
     research.write_json(manifest_path, manifest)
-    return manifest_path, manifest["return_code"] or (3 if errors else 0)
+    manifest_sha256 = research.sha256_file(manifest_path)
+    result_path = run_state.write_terminal_result(manifest_path, manifest, manifest_sha256)
+    result = research.load_json(result_path)
+    research.validate_document(result, "run result", result_path, root)
+    code = manifest["return_code"] or (3 if result["state"] != "succeeded" else 0)
+    return manifest_path, code
 
 
 def run_spec(
@@ -378,6 +387,12 @@ def verify_run(value: str, root: Path = ROOT) -> dict[str, Any]:
     run_id = manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise EvidenceError(f"manifest has no run_id: {source}")
+    result_path = source.parent / "result.json"
+    if result_path.is_file():
+        result = research.load_json(result_path)
+        research.validate_document(result, "run result", result_path, root)
+        if result.get("manifest_sha256") != research.sha256_file(source):
+            raise EvidenceError("terminal result manifest checksum mismatch")
     for artifact in manifest.get("artifacts", []):
         if not isinstance(artifact, dict):
             raise EvidenceError(f"manifest artifact is not a mapping: {source}")
@@ -391,6 +406,34 @@ def verify_run(value: str, root: Path = ROOT) -> dict[str, Any]:
         if research.sha256_file(path) != expected:
             raise EvidenceError(f"artifact checksum mismatch: {relative}")
     return manifest
+
+
+def run_directory(value: str, root: Path = ROOT) -> Path:
+    candidate = Path(value)
+    if candidate.is_absolute():
+        run_dir = candidate
+    elif candidate.parts and candidate.parts[0] == "runs":
+        run_dir = root / candidate
+    else:
+        run_dir = root / "runs" / value
+    return run_dir.resolve()
+
+
+def run_status(value: str, root: Path = ROOT) -> dict[str, Any]:
+    return run_state.status_projection(run_directory(value, root))
+
+
+def run_results(value: str, root: Path = ROOT) -> dict[str, Any]:
+    source = research.resolve_manifest(root, value)
+    manifest = research.load_json(source)
+    return run_state.results_projection(manifest, run_state.status_projection(source.parent))
+
+
+def verified_status(value: str, root: Path = ROOT) -> dict[str, Any]:
+    manifest = verify_run(value, root)
+    source = research.resolve_manifest(root, value)
+    status = run_state.status_projection(source.parent, verified=True)
+    return {**status, "run_id": manifest["run_id"]}
 
 
 def recorded_input_drift(manifest: dict[str, Any], root: Path) -> list[str]:
@@ -537,6 +580,12 @@ def build_parser() -> argparse.ArgumentParser:
     retry.add_argument("run")
     retry.add_argument("--phase", required=True)
 
+    status = subparsers.add_parser("status", help="read evidence-first lifecycle status")
+    status.add_argument("run")
+
+    results = subparsers.add_parser("results", help="read structured run results")
+    results.add_argument("run")
+
     verify = subparsers.add_parser("verify-run", help="verify every recorded artifact")
     verify.add_argument("run")
 
@@ -577,9 +626,14 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             path, code = retry_phase_run(args.run, args.phase, root)
             print(research.relative_name(path, root))
             return code
+        if args.command == "status":
+            print(json.dumps(run_status(args.run, root), indent=2, sort_keys=True))
+            return 0
+        if args.command == "results":
+            print(json.dumps(run_results(args.run, root), indent=2, sort_keys=True))
+            return 0
         if args.command == "verify-run":
-            manifest = verify_run(args.run, root)
-            print(f"OK {manifest['run_id']}")
+            print(json.dumps(verified_status(args.run, root), indent=2, sort_keys=True))
             return 0
         if args.command == "promote":
             destination = promote_manifest(
@@ -596,6 +650,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         experiment_plan.PlanError,
         phase_graph.PhaseGraphError,
         research.SpecError,
+        run_state.RunStateError,
         OSError,
         ValueError,
     ) as exc:

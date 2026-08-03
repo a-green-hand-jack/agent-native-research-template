@@ -88,7 +88,9 @@ def completion_report(manifest: dict[str, Any]) -> dict[str, Any]:
     available_artifacts = artifact_names(manifest)
     available_metrics = measured_metric_ids(manifest)
     missing_artifacts = sorted(
-        item for item in required_artifacts if isinstance(item, str) and item not in available_artifacts
+        item
+        for item in required_artifacts
+        if isinstance(item, str) and item not in available_artifacts
     )
     missing_metrics = sorted(
         item for item in required_metrics if isinstance(item, str) and item not in available_metrics

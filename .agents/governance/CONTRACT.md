@@ -123,6 +123,13 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - Declared artifacts are copied into the owning `runs/<run-id>/artifacts/` directory before their
   checksums are recorded. The manifest retains the original source path for provenance, while
   verification reads the run-scoped snapshot.
+- Run lifecycle is evidence-first. Atomic progress records may be planned, submitted, or
+  running. Only a validated terminal result may be failed, incomplete, or succeeded; verified
+  is a read-only projection after manifest and artifact verification. Missing or corrupt
+  terminal evidence never implies success.
+- Completion criteria require declared artifacts, metrics, and terminal phase results in
+  addition to process return codes. Status and results commands read recorded evidence only;
+  they never infer completion from process disappearance or hardware idleness.
 - Run facts are immutable. Retries create new runs linked to their parent.
 - Accepted reports cite run IDs; paper values are generated from locked evidence rather than
   copied from terminal output.

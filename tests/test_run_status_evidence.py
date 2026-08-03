@@ -8,9 +8,10 @@ TOOLS = Path(__file__).resolve().parents[1] / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-import evidence
 import run_state
 from test_evidence import configure_outputs
+
+import evidence
 
 
 def test_run_writes_atomic_terminal_result(tmp_path: Path) -> None:
