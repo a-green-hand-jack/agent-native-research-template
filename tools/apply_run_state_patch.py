@@ -99,8 +99,8 @@ def verified_status(value: str, root: Path = ROOT) -> dict[str, Any]:
 '''
     replace_once(
         "tools/evidence.py",
-        "def recorded_input_drift(\n",
-        helpers + "def recorded_input_drift(\n",
+        "def recorded_input_drift(",
+        helpers + "def recorded_input_drift(",
     )
     replace_once(
         "tools/evidence.py",
