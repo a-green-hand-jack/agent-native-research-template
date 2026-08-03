@@ -41,7 +41,9 @@ def build_repository(root: Path, *, nested: bool = True) -> Path:
             "schema_version: 1\nid: smoke\ncommand: make smoke\n"
             "purpose: execute the smallest path\nmetrics:\n"
             "  - id: success\n    type: boolean\n    direction: maximize\n"
-            "    source:\n      type: return_code\n"
+            "    unit: boolean\n    aggregation: single\n"
+            "    resource_mode: single_process\n    sample_count: 1\n"
+            "    observation_count: 1\n    source:\n      type: return_code\n"
         ),
         "infra/profiles/local.yaml": (
             "schema_version: 1\nid: local\nexecutor: local\ncapabilities: [cpu]\n"

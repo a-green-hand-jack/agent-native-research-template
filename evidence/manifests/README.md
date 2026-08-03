@@ -39,6 +39,10 @@ uv run python tools/evidence.py promote <run-id> \
   --note "Supports the stated smoke claim."
 ```
 
+Metrics are structured observations with explicit units, sampling, aggregation, resource mode,
+and observation counts. Missing observations use named reasons; NaN and fabricated dispersion
+are rejected. See `docs/METRIC_OBSERVATIONS.md`.
+
 Each evidence file records:
 
 - the source run ID, manifest path, and source-manifest SHA-256;

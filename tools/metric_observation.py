@@ -81,7 +81,11 @@ def dispersion(metric: dict[str, Any]) -> dict[str, Any] | None:
     amount = value.get("value")
     if kind not in {"standard_deviation", "standard_error", "range", "confidence_interval"}:
         raise MetricObservationError(f"metric {metric.get('id')!r} dispersion kind is invalid")
-    if not isinstance(amount, int | float) or isinstance(amount, bool) or not math.isfinite(float(amount)):
+    if (
+        not isinstance(amount, int | float)
+        or isinstance(amount, bool)
+        or not math.isfinite(float(amount))
+    ):
         raise MetricObservationError(f"metric {metric.get('id')!r} dispersion value must be finite")
     observations = positive_integer(
         metric.get("observation_count"), f"metric {metric.get('id')} observation_count"
@@ -139,4 +143,7 @@ def normalize_legacy_record(metric_id: str, value: object) -> dict[str, Any]:
 def normalize_legacy_metrics(value: object) -> dict[str, dict[str, Any]]:
     if not isinstance(value, dict):
         raise MetricObservationError("legacy metrics must be a mapping")
-    return {str(metric_id): normalize_legacy_record(str(metric_id), record) for metric_id, record in value.items()}
+    return {
+        str(metric_id): normalize_legacy_record(str(metric_id), record)
+        for metric_id, record in value.items()
+    }

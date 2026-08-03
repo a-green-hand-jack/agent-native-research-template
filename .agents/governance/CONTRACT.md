@@ -131,6 +131,11 @@ project-specific behavioral, scientific, and interface contracts below these sha
   addition to process return codes. Status and results commands read recorded evidence only;
   they never infer completion from process disappearance or hardware idleness.
 - Run facts are immutable. Retries create new runs linked to their parent.
+- New metric evidence uses contextual observations, never bare ambiguous scalars. Measured
+  values record unit, sample count, aggregation, resource mode, and independent observation
+  count. Missing values use explicit reasons and remain distinct from zero. NaN and infinity
+  are invalid durable evidence; dispersion requiring repeated observations is rejected when
+  fewer than two observations exist.
 - Accepted reports cite run IDs; paper values are generated from locked evidence rather than
   copied from terminal output.
 

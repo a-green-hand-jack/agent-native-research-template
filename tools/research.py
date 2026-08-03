@@ -22,6 +22,7 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 import input_identity
+import metric_observation
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = 1
@@ -240,6 +241,11 @@ def validate_metric(metric: object, evaluation_path: Path, root: Path) -> str:
     direction = metric.get("direction")
     if direction not in {"maximize", "minimize", "none"}:
         raise SpecError(f"metric {metric_id!r} direction must be maximize, minimize, or none")
+    try:
+        metric_observation.context(metric)
+        metric_observation.dispersion(metric)
+    except metric_observation.MetricObservationError as exc:
+        raise SpecError(str(exc)) from exc
     source = metric.get("source")
     if not isinstance(source, dict):
         raise SpecError(f"metric {metric_id!r} source must be a mapping")
@@ -250,6 +256,9 @@ def validate_metric(metric: object, evaluation_path: Path, root: Path) -> str:
     elif source_type == "stdout_regex":
         if not isinstance(source.get("pattern"), str) or not source["pattern"]:
             raise SpecError(f"stdout_regex metric {metric_id!r} requires a pattern")
+    elif source_type == "missing":
+        if source.get("reason") not in metric_observation.MISSING_REASONS:
+            raise SpecError(f"metric {metric_id!r} missing reason is invalid")
     elif source_type == "json_file":
         for field in ("path", "key"):
             if not isinstance(source.get(field), str) or not source[field].strip():
@@ -259,7 +268,7 @@ def validate_metric(metric: object, evaluation_path: Path, root: Path) -> str:
             raise SpecError(f"json_file metric {metric_id!r} path must be repository-relative")
     else:
         raise SpecError(
-            f"metric {metric_id!r} source.type must be return_code, stdout_regex, or json_file"
+            f"metric {metric_id!r} source.type must be return_code, stdout_regex, json_file, or missing"
         )
     return metric_id
 
@@ -538,13 +547,15 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
 
 def extract_return_code_metrics(
     evaluation: dict[str, Any], return_code: int
-) -> dict[str, bool | int]:
-    metrics: dict[str, bool | int] = {}
+) -> dict[str, dict[str, Any]]:
+    metrics: dict[str, dict[str, Any]] = {}
     for metric in evaluation["metrics"]:
         source = metric["source"]
-        if source["type"] != "return_code":
-            continue
-        metrics[metric["id"]] = return_code == 0 if metric["type"] == "boolean" else return_code
+        if source["type"] == "return_code":
+            raw = return_code == 0 if metric["type"] == "boolean" else return_code
+            metrics[metric["id"]] = metric_observation.measured(metric, raw)
+        elif source["type"] == "missing":
+            metrics[metric["id"]] = metric_observation.missing(metric, source["reason"])
     return metrics
 
 
@@ -591,7 +602,12 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         for path in paths:
             print(f"OK {relative_name(path, root)}")
         return 0
-    except (SpecError, input_identity.InputIdentityError, OSError) as exc:
+    except (
+        SpecError,
+        input_identity.InputIdentityError,
+        metric_observation.MetricObservationError,
+        OSError,
+    ) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
 

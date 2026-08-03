@@ -43,6 +43,7 @@ required_paths:
   - docs/ASSET_BINDINGS.md
   - docs/EXPERIMENT_PLANS.md
   - docs/INPUT_IDENTITY.md
+  - docs/METRIC_OBSERVATIONS.md
   - docs/PHASE_RECOVERY.md
   - docs/REFERENCE_IMPLEMENTATION.md
   - docs/RUN_STATUS.md
@@ -68,6 +69,7 @@ required_paths:
   - tools/experiment_plan.py
   - tools/initialize_project.py
   - tools/input_identity.py
+  - tools/metric_observation.py
   - tools/phase_graph.py
   - tools/research.py
   - tools/run_state.py

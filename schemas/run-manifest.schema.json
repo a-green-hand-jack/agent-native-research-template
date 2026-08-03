@@ -170,6 +170,135 @@
         }
       },
       "additionalProperties": false
+    },
+    "metric_observation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "state",
+            "value",
+            "unit",
+            "sample_count",
+            "aggregation",
+            "resource_mode",
+            "observation_count"
+          ],
+          "properties": {
+            "state": {
+              "const": "measured"
+            },
+            "value": {
+              "type": [
+                "boolean",
+                "integer",
+                "number",
+                "string"
+              ]
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "aggregation": {
+              "enum": [
+                "single",
+                "mean",
+                "sum",
+                "min",
+                "max",
+                "rate"
+              ]
+            },
+            "resource_mode": {
+              "enum": [
+                "single_process",
+                "isolated_request",
+                "multi_worker_wall_clock",
+                "per_sequence",
+                "per_token",
+                "device_aggregate"
+              ]
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "dispersion": {
+              "type": "object"
+            },
+            "legacy": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "state",
+            "missing_reason",
+            "unit",
+            "sample_count",
+            "aggregation",
+            "resource_mode",
+            "observation_count"
+          ],
+          "properties": {
+            "state": {
+              "const": "missing"
+            },
+            "missing_reason": {
+              "enum": [
+                "not_applicable",
+                "not_measured",
+                "empty_population",
+                "evaluation_error"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "aggregation": {
+              "enum": [
+                "single",
+                "mean",
+                "sum",
+                "min",
+                "max",
+                "rate"
+              ]
+            },
+            "resource_mode": {
+              "enum": [
+                "single_process",
+                "isolated_request",
+                "multi_worker_wall_clock",
+                "per_sequence",
+                "per_token",
+                "device_aggregate"
+              ]
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "required": [
@@ -419,12 +548,7 @@
     "metrics": {
       "type": "object",
       "additionalProperties": {
-        "type": [
-          "boolean",
-          "integer",
-          "number",
-          "string"
-        ]
+        "$ref": "#/$defs/metric_observation"
       }
     },
     "artifacts": {
