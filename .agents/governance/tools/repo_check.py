@@ -51,13 +51,19 @@ REQUIRED_EXPERIMENT_FIELDS = {
     "evaluation",
 }
 DEV_GUIDE_PATH = ".agents/skills/dev-guide/SKILL.md"
+INFLUENCES_PATH = ".agents/governance/INFLUENCES.md"
 GUIDANCE_ROUTES = {
-    "AGENTS.md": (DEV_GUIDE_PATH,),
+    "README.md": (INFLUENCES_PATH,),
+    "AGENTS.md": (DEV_GUIDE_PATH, INFLUENCES_PATH),
     DEV_GUIDE_PATH: (
         ".agents/governance/ANATOMY.md",
         ".agents/governance/CONTRACT.md",
         ".agents/governance/REPO_UNITS.yaml",
         ".agents/governance/GUIDE.md",
+    ),
+    INFLUENCES_PATH: (
+        "https://lingtai.ai/",
+        "https://lingtai.ai/en/about/",
     ),
 }
 
