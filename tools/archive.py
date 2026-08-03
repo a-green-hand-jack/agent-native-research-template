@@ -95,9 +95,7 @@ def normalized_path(root: Path, value: str, field: str) -> Path:
     return resolved
 
 
-def verify_copy(
-    asset: dict[str, Any], copy: dict[str, Any], root: Path
-) -> tuple[bool, str | None]:
+def verify_copy(asset: dict[str, Any], copy: dict[str, Any], root: Path) -> tuple[bool, str | None]:
     verification = copy.get("verification") or {}
     method = verification.get("method")
     if method not in VERIFY_METHODS:
@@ -192,9 +190,7 @@ def retirement_preflight(data: dict[str, Any], root: Path = ROOT) -> dict[str, A
             blockers.append("required assets are not safely archived: " + ", ".join(unsafe))
         unique_paths = target.get("unique_untracked_paths", [])
         if unique_paths:
-            blockers.append(
-                "unique untracked paths remain: " + ", ".join(sorted(unique_paths))
-            )
+            blockers.append("unique untracked paths remain: " + ", ".join(sorted(unique_paths)))
         pending = target.get("pending_actions", [])
         if pending:
             blockers.append("pending retention actions remain: " + ", ".join(sorted(pending)))
