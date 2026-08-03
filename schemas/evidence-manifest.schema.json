@@ -5,6 +5,12 @@
   "description": "A reviewed, immutable promotion envelope around one run manifest.",
   "type": "object",
   "x-schema-version": 1,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
   "required": [
     "schema_version",
     "evidence_version",
@@ -21,7 +27,12 @@
     "promoted_at": {"type": "string", "minLength": 1},
     "source": {
       "type": "object",
-      "required": ["path", "sha256"]
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
     },
     "review": {
       "type": "object",
@@ -29,7 +40,8 @@
       "properties": {
         "decision": {"enum": ["accepted", "rejected", "inconclusive"]},
         "note": {"type": ["string", "null"]}
-      }
+      },
+      "additionalProperties": false
     },
     "manifest": {"type": "object"}
   },

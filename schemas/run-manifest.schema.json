@@ -5,108 +5,166 @@
   "description": "Immutable observed facts from one experiment execution.",
   "type": "object",
   "x-schema-version": 1,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "path_hash": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "definition": {
+      "type": "object",
+      "required": ["id", "definition", "definition_sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "definition": {"type": "string", "minLength": 1},
+        "definition_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": true
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "source_path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "kind": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
   "required": [
     "schema_version",
     "run_id",
+    "parent_run_id",
     "status",
     "started_at",
     "finished_at",
     "return_code",
+    "termination",
+    "seed",
+    "seed_environment_variable",
+    "question",
+    "contribution",
+    "config",
+    "data",
     "spec",
     "git",
     "environment",
     "executor",
     "evaluation",
+    "hardware",
     "command",
     "metrics",
     "artifacts"
   ],
   "properties": {
-    "schema_version": {
-      "const": 1
-    },
-    "run_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "parent_run_id": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "status": {
-      "enum": [
-        "succeeded",
-        "failed"
-      ]
-    },
-    "return_code": {
-      "type": "integer"
-    },
-    "seed": {
-      "type": "integer"
-    },
-    "seed_environment_variable": {
-      "const": "RESEARCH_SEED"
-    },
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "parent_run_id": {"type": ["string", "null"]},
+    "status": {"enum": ["succeeded", "failed"]},
+    "started_at": {"type": "string", "minLength": 1},
+    "finished_at": {"type": "string", "minLength": 1},
+    "return_code": {"type": "integer"},
     "termination": {
-      "type": "object",
-      "required": [
-        "reason"
-      ],
-      "properties": {
-        "reason": {
-          "enum": [
-            "completed",
-            "timeout"
-          ]
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["reason"],
+          "properties": {"reason": {"const": "completed"}},
+          "additionalProperties": false
         },
-        "max_wall_time_seconds": {
-          "type": "integer",
-          "minimum": 1
+        {
+          "type": "object",
+          "required": ["reason", "max_wall_time_seconds"],
+          "properties": {
+            "reason": {"const": "timeout"},
+            "max_wall_time_seconds": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
         }
+      ]
+    },
+    "seed": {"type": "integer"},
+    "seed_environment_variable": {"const": "RESEARCH_SEED"},
+    "question": {"type": "string", "minLength": 1},
+    "contribution": {"type": "string", "minLength": 1},
+    "config": {"$ref": "#/$defs/path_hash"},
+    "data": {},
+    "spec": {
+      "type": "object",
+      "required": ["path", "sha256", "resolved"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "resolved": {"type": "object"}
       },
       "additionalProperties": false
     },
+    "git": {
+      "type": "object",
+      "required": ["commit", "dirty", "status", "patch_sha256"],
+      "properties": {
+        "commit": {"type": ["string", "null"]},
+        "dirty": {"type": "boolean"},
+        "status": {"type": "array", "items": {"type": "string"}},
+        "patch_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "allOf": [
+        {"$ref": "#/$defs/definition"},
+        {
+          "type": "object",
+          "required": ["lockfile", "lockfile_sha256"],
+          "properties": {
+            "lockfile": {"type": "string", "minLength": 1},
+            "lockfile_sha256": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      ]
+    },
+    "executor": {"$ref": "#/$defs/definition"},
+    "evaluation": {"$ref": "#/$defs/definition"},
+    "hardware": {
+      "type": "object",
+      "required": ["platform", "machine", "processor", "cpu_count"],
+      "properties": {
+        "platform": {"type": "string"},
+        "machine": {"type": "string"},
+        "processor": {"type": "string"},
+        "cpu_count": {"type": ["integer", "null"], "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"}
+    },
     "metrics": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {
+        "type": ["boolean", "integer", "number", "string"]
+      }
     },
     "artifacts": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "path",
-          "sha256"
-        ],
-        "properties": {
-          "path": {
-            "type": "string",
-            "minLength": 1
-          },
-          "source_path": {
-            "type": "string",
-            "minLength": 1
-          },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "kind": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "additionalProperties": true
-      }
+      "items": {"$ref": "#/$defs/artifact"}
     },
     "evaluation_errors": {
       "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "items": {"type": "string"}
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

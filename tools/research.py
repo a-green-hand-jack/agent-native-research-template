@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = 1
@@ -39,6 +41,7 @@ SCHEMA_DOCUMENTS = {
     "evaluation": "schemas/evaluation.schema.json",
     "executor": "schemas/executor.schema.json",
     "run manifest": "schemas/run-manifest.schema.json",
+    "evidence manifest": "schemas/evidence-manifest.schema.json",
 }
 
 
@@ -76,6 +79,48 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def relative_name(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def display_name(path: Path, root: Path) -> str:
+    try:
+        return relative_name(path, root)
+    except ValueError:
+        return str(path)
+
+
+def schema_location(parts: Iterable[object]) -> str:
+    location = "$"
+    for part in parts:
+        location += f"[{part}]" if isinstance(part, int) else f".{part}"
+    return location
+
+
+def schema_document(root: Path, kind: str) -> dict[str, Any]:
+    try:
+        relative_path = SCHEMA_DOCUMENTS[kind]
+    except KeyError as exc:
+        raise SpecError(f"unknown schema kind: {kind}") from exc
+    document = load_json(root / relative_path)
+    try:
+        Draft202012Validator.check_schema(document)
+    except SchemaError as exc:
+        raise SpecError(f"invalid JSON Schema {relative_path}: {exc.message}") from exc
+    return document
+
+
+def validate_document(data: dict[str, Any], kind: str, source: Path, root: Path = ROOT) -> None:
+    validator = Draft202012Validator(schema_document(root, kind))
+    errors = sorted(
+        validator.iter_errors(data),
+        key=lambda error: tuple(str(part) for part in error.absolute_path),
+    )
+    if not errors:
+        return
+    error = errors[0]
+    location = schema_location(error.absolute_path)
+    raise SpecError(
+        f"{display_name(source, root)} does not match {kind} schema at {location}: {error.message}"
+    )
 
 
 def validate_identifier(value: object, field: str) -> str:
@@ -130,6 +175,7 @@ def record_index(root: Path, directory: str, kind: str) -> dict[str, tuple[Path,
     records: dict[str, tuple[Path, dict[str, Any]]] = {}
     for path in yaml_paths(root, directory):
         record = load_yaml(path)
+        validate_document(record, kind, path, root)
         if record.get("schema_version") != SCHEMA_VERSION:
             raise SpecError(
                 f"{relative_name(path, root)} {kind} schema_version must be {SCHEMA_VERSION}"
@@ -298,15 +344,8 @@ def command_argv(value: object) -> list[str]:
 
 
 def validate_schema_documents(root: Path) -> None:
-    for kind, relative_path in SCHEMA_DOCUMENTS.items():
-        path = root / relative_path
-        document = load_json(path)
-        if document.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
-            raise SpecError(f"{relative_path} must use JSON Schema draft 2020-12")
-        if document.get("x-schema-version") != SCHEMA_VERSION:
-            raise SpecError(f"{relative_path} x-schema-version must be {SCHEMA_VERSION}")
-        if not isinstance(document.get("title"), str) or not document["title"].strip():
-            raise SpecError(f"{kind} schema has no title: {relative_path}")
+    for kind in SCHEMA_DOCUMENTS:
+        schema_document(root, kind)
 
 
 def validate_spec(
@@ -338,6 +377,7 @@ def validate_spec(
         validate_executor(definition, definition_path, root)
 
     spec = load_yaml(path)
+    validate_document(spec, "experiment", path, root)
     missing = REQUIRED_EXPERIMENT_FIELDS - spec.keys()
     if missing:
         raise SpecError(f"{relative_name(path, root)} missing fields: {', '.join(sorted(missing))}")

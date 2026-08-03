@@ -56,6 +56,38 @@ def artifact_snapshot(manifest: dict[str, object]) -> dict[str, str]:
     raise AssertionError("declared artifact snapshot was not recorded")
 
 
+def install_strict_artifact_schema(root: Path) -> None:
+    path = root / evidence.research.SCHEMA_DOCUMENTS["run manifest"]
+    path.write_text(
+        json.dumps(
+            {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "title": "Strict Run Manifest",
+                "type": "object",
+                "x-schema-version": 1,
+                "required": ["artifacts"],
+                "properties": {
+                    "artifacts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["path", "sha256"],
+                            "properties": {
+                                "path": {"type": "string", "minLength": 1},
+                                "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$",
+                                },
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_run_extracts_metrics_and_snapshots_declared_artifacts(tmp_path: Path) -> None:
     spec = configure_outputs(tmp_path)
     manifest_path, code = evidence.run_spec(spec, tmp_path)
@@ -86,6 +118,17 @@ def test_verify_run_detects_snapshot_tampering(tmp_path: Path) -> None:
     snapshot = artifact_snapshot(manifest)
     (tmp_path / snapshot["path"]).write_text("{}", encoding="utf-8")
     with pytest.raises(evidence.EvidenceError, match="checksum mismatch"):
+        evidence.verify_run(manifest["run_id"], tmp_path)
+
+
+def test_verify_run_rejects_schema_invalid_manifest(tmp_path: Path) -> None:
+    spec = configure_outputs(tmp_path)
+    install_strict_artifact_schema(tmp_path)
+    manifest_path, _ = evidence.run_spec(spec, tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["artifacts"][0]["sha256"] = "not-a-sha256"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(evidence.research.SpecError, match="does not match run manifest schema"):
         evidence.verify_run(manifest["run_id"], tmp_path)
 
 
