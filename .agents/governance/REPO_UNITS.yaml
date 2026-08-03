@@ -31,6 +31,7 @@ required_paths:
     - AGENTS.md
   functional:
     - .github/dependabot.yml
+    - .github/pull_request_template.md
     - README.md
     - CONTRIBUTIONS.md
     - LICENSE
@@ -54,6 +55,7 @@ required_paths:
     - pyproject.toml
     - src/
     - tests/
+    - tools/ci_policy.py
     - tools/evidence.py
     - tools/initialize_project.py
     - tools/input_identity.py
