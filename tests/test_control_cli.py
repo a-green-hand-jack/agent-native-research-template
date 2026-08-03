@@ -4,6 +4,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 
 from tools import control_cli
 
@@ -67,9 +68,10 @@ def test_archive_group_delegates_to_canonical_archive_tool(
 def test_package_installs_one_configured_console_entry() -> None:
     root = Path(__file__).resolve().parents[1]
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    state = yaml.safe_load((root / "PROJECT.yaml").read_text(encoding="utf-8"))
     cli_name = control_cli.configured_cli_name(root)
     assert project["project"]["scripts"] == {cli_name: "tools.control_cli:main"}
     assert set(project["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]) == {
-        "src/project",
+        f"src/{state['package_name']}",
         "tools",
     }
