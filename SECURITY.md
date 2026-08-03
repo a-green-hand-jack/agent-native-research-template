@@ -21,7 +21,13 @@ agent reads them.
   use.
 - Pin external source revisions and verify expected checksums where practical.
 - Keep credentials out of prompts, logs, run manifests, evidence files, commits, and test fixtures.
+- Treat opaque input identities as durable public metadata; never place credentials, personal data,
+  private paths, or secret registry tokens in them.
 - Use least-privilege credentials and isolated environments for unknown workloads.
+
+Repository path input declarations reject symbolic links so a repository-relative identity cannot
+silently read outside the checkout. External URI identities are recorded but never fetched by the
+template runner; a supplied URI or checksum is not independently trusted without separate review.
 
 ## Dependency And Workflow Supply Chain
 

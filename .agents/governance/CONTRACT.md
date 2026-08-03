@@ -62,18 +62,24 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 ## Execution Invariants
 
-- A runnable experiment resolves its code revision, config, environment, data, executor, and
-  evaluation protocol.
+- A runnable experiment resolves its code revision, config, environment, structured inputs,
+  executor, and evaluation protocol.
 - Expensive runs begin from a committed checkpoint whenever practical.
-- A run records its Git revision, dirty patch state, resolved config, environment identity, data
-  identity, seed, executor, hardware, timestamps, metrics, artifact references, and termination
-  reason.
+- A run records its Git revision, dirty patch state, resolved config, environment identity,
+  structured input identities, seed, executor, hardware, timestamps, metrics, artifact references,
+  and termination reason.
+- New runs resolve generic `path`, `uri`, and `opaque` input declarations before execution.
+  Repository path inputs receive deterministic content hashes and participate in replay drift
+  checks; URI and opaque identities are recorded without network access or implicit verification.
+- The legacy free-form `data` field remains readable for old run manifests but is not the
+  reproducibility boundary for new template runs. Opaque identities must never contain secrets,
+  personal data, private paths, or access tokens.
 - Versioned experiment, environment, executor, and evaluation definitions validate against their
   Draft 2020-12 schemas before cross-file resolution. Generated run manifests and reviewed
   evidence envelopes validate against their schemas before they are written or accepted.
 - JSON Schema owns single-document structure and nested variants. Python validation owns global
   identifier uniqueness, repository paths, file existence, cross-document references, command
-  agreement, execution controls, drift detection, and artifact checksums.
+  agreement, input hashing, execution controls, drift detection, and artifact checksums.
 - `tools/evidence.py` is the canonical bounded local runner. It executes exactly one fixed seed,
   exposes that seed as `RESEARCH_SEED`, requires and enforces a positive wall-time limit, and
   accepts only a one-run stopping rule.

@@ -14,7 +14,20 @@ import initialize_project
 
 ROOT = Path(__file__).resolve().parents[1]
 Migration = Callable[[Path, dict[str, Any]], list[str]]
-MIGRATIONS: dict[int, Migration] = {}
+
+
+def migrate_to_v2(root: Path, _: dict[str, Any]) -> list[str]:
+    relative = "experiments/specs/smoke.yaml"
+    path = root / relative
+    specification = initialize_project.load_yaml(path)
+    if "inputs" in specification:
+        return []
+    specification["inputs"] = [{"id": "smoke-source", "kind": "path", "path": "src"}]
+    initialize_project.write_text(path, initialize_project.dump_yaml(specification))
+    return [f"write {relative}"]
+
+
+MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2}
 
 
 class TemplateCompatibilityError(ValueError):

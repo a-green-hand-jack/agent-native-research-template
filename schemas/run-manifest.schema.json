@@ -29,6 +29,46 @@
       },
       "additionalProperties": true
     },
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["id", "kind", "path", "path_type", "sha256", "file_count"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "kind": {"const": "path"},
+            "path": {"type": "string", "minLength": 1},
+            "path_type": {"enum": ["file", "directory"]},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "file_count": {"type": "integer", "minimum": 0}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "kind", "uri"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "kind": {"const": "uri"},
+            "uri": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["id", "kind", "value"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "kind": {"const": "opaque"},
+            "value": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "artifact": {
       "type": "object",
       "required": ["path", "sha256"],
@@ -99,6 +139,10 @@
     "contribution": {"type": "string", "minLength": 1},
     "config": {"$ref": "#/$defs/path_hash"},
     "data": {},
+    "inputs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/input"}
+    },
     "spec": {
       "type": "object",
       "required": ["path", "sha256", "resolved"],

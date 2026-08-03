@@ -37,6 +37,7 @@ required_paths:
     - PROJECT.yaml
     - SECURITY.md
     - configs/base.yaml
+    - docs/INPUT_IDENTITY.md
     - docs/REFERENCE_IMPLEMENTATION.md
     - environments/main.yaml
     - evals/smoke.yaml
@@ -55,6 +56,7 @@ required_paths:
     - tests/
     - tools/evidence.py
     - tools/initialize_project.py
+    - tools/input_identity.py
     - tools/research.py
     - tools/template_compat.py
     - tools/verify_template_e2e.py
