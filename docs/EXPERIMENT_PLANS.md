@@ -41,3 +41,6 @@ Each externally scheduled cell must produce its own run manifest.
 New run manifests include the exact resolved plan and its SHA-256. Changing key order does not
 change identity; changing protocol, parameters, matrix values, resources, commands, inputs, or
 completion semantics does.
+
+Review and automation should compare the plan SHA-256 rather than relying on file names or prose
+summaries. A changed plan hash requires a new execution decision and new run evidence.
