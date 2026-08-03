@@ -1,6 +1,5 @@
 schema_version: 1
 id: smoke
-command: make smoke
 purpose: verify the smallest complete project path
 metrics:
 - id: success
