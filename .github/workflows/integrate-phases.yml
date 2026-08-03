@@ -49,6 +49,17 @@ jobs:
           path.write_text(text.replace(old, new), encoding="utf-8")
           PY
           uv run python tools/apply_phase_patch.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/evidence.py")
+          text = path.read_text(encoding="utf-8")
+          marker = 'SEED_ENVIRONMENT_VARIABLE = "RESEARCH_SEED"\n'
+          replacement = marker + "TIMEOUT_RETURN_CODE = phase_graph.TIMEOUT_RETURN_CODE\n"
+          if text.count(marker) != 1:
+              raise RuntimeError("timeout compatibility insertion target changed")
+          path.write_text(text.replace(marker, replacement), encoding="utf-8")
+          PY
           uv run ruff check --fix tools/phase_graph.py tests/test_phase_graph.py tests/test_phase_recovery_evidence.py
           uv run ruff format tools tests
           rm tools/apply_phase_patch.py
