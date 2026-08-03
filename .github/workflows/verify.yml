@@ -75,5 +75,8 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Validate CI and merge-evidence policy
+        run: uv run --no-project --with pyyaml python tools/ci_policy.py
+
       - name: Validate optional governance sidecar
         run: uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
