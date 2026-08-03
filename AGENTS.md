@@ -3,6 +3,10 @@
 The project is primary. Agent governance is an optional, non-runtime sidecar under `.agents/`.
 This root file exists only because agent tools discover `AGENTS.md` here.
 
+The sidecar's design provenance, including the narrow set of file-oriented governance principles
+influenced by LingTai and the capabilities that are explicitly not integrated, is documented in
+`.agents/governance/INFLUENCES.md`.
+
 Before changing code, configuration, tests, documentation, experiments, or governance, read
 `.agents/skills/dev-guide/SKILL.md`. It owns the development workflow and routes the task to the
 repository's structural facts, behavioral promises, ownership boundary, focused validation, and
