@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-import sys
+import importlib.util
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
-
-import ci_policy
-
+SPEC = importlib.util.spec_from_file_location("ci_policy_tool", TOOLS / "ci_policy.py")
+assert SPEC and SPEC.loader
+ci_policy = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(ci_policy)
 
 PINNED = "0123456789abcdef0123456789abcdef01234567"
+VALID_TEMPLATE = """## Related issue
+## Head SHA
+## Validation commands
+## Actions run or commit status
+## Migration / rollback
+"""
 
 
 def write_policy_files(root: Path, *, workflow: str | None = None, template: str | None = None) -> None:
@@ -29,24 +34,14 @@ def write_policy_files(root: Path, *, workflow: str | None = None, template: str
             "    runs-on: ubuntu-latest\n"
             "    steps:\n"
             f"      - uses: actions/checkout@{PINNED}\n"
+            "        with:\n"
+            "          ref: ${{ github.event.pull_request.head.sha || github.sha }}\n"
         ),
         encoding="utf-8",
     )
     template_path = root / ci_policy.PR_TEMPLATE_PATH
     template_path.parent.mkdir(parents=True, exist_ok=True)
-    template_path.write_text(
-        template
-        or "\n".join(
-            [
-                "## Related issue",
-                "## Head SHA",
-                "## Validation commands",
-                "## Actions run or commit status",
-                "## Migration / rollback",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    template_path.write_text(template or VALID_TEMPLATE, encoding="utf-8")
 
 
 def test_valid_policy_passes(tmp_path: Path) -> None:
@@ -100,9 +95,29 @@ def test_floating_action_reference_is_rejected(tmp_path: Path) -> None:
             "  verify:\n"
             "    steps:\n"
             "      - uses: actions/checkout@v7\n"
+            "        with:\n"
+            "          ref: ${{ github.event.pull_request.head.sha || github.sha }}\n"
         ),
     )
     assert any("full commit SHA" in error for error in ci_policy.validation_errors(tmp_path))
+
+
+def test_checkout_must_use_exact_pull_request_head(tmp_path: Path) -> None:
+    write_policy_files(
+        tmp_path,
+        workflow=(
+            "name: Verify\n"
+            "on:\n"
+            "  pull_request:\n"
+            "permissions:\n"
+            "  contents: read\n"
+            "jobs:\n"
+            "  verify:\n"
+            "    steps:\n"
+            f"      - uses: actions/checkout@{PINNED}\n"
+        ),
+    )
+    assert any("exact pull-request head" in error for error in ci_policy.validation_errors(tmp_path))
 
 
 def test_merge_evidence_markers_are_required(tmp_path: Path) -> None:
