@@ -1,0 +1,52 @@
+name: Integrate phase recovery
+
+on:
+  pull_request:
+    paths:
+      - tools/apply_phase_patch.py
+      - tools/phase_graph.py
+      - tests/test_phase_graph.py
+      - tests/test_phase_recovery_evidence.py
+      - docs/PHASE_RECOVERY.md
+      - .github/workflows/integrate-phases.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+        with:
+          ref: agent/phase-scoped-recovery
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Apply and format scoped integration
+        run: |
+          uv sync --frozen --group dev
+          uv run python tools/apply_phase_patch.py
+          uv run ruff check --fix tools/phase_graph.py tests/test_phase_graph.py tests/test_phase_recovery_evidence.py
+          uv run ruff format tools tests
+          rm tools/apply_phase_patch.py
+          rm .github/workflows/integrate-phases.yml
+
+      - name: Validate integrated branch
+        run: |
+          make verify
+          make research-run
+          make template-e2e
+          uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
+
+      - name: Commit integrated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Integrate phase-scoped recovery"
+          git push origin HEAD:agent/phase-scoped-recovery
