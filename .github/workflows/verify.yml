@@ -34,10 +34,25 @@ jobs:
           path.write_text(text.replace(marker, '    count=2,\n)\n\n# Ownership and contract.'), encoding='utf-8')
           PY
           python tools/integrate_control_cli.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/initialize_project.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        return [
+            f"project template version {state['template']['version']} requires migration "
+            f"to {TEMPLATE_VERSION}"
+        ]'''
+          new = '''        return [
+            f"project template version {state['template']['version']} requires migration to {TEMPLATE_VERSION}"
+        ]'''
+          if text.count(old) != 1:
+              raise SystemExit('unexpected migration message')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
           uv lock
           uv sync --frozen --group dev
-          uv run ruff check --fix .
           uv run ruff format .
+          uv run ruff check .
           uv run pytest -q
           uv run researchctl --help
           uv run researchctl experiment plan experiments/specs/smoke.yaml >/dev/null
