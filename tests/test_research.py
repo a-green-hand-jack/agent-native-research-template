@@ -38,7 +38,7 @@ def build_repository(root: Path, *, nested: bool = True) -> Path:
             "purpose: test environment\n"
         ),
         "evals/smoke.yaml": (
-            "schema_version: 1\nid: smoke\ncommand: make smoke\n"
+            "schema_version: 1\nid: smoke\n"
             "purpose: execute the smallest path\nmetrics:\n"
             "  - id: success\n    type: boolean\n    direction: maximize\n"
             "    unit: boolean\n    aggregation: single\n"
@@ -47,6 +47,8 @@ def build_repository(root: Path, *, nested: bool = True) -> Path:
         ),
         "infra/profiles/local.yaml": (
             "schema_version: 1\nid: local\nexecutor: local\ncapabilities: [cpu]\n"
+            "environment: {PYTHONUNBUFFERED: '1'}\n"
+            "inherit_environment: [PATH, HOME]\n"
         ),
         "uv.lock": "version = 1\n",
         "Makefile": ".PHONY: smoke\nsmoke:\n\t@printf 'ok\\n'\n",
@@ -137,6 +139,17 @@ def test_validate_enforces_json_schema_nested_fields(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     with pytest.raises(research.SpecError, match="does not match evaluation schema"):
+        research.validate_all(tmp_path)
+
+
+def test_validate_rejects_duplicate_command_sources(tmp_path: Path) -> None:
+    spec_path = build_repository(tmp_path)
+    text = spec_path.read_text(encoding="utf-8")
+    spec_path.write_text(
+        text + "phases:\n  - id: main\n    command: make smoke\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(research.SpecError, match="exactly one of command or phases"):
         research.validate_all(tmp_path)
 
 

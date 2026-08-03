@@ -13,6 +13,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import execution_environment
 import phase_graph
 import research
 
@@ -151,10 +152,17 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
         "matrix": matrix,
         "cells": cells,
         "config": spec["config"],
+        "effective_config": {
+            "path": spec["config"],
+            "sha256": research.sha256_file(resolved["config_path"]),
+            "resolved": deepcopy(resolved["config"]),
+        },
         "environment": spec["environment"],
         "executor": spec["executor"],
         "evaluation": spec["evaluation"],
-        "command": list(resolved["argv"]),
+        "execution_environment": execution_environment.declared_environment(
+            resolved["executor"], resolved["root"]
+        ),
         "phases": phases,
         "seed_policy": deepcopy(spec["seed_policy"]),
         "budget": deepcopy(spec["budget"]),

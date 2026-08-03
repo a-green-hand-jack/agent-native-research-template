@@ -44,6 +44,15 @@ def test_plan_is_stable_across_yaml_key_order(tmp_path: Path) -> None:
     assert first["sha256"] == plan_tool.sha256_json(first["resolved"])
 
 
+def test_config_content_changes_plan_identity(tmp_path: Path) -> None:
+    spec_path = build_repository(tmp_path)
+    first = plan_tool.plan_spec(spec_path, tmp_path)
+    (tmp_path / "configs/base.yaml").write_text("seed: 1\n", encoding="utf-8")
+    second = plan_tool.plan_spec(spec_path, tmp_path)
+    assert first["sha256"] != second["sha256"]
+    assert second["resolved"]["effective_config"]["resolved"] == {"seed": 1}
+
+
 def test_matrix_expansion_has_stable_cell_ids(tmp_path: Path) -> None:
     spec_path = build_repository(tmp_path)
     enrich_spec(
@@ -109,4 +118,4 @@ def test_planning_does_not_execute_experiment_command(
     monkeypatch.setattr(subprocess, "run", reject_execution)
     rendered = plan_tool.render_plan(spec_path, tmp_path)
     document = json.loads(rendered)
-    assert document["resolved"]["command"] == ["make", "smoke"]
+    assert document["resolved"]["phases"][0]["command"] == ["make", "smoke"]

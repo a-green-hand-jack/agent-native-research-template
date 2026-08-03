@@ -324,7 +324,6 @@
     "executor",
     "evaluation",
     "hardware",
-    "command",
     "phases",
     "recovery",
     "metrics",

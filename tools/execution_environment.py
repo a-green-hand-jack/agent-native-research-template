@@ -66,9 +66,7 @@ def declared_environment(executor: Mapping[str, Any], root: Path) -> dict[str, A
     explicit: dict[str, str] = {}
     for raw_name in sorted(raw_explicit):
         name = validate_name(raw_name, "executor environment key")
-        explicit[name] = expand_value(
-            raw_explicit[raw_name], root, f"executor environment {name}"
-        )
+        explicit[name] = expand_value(raw_explicit[raw_name], root, f"executor environment {name}")
 
     raw_inherit = executor.get("inherit_environment", [])
     if not isinstance(raw_inherit, list):
@@ -97,7 +95,9 @@ def resolve_environment(
     inherited_records: list[dict[str, str]] = []
     for name in declaration["inherit"]:
         if name not in host_environment:
-            raise ExecutionEnvironmentError(f"required inherited environment variable is missing: {name}")
+            raise ExecutionEnvironmentError(
+                f"required inherited environment variable is missing: {name}"
+            )
         value = host_environment[name]
         environment[name] = value
         inherited_records.append({"name": name, "sha256": sha256_text(value)})

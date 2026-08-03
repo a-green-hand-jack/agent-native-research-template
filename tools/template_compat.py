@@ -96,7 +96,33 @@ def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
     return changes
 
 
-MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2, 3: migrate_to_v3}
+def migrate_to_v4(root: Path, state: dict[str, Any]) -> list[str]:
+    changes: list[str] = []
+    spec_path = root / "experiments/specs/smoke.yaml"
+    if spec_path.is_file():
+        spec = initialize_project.load_yaml(spec_path)
+        if spec.get("phases") and "command" in spec:
+            spec.pop("command")
+            initialize_project.write_text(spec_path, initialize_project.dump_yaml(spec))
+            changes.append("write experiments/specs/smoke.yaml")
+    evaluation_path = root / "evals/smoke.yaml"
+    if evaluation_path.is_file():
+        evaluation = initialize_project.load_yaml(evaluation_path)
+        if "command" in evaluation:
+            evaluation.pop("command")
+            initialize_project.write_text(evaluation_path, initialize_project.dump_yaml(evaluation))
+            changes.append("write evals/smoke.yaml")
+    profile_path = root / "infra/profiles/local.yaml"
+    if profile_path.is_file():
+        profile = initialize_project.load_yaml(profile_path)
+        profile.setdefault("environment", {"PYTHONUNBUFFERED": "1"})
+        profile.setdefault("inherit_environment", ["PATH", "HOME"])
+        initialize_project.write_text(profile_path, initialize_project.dump_yaml(profile))
+        changes.append("write infra/profiles/local.yaml")
+    return changes
+
+
+MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2, 3: migrate_to_v3, 4: migrate_to_v4}
 
 
 class TemplateCompatibilityError(ValueError):

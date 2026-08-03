@@ -84,6 +84,12 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 - A runnable experiment resolves its code revision, config, environment, structured inputs,
   executor, and evaluation protocol.
+- Every experiment has exactly one command source per phase. Evaluation definitions describe
+  extraction and interpretation only; they never duplicate execution commands. Top-level
+  commands are a legacy one-phase shorthand and cannot coexist with explicit phases.
+- Parsed configuration and declared executor environment policy are embedded in every
+  deterministic plan. The runner builds a minimal environment from explicit values and a
+  reviewed inheritance allowlist; it never copies the complete host environment.
 - Every execution is preceded by a deterministic, side-effect-free plan. The plan records a
   protocol ID, run class, observation status, scientific parameters, stable matrix cells,
   resource controls, commands, declared inputs and artifacts, recovery policy, and completion

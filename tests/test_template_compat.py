@@ -31,7 +31,7 @@ def test_current_initialized_project_is_compatible(tmp_path: Path) -> None:
 def test_migrate_to_current_version_is_explicit_noop(tmp_path: Path) -> None:
     initialized_project(tmp_path)
     before = (tmp_path / "PROJECT.yaml").read_text(encoding="utf-8")
-    assert compat.migrate(tmp_path, 3) == []
+    assert compat.migrate(tmp_path, 4) == []
     assert (tmp_path / "PROJECT.yaml").read_text(encoding="utf-8") == before
 
 
@@ -68,8 +68,11 @@ def test_version_2_migration_adds_smoke_input_identity(
     assert compat.compatibility_errors(tmp_path) == []
 
 
-def test_version_3_migration_installs_configured_control_surface(tmp_path: Path) -> None:
+def test_version_3_migration_installs_configured_control_surface(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     initialized_project(tmp_path)
+    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 3)
     state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 2
     state["template"]["applied_migrations"] = [2]
@@ -113,27 +116,27 @@ def test_check_reports_missing_future_migration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     initialized_project(tmp_path)
-    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 4)
+    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 5)
     assert compat.compatibility_errors(tmp_path) == [
-        "project template version 3 requires migration to 4"
+        "project template version 4 requires migration to 5"
     ]
     with pytest.raises(compat.TemplateCompatibilityError, match="missing migration"):
-        compat.migrate(tmp_path, 4)
+        compat.migrate(tmp_path, 5)
 
 
 def test_migrations_are_forward_only(tmp_path: Path) -> None:
     initialized_project(tmp_path)
     state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
-    state["template"]["version"] = 4
+    state["template"]["version"] = 5
     compat.initialize_project.write_text(
         tmp_path / "PROJECT.yaml",
         compat.initialize_project.dump_yaml(state),
     )
     with pytest.raises(compat.TemplateCompatibilityError, match="newer than supported"):
-        compat.migrate(tmp_path, 3)
+        compat.migrate(tmp_path, 4)
 
 
 def test_uninitialized_template_cannot_run_downstream_migrations(tmp_path: Path) -> None:
     build_template(tmp_path)
     with pytest.raises(compat.TemplateCompatibilityError, match="initialize the project"):
-        compat.migrate(tmp_path, 3)
+        compat.migrate(tmp_path, 4)

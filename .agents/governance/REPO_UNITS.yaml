@@ -73,6 +73,7 @@ required_paths:
   - tools/ci_policy.py
   - tools/control_cli.py
   - tools/evidence.py
+  - tools/execution_environment.py
   - tools/experiment_plan.py
   - tools/initialize_project.py
   - tools/input_identity.py
