@@ -30,6 +30,10 @@ Required context:
   `per_sequence`, `per_token`, or `device_aggregate`);
 - independent observation count.
 
+`sample_count` describes the population summarized by one reported value. `observation_count`
+describes independent repetitions available for dispersion. They are not interchangeable: one run
+may summarize many samples but still have only one independent observation.
+
 Latency and throughput therefore cannot silently share an unspecified denominator or concurrency
 model. One quality run may be a valid measured observation, but it cannot claim a cross-observation
 standard deviation.
