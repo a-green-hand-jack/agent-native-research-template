@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = Path(".github/workflows/verify.yml")
 PR_TEMPLATE_PATH = Path(".github/pull_request_template.md")
 PINNED_ACTION = re.compile(r"^[^@\s]+@[a-f0-9]{40}$")
+EXACT_HEAD_REF = "${{ github.event.pull_request.head.sha || github.sha }}"
 REQUIRED_TEMPLATE_MARKERS = (
     "Related issue",
     "Head SHA",
@@ -32,6 +33,36 @@ def load_workflow(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise CiPolicyError(f"workflow must contain a mapping: {path}")
     return data
+
+
+def checkout_errors(workflow: dict[str, Any]) -> list[str]:
+    jobs = workflow.get("jobs")
+    if not isinstance(jobs, dict):
+        return ["verify workflow must declare jobs"]
+    errors: list[str] = []
+    found = False
+    for job_name, job in jobs.items():
+        if not isinstance(job, dict):
+            continue
+        steps = job.get("steps")
+        if not isinstance(steps, list):
+            continue
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            action = step.get("uses")
+            if not isinstance(action, str) or not action.startswith("actions/checkout@"):
+                continue
+            found = True
+            options = step.get("with")
+            if not isinstance(options, dict) or options.get("ref") != EXACT_HEAD_REF:
+                errors.append(
+                    f"workflow job {job_name} must checkout the exact pull-request head with "
+                    f"ref: {EXACT_HEAD_REF}"
+                )
+    if not found:
+        errors.append("verify workflow must use actions/checkout")
+    return errors
 
 
 def workflow_errors(root: Path) -> list[str]:
@@ -60,6 +91,7 @@ def workflow_errors(root: Path) -> list[str]:
     elif any(value == "write" for value in permissions.values()):
         errors.append("verify workflow top-level permissions must not grant write access")
 
+    errors.extend(checkout_errors(workflow))
     text = path.read_text(encoding="utf-8")
     for line_number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
@@ -97,7 +129,10 @@ def main(root: Path = ROOT) -> int:
         for error in errors:
             print(f"ERROR {error}", file=sys.stderr)
         return 2
-    print("OK pull-request trigger, read-only permissions, pinned actions, and merge evidence template")
+    print(
+        "OK pull-request trigger, exact-head checkout, read-only permissions, pinned actions, "
+        "and merge evidence template"
+    )
     return 0
 
 
