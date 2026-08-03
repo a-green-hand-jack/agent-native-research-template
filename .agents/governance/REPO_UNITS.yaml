@@ -30,12 +30,14 @@ required_paths:
     - .agents/skills/dev-guide/SKILL.md
     - AGENTS.md
   functional:
+    - .github/dependabot.yml
     - README.md
     - CONTRIBUTIONS.md
     - LICENSE
     - PROJECT.yaml
     - SECURITY.md
     - configs/base.yaml
+    - docs/REFERENCE_IMPLEMENTATION.md
     - environments/main.yaml
     - evals/smoke.yaml
     - evidence/manifests/README.md
