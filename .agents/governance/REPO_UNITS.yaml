@@ -68,8 +68,10 @@ required_paths:
   - src/
   - tests/
   - tools/archive.py
+  - tools/__init__.py
   - tools/asset_binding.py
   - tools/ci_policy.py
+  - tools/control_cli.py
   - tools/evidence.py
   - tools/experiment_plan.py
   - tools/initialize_project.py

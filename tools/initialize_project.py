@@ -13,16 +13,18 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = "PROJECT.yaml"
 TEMPLATE_NAME = "agent-native-research-template"
-TEMPLATE_VERSION = 2
+TEMPLATE_VERSION = 3
 TEMPLATE_STATE = {
     "project_name": "Agent-Native Research Template",
     "distribution_name": "agent-native-project",
     "package_name": "project",
+    "cli_name": "researchctl",
     "contribution_id": "bootstrap",
 }
 DISTRIBUTION_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 PACKAGE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 CONTRIBUTION_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+CLI_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class InitializationError(ValueError):
@@ -34,6 +36,7 @@ class ProjectIdentity:
     project_name: str
     distribution_name: str
     package_name: str
+    cli_name: str
     contribution_id: str
 
 
@@ -80,12 +83,16 @@ def validate_identity(identity: ProjectIdentity) -> None:
         )
     if not PACKAGE_PATTERN.fullmatch(identity.package_name):
         raise InitializationError("package name must be a lowercase Python identifier")
+    if not CLI_PATTERN.fullmatch(identity.cli_name):
+        raise InitializationError("CLI name must use lowercase letters, digits, and single hyphens")
     if not CONTRIBUTION_PATTERN.fullmatch(identity.contribution_id):
         raise InitializationError("contribution ID must be a stable lowercase identifier")
     if identity.distribution_name == TEMPLATE_STATE["distribution_name"]:
         raise InitializationError("distribution name must replace the template value")
     if identity.package_name == TEMPLATE_STATE["package_name"]:
         raise InitializationError("package name must replace the template value")
+    if identity.cli_name == TEMPLATE_STATE["cli_name"]:
+        raise InitializationError("CLI name must replace the template value")
     if identity.contribution_id == TEMPLATE_STATE["contribution_id"]:
         raise InitializationError("contribution ID must replace the template value")
 
@@ -150,7 +157,10 @@ def expected_state(root: Path) -> tuple[dict[str, Any], list[str]]:
     initialized = state.get("initialized")
     if not isinstance(initialized, bool):
         errors.append("PROJECT.yaml initialized must be boolean")
+    template_version = (state.get("template") or {}).get("version", 0)
     for key in TEMPLATE_STATE:
+        if key == "cli_name" and template_version < 3 and state.get("initialized") is True:
+            continue
         if not isinstance(state.get(key), str) or not state[key].strip():
             errors.append(f"PROJECT.yaml {key} must be a non-empty string")
     errors.extend(template_metadata_errors(state))
@@ -180,8 +190,14 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     )
     pyproject = replace_required(
         pyproject,
-        'packages = ["src/project"]',
-        f'packages = ["src/{identity.package_name}"]',
+        'packages = ["src/project", "tools"]',
+        f'packages = ["src/{identity.package_name}", "tools"]',
+        "pyproject.toml",
+    )
+    pyproject = replace_required(
+        pyproject,
+        'researchctl = "tools.control_cli:main"',
+        f'{identity.cli_name} = "tools.control_cli:main"',
         "pyproject.toml",
     )
 
@@ -223,8 +239,10 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     smoke_test = smoke_test.replace("template_status", "project_status")
     smoke_test = smoke_test.replace("test_template_vertical_slice", "test_project_vertical_slice")
 
+    makefile = read_required(root, "Makefile").replace("researchctl", identity.cli_name)
+
     revision = git_revision(root)
-    readme = read_required(root, "README.md")
+    readme = read_required(root, "README.md").replace("researchctl", identity.cli_name)
     readme = replace_required(
         readme,
         "# Agent-Native Research Template",
@@ -245,6 +263,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "project_name": identity.project_name,
         "distribution_name": identity.distribution_name,
         "package_name": identity.package_name,
+        "cli_name": identity.cli_name,
         "contribution_id": identity.contribution_id,
         "template": {
             "name": TEMPLATE_NAME,
@@ -256,6 +275,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     return {
         STATE_PATH: dump_yaml(initialized_state),
         "pyproject.toml": pyproject,
+        "Makefile": makefile,
         "uv.lock": uv_lock,
         "CONTRIBUTIONS.md": contributions,
         "experiments/specs/smoke.yaml": spec,
@@ -297,10 +317,16 @@ def check_project(root: Path = ROOT) -> list[str]:
                 errors.append(f"uninitialized template {key} must remain {value!r}")
         return errors
 
+    if state["template"]["version"] < TEMPLATE_VERSION:
+        return [
+            f"project template version {state['template']['version']} requires migration to {TEMPLATE_VERSION}"
+        ]
+
     identity = ProjectIdentity(
         project_name=state["project_name"],
         distribution_name=state["distribution_name"],
         package_name=state["package_name"],
+        cli_name=state["cli_name"],
         contribution_id=state["contribution_id"],
     )
     try:
@@ -323,7 +349,8 @@ def check_project(root: Path = ROOT) -> list[str]:
     checks = {
         "pyproject.toml": [
             f'name = "{identity.distribution_name}"',
-            f'packages = ["src/{identity.package_name}"]',
+            f'packages = ["src/{identity.package_name}", "tools"]',
+            f'{identity.cli_name} = "tools.control_cli:main"',
         ],
         "CONTRIBUTIONS.md": [
             f"| {identity.contribution_id} |",
@@ -347,6 +374,8 @@ def check_project(root: Path = ROOT) -> list[str]:
         "experiments/specs/smoke.yaml",
         "tests/smoke/test_project.py",
         f"src/{identity.package_name}/__init__.py",
+        "Makefile",
+        "README.md",
         "uv.lock",
     ]
     residues = (
@@ -365,6 +394,11 @@ def check_project(root: Path = ROOT) -> list[str]:
                 errors.append(
                     f"initialized project retains template residue in {relative}: {residue}"
                 )
+    template_cli_entry = f'{TEMPLATE_STATE["cli_name"]} = "tools.control_cli:main"'
+    if identity.cli_name != TEMPLATE_STATE["cli_name"]:
+        pyproject_content = (root / "pyproject.toml").read_text(encoding="utf-8")
+        if template_cli_entry in pyproject_content:
+            errors.append("initialized project retains template CLI entry")
     if (root / "src/project").exists():
         errors.append("initialized project retains src/project")
     if (root / "tests/smoke/test_template.py").exists():
@@ -380,6 +414,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply.add_argument("--project-name", required=True)
     apply.add_argument("--distribution-name", required=True)
     apply.add_argument("--package-name", required=True)
+    apply.add_argument("--cli-name", required=True)
     apply.add_argument("--contribution-id", required=True)
     apply.add_argument("--dry-run", action="store_true")
 
@@ -404,6 +439,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             project_name=args.project_name,
             distribution_name=args.distribution_name,
             package_name=args.package_name,
+            cli_name=args.cli_name,
             contribution_id=args.contribution_id,
         )
         planned = apply_changes(root, identity, dry_run=args.dry_run)

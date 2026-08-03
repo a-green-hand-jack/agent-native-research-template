@@ -678,4 +678,5 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
 
 
 if __name__ == "__main__":
+    print("DEPRECATED: use the installed project CLI experiment command", file=sys.stderr)
     sys.exit(main())

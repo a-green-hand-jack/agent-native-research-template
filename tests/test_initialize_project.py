@@ -20,19 +20,26 @@ def build_template(root: Path) -> None:
             "schema_version: 1\ninitialized: false\n"
             "project_name: Agent-Native Research Template\n"
             "distribution_name: agent-native-project\n"
-            "package_name: project\ncontribution_id: bootstrap\n"
+            "package_name: project\ncli_name: researchctl\ncontribution_id: bootstrap\n"
             "template:\n"
             "  name: agent-native-research-template\n"
-            "  version: 2\n"
+            "  version: 3\n"
             "  initialized_from_commit: null\n"
             "  applied_migrations: []\n"
         ),
         "pyproject.toml": (
             '[project]\nname = "agent-native-project"\nversion = "0.1.0"\n'
             'description = "Bootstrap package for an agent-native research project"\n'
-            '[tool.hatch.build.targets.wheel]\npackages = ["src/project"]\n'
+            '[project.scripts]\nresearchctl = "tools.control_cli:main"\n'
+            '[tool.hatch.build.targets.wheel]\npackages = ["src/project", "tools"]\n'
         ),
         "uv.lock": '[[package]]\nname = "agent-native-project"\n',
+        "Makefile": (
+            ".PHONY: research-validate research-run verify\n"
+            "research-validate:\n\tuv run researchctl experiment validate\n"
+            "research-run:\n\tuv run researchctl experiment run experiments/specs/smoke.yaml\n"
+            "verify: research-validate\n"
+        ),
         "CONTRIBUTIONS.md": (
             "| ID | Contribution | Code | Parameters | Evidence | Status |\n"
             "|---|---|---|---|---|---|\n"
@@ -64,6 +71,7 @@ def identity() -> object:
         project_name="Causal Agent Lab",
         distribution_name="causal-agent-lab",
         package_name="causal_agent_lab",
+        cli_name="causal-lab",
         contribution_id="causal-policy",
     )
 
@@ -93,21 +101,25 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     state = initializer.load_yaml(tmp_path / "PROJECT.yaml")
     assert state["initialized"] is True
     assert state["package_name"] == "causal_agent_lab"
+    assert state["cli_name"] == "causal-lab"
+    assert 'causal-lab = "tools.control_cli:main"' in (tmp_path / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
     assert state["template"] == {
         "name": "agent-native-research-template",
-        "version": 2,
+        "version": 3,
         "initialized_from_commit": "unknown",
         "applied_migrations": [],
     }
     readme = (tmp_path / "README.md").read_text(encoding="utf-8")
-    assert "Initialized from Agent-Native Research Template v2 at `unknown`" in readme
+    assert "Initialized from Agent-Native Research Template v3 at `unknown`" in readme
 
 
 def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
     build_template(tmp_path)
     project = tmp_path / "PROJECT.yaml"
     project.write_text(
-        project.read_text(encoding="utf-8").replace("version: 2", "version: 3"),
+        project.read_text(encoding="utf-8").replace("version: 3", "version: 4"),
         encoding="utf-8",
     )
     assert any("newer than supported" in error for error in initializer.check_project(tmp_path))
@@ -127,6 +139,7 @@ def test_invalid_identity_is_rejected(tmp_path: Path) -> None:
         project_name="Bad",
         distribution_name="Bad Name",
         package_name="bad-name",
+        cli_name="Bad CLI",
         contribution_id="bootstrap",
     )
     with pytest.raises(initializer.InitializationError):

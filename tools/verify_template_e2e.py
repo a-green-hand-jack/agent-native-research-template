@@ -22,6 +22,7 @@ FUNCTIONAL_RESIDUES = (
     "src/project",
     "from project import",
     "contribution: bootstrap",
+    'researchctl = "tools.control_cli:main"',
 )
 RESIDUE_SURFACES = (
     "CONTRIBUTIONS.md",
@@ -32,6 +33,8 @@ RESIDUE_SURFACES = (
     "experiments",
     "infra",
     "pyproject.toml",
+    "Makefile",
+    "PROJECT.yaml",
     "src",
     "uv.lock",
 )
@@ -87,6 +90,8 @@ def initialize_project(root: Path) -> None:
             "template-e2e-project",
             "--package-name",
             "template_e2e_project",
+            "--cli-name",
+            "template-e2e",
             "--contribution-id",
             "e2e-vertical-slice",
         ],
@@ -124,14 +129,16 @@ def check_functional_residue(root: Path) -> None:
         )
 
 
-def verify_latest_run(root: Path) -> None:
+def verify_latest_run(root: Path, cli_name: str = "template-e2e") -> None:
     manifests = sorted((root / "runs").glob("*/manifest.json"))
     if not manifests:
         raise TemplateVerificationError("research-run created no run manifest")
     run(
         [
-            sys.executable,
-            "tools/evidence.py",
+            "uv",
+            "run",
+            cli_name,
+            "experiment",
             "verify-run",
             manifests[-1].parent.name,
         ],
@@ -142,6 +149,7 @@ def verify_latest_run(root: Path) -> None:
 def verify_initialized_copy(root: Path) -> None:
     initialize_project(root)
     run(["uv", "sync", "--frozen", "--group", "dev"], root)
+    run(["uv", "run", "template-e2e", "--help"], root)
     run(["make", "verify"], root)
     run(["make", "research-run"], root)
     verify_latest_run(root)
@@ -151,6 +159,7 @@ def verify_initialized_copy(root: Path) -> None:
     (root / "AGENTS.md").unlink()
     shutil.rmtree(root / ".venv")
     run(["uv", "sync", "--frozen", "--group", "dev"], root)
+    run(["uv", "run", "template-e2e", "--help"], root)
     run(["make", "verify"], root)
     run(["make", "research-run"], root)
     verify_latest_run(root)

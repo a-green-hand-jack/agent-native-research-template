@@ -22,7 +22,9 @@ def test_find_project_root_walks_upward(tmp_path: Path) -> None:
     assert control_cli.find_project_root(nested) == tmp_path
 
 
-def test_help_uses_configured_project_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_help_uses_configured_project_command(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     write_project(tmp_path, "labctl")
     assert control_cli.main(["--help"], tmp_path) == 0
     output = capsys.readouterr().out

@@ -19,10 +19,10 @@ Separate experiment intent, observed execution facts, verification, and interpre
 6. Validate both the definition graph and the built-in runner's supported execution controls:
 
 ```bash
-uv run python tools/research.py validate experiments/specs/<name>.yaml
-uv run python tools/evidence.py validate experiments/specs/<name>.yaml
-uv run python tools/evidence.py plan experiments/specs/<name>.yaml
-uv run python tools/evidence.py preflight experiments/specs/<name>.yaml
+uv run researchctl experiment validate experiments/specs/<name>.yaml
+uv run researchctl experiment validate experiments/specs/<name>.yaml
+uv run researchctl experiment plan experiments/specs/<name>.yaml
+uv run researchctl experiment preflight experiments/specs/<name>.yaml
 make smoke
 ```
 
@@ -40,14 +40,14 @@ network access; opaque values become durable manifest data and must not contain 
 Use the evidence-aware runner:
 
 ```bash
-uv run python tools/evidence.py run experiments/specs/<name>.yaml
+uv run researchctl experiment run experiments/specs/<name>.yaml
 ```
 
 For a retry or deliberately derived execution, name the parent run:
 
 ```bash
-uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
-uv run python tools/evidence.py retry-phase <run-id> --phase <phase-id>
+uv run researchctl experiment run experiments/specs/<name>.yaml --parent <run-id>
+uv run researchctl experiment retry-phase <run-id> --phase <phase-id>
 ```
 
 Review the deterministic plan and its SHA-256, then review preflight's resolved logical asset
@@ -71,16 +71,16 @@ source path.
 Verify every recorded artifact before using or promoting a result:
 
 ```bash
-uv run python tools/evidence.py status <run-id>
-uv run python tools/evidence.py results <run-id>
-uv run python tools/evidence.py verify-run <run-id>
+uv run researchctl experiment status <run-id>
+uv run researchctl experiment results <run-id>
+uv run researchctl experiment verify-run <run-id>
 ```
 
 Replay checks the recorded spec, config, environment, lockfile, executor, evaluation, and repository
 path input hashes against the current checkout before executing:
 
 ```bash
-uv run python tools/evidence.py replay <run-id>
+uv run researchctl experiment replay <run-id>
 ```
 
 Do not use `--allow-drift` unless the divergence is intentional and will be explained in the new
@@ -94,7 +94,7 @@ Keep raw logs and large artifacts under `runs/` or external storage. After revie
 promote an immutable evidence envelope with an explicit interpretation:
 
 ```bash
-uv run python tools/evidence.py promote <run-id> \
+uv run researchctl experiment promote <run-id> \
   --decision accepted \
   --note "Evidence supports the stated claim."
 ```
@@ -109,11 +109,11 @@ archive inventory. Local copies are re-read; external copies require verifier ev
 Non-reconstructable assets need two independent verified fault domains.
 
 ```bash
-uv run python tools/archive.py create <run-id> \
+uv run researchctl archive create <run-id> \
   --copy /absolute/archive/root-a::fault-domain-a \
   --copy /absolute/archive/root-b::fault-domain-b
-uv run python tools/archive.py verify archives/local/<run-id>.json
-uv run python tools/archive.py retirement-preflight \
+uv run researchctl archive verify archives/local/<run-id>.json
+uv run researchctl archive retirement-preflight \
   archives/local/<run-id>.json --target-kind run --target <run-id>
 ```
 

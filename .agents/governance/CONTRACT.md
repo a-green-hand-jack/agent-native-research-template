@@ -78,6 +78,10 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 ## Execution Invariants
 
+- The installed project CLI is the only public experiment and archive control surface. Its name is
+  recorded in `PROJECT.yaml` and may be replaced atomically during initialization. Legacy
+  `tools/*.py` entry points are compatibility adapters, not independent implementations.
+
 - A runnable experiment resolves its code revision, config, environment, structured inputs,
   executor, and evaluation protocol.
 - Every execution is preceded by a deterministic, side-effect-free plan. The plan records a

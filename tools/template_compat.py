@@ -27,7 +27,76 @@ def migrate_to_v2(root: Path, _: dict[str, Any]) -> list[str]:
     return [f"write {relative}"]
 
 
-MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2}
+def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
+    cli_name = state["distribution_name"]
+    if not initialize_project.CLI_PATTERN.fullmatch(cli_name):
+        raise TemplateCompatibilityError(
+            "distribution_name cannot be used as a CLI name; choose a valid lowercase hyphenated name"
+        )
+    state["cli_name"] = cli_name
+    changes: list[str] = []
+
+    pyproject_path = root / "pyproject.toml"
+    content = pyproject_path.read_text(encoding="utf-8")
+    runtime_dependencies = 'dependencies = [\n    "jsonschema>=4.23",\n    "pyyaml>=6.0",\n]'
+    content = content.replace('    "jsonschema>=4.23",\n', "")
+    content = content.replace('    "pyyaml>=6.0",\n', "")
+    if "dependencies = []" in content:
+        content = content.replace("dependencies = []", runtime_dependencies)
+    configured_entry = f'{cli_name} = "tools.control_cli:main"'
+    template_entry = 'researchctl = "tools.control_cli:main"'
+    if template_entry in content:
+        content = content.replace(template_entry, configured_entry)
+    elif configured_entry not in content:
+        marker = "[dependency-groups]"
+        if marker not in content:
+            raise TemplateCompatibilityError("pyproject.toml has no dependency-groups section")
+        content = content.replace(marker, f"[project.scripts]\n{configured_entry}\n\n{marker}")
+    package_marker = f'packages = ["src/{state["package_name"]}"]'
+    package_replacement = f'packages = ["src/{state["package_name"]}", "tools"]'
+    if package_marker in content:
+        content = content.replace(package_marker, package_replacement)
+    elif package_replacement not in content:
+        raise TemplateCompatibilityError("pyproject.toml does not expose the initialized package")
+    initialize_project.write_text(pyproject_path, content)
+    changes.append("write pyproject.toml")
+
+    makefile_path = root / "Makefile"
+    if makefile_path.is_file():
+        makefile = makefile_path.read_text(encoding="utf-8")
+        makefile = makefile.replace(
+            "uv run python tools/research.py validate\n	uv run python tools/evidence.py validate",
+            f"uv run {cli_name} experiment validate",
+        )
+        makefile = makefile.replace(
+            "uv run python tools/evidence.py run experiments/specs/smoke.yaml",
+            f"uv run {cli_name} experiment run experiments/specs/smoke.yaml",
+        )
+        if "control-cli:" not in makefile:
+            makefile = makefile.replace(
+                "research-validate:\n",
+                f"control-cli:\n	uv run {cli_name} --help >/dev/null\n\nresearch-validate:\n",
+            )
+            makefile = makefile.replace("verify: ", "verify: control-cli ")
+        initialize_project.write_text(makefile_path, makefile)
+        changes.append("write Makefile")
+
+    readme_path = root / "README.md"
+    if readme_path.is_file():
+        readme = readme_path.read_text(encoding="utf-8")
+        readme = readme.replace(
+            "uv run python tools/research.py validate", f"uv run {cli_name} experiment validate"
+        )
+        readme = readme.replace(
+            "uv run python tools/evidence.py ", f"uv run {cli_name} experiment "
+        )
+        readme = readme.replace("uv run python tools/archive.py ", f"uv run {cli_name} archive ")
+        initialize_project.write_text(readme_path, readme)
+        changes.append("write README.md")
+    return changes
+
+
+MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2, 3: migrate_to_v3}
 
 
 class TemplateCompatibilityError(ValueError):
