@@ -30,8 +30,9 @@ uv run python tools/evidence.py verify-run <run-id>
 ```
 
 `status` prints machine-readable JSON. A missing or corrupt terminal result never becomes success.
-The latest recorded progress may remain `planned`, `submitted`, or `running`; a manifest without
-lifecycle evidence is `incomplete`.
+The latest recorded progress may remain `planned`, `submitted`, or `running`; these values describe
+only the last durable lifecycle transition and do not assert that a process is currently alive. A
+manifest without lifecycle evidence is `incomplete`.
 
 `results` combines status with the plan, phase records, metrics, evaluation errors, artifacts, and
 recovery lineage. It does not parse terminal logs or infer missing values.
