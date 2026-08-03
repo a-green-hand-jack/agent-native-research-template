@@ -95,9 +95,10 @@ def workflow_errors(root: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     for line_number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
-        if not stripped.startswith("uses:"):
+        normalized = stripped.removeprefix("- ").strip()
+        if not normalized.startswith("uses:"):
             continue
-        action = stripped.removeprefix("uses:").split("#", 1)[0].strip()
+        action = normalized.removeprefix("uses:").split("#", 1)[0].strip()
         if action.startswith("./"):
             continue
         if not PINNED_ACTION.fullmatch(action):
