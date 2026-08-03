@@ -50,7 +50,9 @@ def two_phase_spec() -> dict[str, object]:
     }
 
 
-def execute(root: Path, run_id: str, spec: dict[str, object], **kwargs: object) -> dict[str, object]:
+def execute(
+    root: Path, run_id: str, spec: dict[str, object], **kwargs: object
+) -> dict[str, object]:
     run_dir = root / "runs" / run_id
     run_dir.mkdir(parents=True)
     return phase_graph.execute_phases(

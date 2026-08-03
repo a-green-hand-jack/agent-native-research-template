@@ -47,6 +47,7 @@ For a retry or deliberately derived execution, name the parent run:
 
 ```bash
 uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
+uv run python tools/evidence.py retry-phase <run-id> --phase <phase-id>
 ```
 
 Review the deterministic plan and its SHA-256, then review preflight's resolved logical asset
@@ -54,6 +55,9 @@ bindings. Use `--phase generation` or `--phase evaluation` to prove oracle isola
 
 A multi-cell plan requires an
 external scheduler; the built-in runner executes exactly one cell.
+
+Each phase writes `runs/<run-id>/phases/<phase-id>/result.json` plus logs and immutable
+snapshots. A failed dependency produces explicit `incomplete` downstream results.
 
 Each execution receives a unique run ID and writes an ignored local manifest under
 `runs/<run-id>/manifest.json`. The manifest records Git state, the resolved spec, versioned

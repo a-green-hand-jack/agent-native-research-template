@@ -230,7 +230,9 @@ def reused_phase_record(parent: dict[str, Any], run_id: str) -> dict[str, Any]:
         "started_at": None,
         "finished_at": None,
         "termination": {"reason": "reused_verified_parent"},
-        "asset_bindings": parent.get("asset_bindings", {"phase": "all", "assets": [], "sha256": ""}),
+        "asset_bindings": parent.get(
+            "asset_bindings", {"phase": "all", "assets": [], "sha256": ""}
+        ),
         "artifacts": list(parent.get("artifacts", [])),
         "errors": [],
         "source_run_id": run_id,
@@ -267,7 +269,6 @@ def execute_phases(
     parent_manifest: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     phases = normalize_phases(spec, default_argv)
-    by_id = {phase["id"]: phase for phase in phases}
     parent_by_id = {
         phase["id"]: phase
         for phase in (parent_manifest or {}).get("phases", [])
@@ -312,9 +313,7 @@ def execute_phases(
             results.append(record)
             continue
 
-        preflight = asset_binding.resolve_assets(
-            spec, executor, root, phase=phase["asset_phase"]
-        )
+        preflight = asset_binding.resolve_assets(spec, executor, root, phase=phase["asset_phase"])
         environment = dict(base_environment)
         environment.update(asset_binding.environment_for_assets(preflight))
         for dependency in phase["depends_on"]:
@@ -391,14 +390,24 @@ def execute_phases(
             for record in results
         ),
     }
+    if overall_return_code == 0:
+        overall_termination: dict[str, Any] = {"reason": "completed"}
+    else:
+        timeout_termination = next(
+            (
+                record["termination"]
+                for record in results
+                if record.get("termination", {}).get("reason") == "timeout"
+            ),
+            None,
+        )
+        overall_termination = timeout_termination or {"reason": "phase_failed"}
     return {
         "phases": results,
         "stdout": "".join(stdout_parts),
         "stderr": "".join(stderr_parts),
         "return_code": overall_return_code,
-        "termination": {
-            "reason": "completed" if overall_return_code == 0 else "phase_failed"
-        },
+        "termination": overall_termination,
         "recovery": recovery,
         "artifacts": [artifact for record in results for artifact in record.get("artifacts", [])],
     }

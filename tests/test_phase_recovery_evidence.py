@@ -10,8 +10,9 @@ TOOLS = Path(__file__).resolve().parents[1] / "tools"
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
-import evidence
 from test_research import build_repository
+
+import evidence
 
 
 def python_command(source: str) -> list[str]:
@@ -60,9 +61,7 @@ def test_retry_phase_skips_generation_and_records_reuse(tmp_path: Path) -> None:
     parent = json.loads(parent_path.read_text(encoding="utf-8"))
     assert (tmp_path / "generation-count.txt").read_text(encoding="utf-8") == "1"
 
-    retry_path, retry_code = evidence.retry_phase_run(
-        parent["run_id"], "evaluation", tmp_path
-    )
+    retry_path, retry_code = evidence.retry_phase_run(parent["run_id"], "evaluation", tmp_path)
     assert retry_code == 0
     retry = json.loads(retry_path.read_text(encoding="utf-8"))
     assert retry["parent_run_id"] == parent["run_id"]

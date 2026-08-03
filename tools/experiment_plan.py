@@ -13,6 +13,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import phase_graph
 import research
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -137,6 +138,7 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
     completion_criteria = deepcopy(
         spec.get("completion_criteria", {"required_artifacts": [], "required_metrics": []})
     )
+    phases = phase_graph.normalize_phases(spec, resolved["argv"])
     plan = {
         "plan_version": PLAN_VERSION,
         "experiment_id": spec["id"],
@@ -153,6 +155,7 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
         "executor": spec["executor"],
         "evaluation": spec["evaluation"],
         "command": list(resolved["argv"]),
+        "phases": phases,
         "seed_policy": deepcopy(spec["seed_policy"]),
         "budget": deepcopy(spec["budget"]),
         "stopping_rule": deepcopy(spec["stopping_rule"]),

@@ -109,6 +109,11 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - JSON Schema owns single-document structure and nested variants. Python validation owns global
   identifier uniqueness, repository paths, file existence, cross-document references, command
   agreement, input hashing, execution controls, drift detection, and artifact checksums.
+- The canonical runner executes a deterministic acyclic phase graph. Specs without phases are
+  one `main` phase. Every phase writes an immutable terminal result and output snapshots; failed
+  dependencies make downstream phases explicitly incomplete.
+- Phase retry creates a child run, verifies the parent and current inputs, reuses only successful
+  verified dependency snapshots by hash, records recovery lineage, and never overwrites a parent.
 - `tools/evidence.py` is the canonical bounded local runner. It executes exactly one fixed seed,
   exposes that seed as `RESEARCH_SEED`, requires and enforces a positive wall-time limit, and
   accepts only a one-run stopping rule.
