@@ -13,9 +13,14 @@ Declared artifacts are copied into `runs/<run-id>/artifacts/` before they are re
 manifest keeps both the immutable snapshot path and the original `source_path`; later runs may
 replace the original output without invalidating the earlier run.
 
+The JSON Schema documents under `schemas/` are executable contracts, not examples. Draft 2020-12
+validation checks each experiment, environment, executor, evaluation, run manifest, and evidence
+envelope at its owning boundary. Python validation remains responsible for cross-file references,
+repository paths, global identifiers, command agreement, and artifact checksums.
+
 Promote a run only after its artifact checksums and interpretation have been reviewed. Evidence
-verification and promotion belong exclusively to `tools/evidence.py`; `tools/research.py` validates
-and executes low-level experiment specifications but does not create durable evidence:
+execution, verification, replay, and promotion belong exclusively to `tools/evidence.py`;
+`tools/research.py` validates research definitions and supplies shared non-executing utilities:
 
 ```bash
 uv run python tools/evidence.py validate experiments/specs/<name>.yaml

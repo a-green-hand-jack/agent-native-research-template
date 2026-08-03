@@ -253,6 +253,7 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
         ],
     }
     manifest_path = run_dir / "manifest.json"
+    research.validate_document(manifest, "run manifest", manifest_path, root)
     research.write_json(manifest_path, manifest)
     return manifest_path, return_code
 
@@ -327,6 +328,7 @@ def enrich_manifest(
     manifest["evaluation_errors"] = errors
     manifest["parent_run_id"] = parent_run_id
     manifest["status"] = "succeeded" if manifest["return_code"] == 0 and not errors else "failed"
+    research.validate_document(manifest, "run manifest", manifest_path, root)
     research.write_json(manifest_path, manifest)
     return manifest_path, manifest["return_code"] or (3 if errors else 0)
 
@@ -348,6 +350,7 @@ def run_spec(
 def verify_run(value: str, root: Path = ROOT) -> dict[str, Any]:
     source = research.resolve_manifest(root, value)
     manifest = research.load_json(source)
+    research.validate_document(manifest, "run manifest", source, root)
     run_id = manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise EvidenceError(f"manifest has no run_id: {source}")
@@ -442,6 +445,7 @@ def promote_manifest(
         "review": {"decision": decision, "note": note},
         "manifest": manifest,
     }
+    research.validate_document(envelope, "evidence manifest", destination, root)
     research.write_json(destination, envelope)
     return destination
 

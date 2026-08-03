@@ -5,11 +5,62 @@
   "description": "An executable protocol and its typed metrics.",
   "type": "object",
   "x-schema-version": 1,
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "command": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      ]
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {"type": {"const": "return_code"}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "pattern"],
+          "properties": {
+            "type": {"const": "stdout_regex"},
+            "pattern": {"type": "string", "minLength": 1},
+            "group": {
+              "oneOf": [
+                {"type": "integer", "minimum": 0},
+                {"type": "string", "minLength": 1}
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "path", "key"],
+          "properties": {
+            "type": {"const": "json_file"},
+            "path": {"type": "string", "minLength": 1},
+            "key": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
   "required": ["schema_version", "id", "command", "purpose", "metrics"],
   "properties": {
     "schema_version": {"const": 1},
-    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
-    "command": {},
+    "id": {"$ref": "#/$defs/identifier"},
+    "command": {"$ref": "#/$defs/command"},
     "purpose": {"type": "string", "minLength": 1},
     "metrics": {
       "type": "array",
@@ -18,11 +69,12 @@
         "type": "object",
         "required": ["id", "type", "direction", "source"],
         "properties": {
-          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "id": {"$ref": "#/$defs/identifier"},
           "type": {"enum": ["boolean", "integer", "number", "string"]},
           "direction": {"enum": ["maximize", "minimize", "none"]},
-          "source": {"type": "object"}
-        }
+          "source": {"$ref": "#/$defs/source"}
+        },
+        "additionalProperties": false
       }
     }
   },

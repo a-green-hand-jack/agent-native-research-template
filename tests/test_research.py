@@ -97,6 +97,47 @@ def test_validate_rejects_invalid_metric_direction(tmp_path: Path) -> None:
         research.validate_all(tmp_path)
 
 
+def test_validate_enforces_json_schema_nested_fields(tmp_path: Path) -> None:
+    build_repository(tmp_path)
+    schema_path = tmp_path / research.SCHEMA_DOCUMENTS["evaluation"]
+    schema_path.write_text(
+        json.dumps(
+            {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "title": "Strict Evaluation",
+                "type": "object",
+                "x-schema-version": 1,
+                "properties": {
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source": {
+                                    "type": "object",
+                                    "properties": {"type": {"const": "return_code"}},
+                                    "additionalProperties": False,
+                                }
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    evaluation = tmp_path / "evals/smoke.yaml"
+    evaluation.write_text(
+        evaluation.read_text(encoding="utf-8").replace(
+            "type: return_code",
+            "type: return_code\n      pattern: ignored",
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(research.SpecError, match="does not match evaluation schema"):
+        research.validate_all(tmp_path)
+
+
 def test_validate_rejects_unversioned_definition(tmp_path: Path) -> None:
     build_repository(tmp_path)
     environment = tmp_path / "environments/main.yaml"
