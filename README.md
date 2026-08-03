@@ -4,6 +4,18 @@ A project-first GitHub template for ML, DL, RL, agents, benchmarks, environments
 research projects. The functional project remains conventional and runnable on its own. Optional
 agent governance lives in a non-runtime `.agents/` sidecar.
 
+## Agent Governance Sidecar
+
+The optional governance sidecar is influenced in part by LingTai's file-oriented view of durable
+agent identity, knowledge, memory, and relationships. This template applies that influence narrowly
+to repository-local development guidance, progressive context loading, runtime-independent roles,
+and explicit worktree control.
+
+This is design attribution, not a LingTai runtime integration. The template does not depend on or
+embed LingTai's TUI, avatar lifecycle, agent network, memory system, mail system, or provider layer.
+See [Governance Influences](.agents/governance/INFLUENCES.md) for the source-to-implementation map,
+template-specific additions, and explicit non-integrations.
+
 ## Five-Minute Research Loop
 
 Create a repository from this template, then run:
@@ -206,6 +218,7 @@ main-agent, Git worktree, and worktree-agent responsibilities.
 - `.agents/governance/ANATOMY.md`: physical topology and dependency direction;
 - `.agents/governance/CONTRACT.md`: project and sidecar invariants;
 - `.agents/governance/GUIDE.md`: stable operating and worktree-control procedures;
+- `.agents/governance/INFLUENCES.md`: source attribution, adopted ideas, and non-integrations;
 - `.agents/governance/REPO_UNITS.yaml`: machine-readable ownership;
 - `.agents/skills/`: procedures loaded only when their trigger applies;
 - `.agents/memory/`: reviewed durable facts;

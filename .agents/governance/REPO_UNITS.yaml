@@ -21,6 +21,7 @@ required_paths:
   - .agents/governance/ANATOMY.md
   - .agents/governance/CONTRACT.md
   - .agents/governance/GUIDE.md
+  - .agents/governance/INFLUENCES.md
   - .agents/governance/REPO_UNITS.yaml
   - .agents/governance/docs/worktree-control.html
   - .agents/governance/tools/repo_check.py
