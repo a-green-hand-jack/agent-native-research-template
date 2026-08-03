@@ -25,6 +25,7 @@ jobs:
       - name: Apply effective configuration patch
         run: |
           python tools/apply_effective_config_patch.py
+          python tools/fix_effective_config_tests.py
           uv lock
           uv sync --frozen --group dev
           uv run ruff format .
