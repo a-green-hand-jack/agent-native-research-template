@@ -6,7 +6,7 @@ storage. Retirement decisions require an asset inventory and verified copy evide
 ## Create an archive
 
 ```bash
-uv run python tools/archive.py create <run-id> \
+uv run researchctl archive create <run-id> \
   --copy /absolute/archive/root-a::region-a \
   --copy /absolute/archive/root-b::region-b
 ```
@@ -34,7 +34,7 @@ fault domain count as one copy for retirement decisions.
 Verify an archive at any time:
 
 ```bash
-uv run python tools/archive.py verify archives/local/<run-id>.json
+uv run researchctl archive verify archives/local/<run-id>.json
 ```
 
 Verification re-reads local copies and the source run manifest. A missing, corrupt, or mismatched
@@ -43,7 +43,7 @@ copy invalidates the archive decision.
 ## Retirement preflight
 
 ```bash
-uv run python tools/archive.py retirement-preflight \
+uv run researchctl archive retirement-preflight \
   archives/local/<run-id>.json \
   --target-kind run \
   --target <run-id>

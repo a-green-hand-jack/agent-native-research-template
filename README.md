@@ -21,7 +21,7 @@ and executes the bootstrap experiment, then writes an immutable local manifest u
 Inspect the run before promoting its compact manifest into durable evidence:
 
 ```bash
-uv run python tools/evidence.py promote <run-id> --decision accepted
+uv run researchctl experiment promote <run-id> --decision accepted
 ```
 
 Raw logs and large artifacts remain ignored under `runs/` or in external storage. Reviewed compact
@@ -85,13 +85,13 @@ question + contribution + config + environment + executor + evaluation + command
 The public interface is:
 
 ```bash
-uv run python tools/research.py validate
-uv run python tools/research.py validate experiments/specs/<name>.yaml
-uv run python tools/evidence.py run experiments/specs/<name>.yaml
-uv run python tools/evidence.py run experiments/specs/<name>.yaml --parent <run-id>
-uv run python tools/evidence.py replay <run-id>
-uv run python tools/evidence.py verify-run <run-id>
-uv run python tools/evidence.py promote <run-id> --decision accepted
+uv run researchctl experiment validate
+uv run researchctl experiment validate experiments/specs/<name>.yaml
+uv run researchctl experiment run experiments/specs/<name>.yaml
+uv run researchctl experiment run experiments/specs/<name>.yaml --parent <run-id>
+uv run researchctl experiment replay <run-id>
+uv run researchctl experiment verify-run <run-id>
+uv run researchctl experiment promote <run-id> --decision accepted
 ```
 
 Validation rejects missing research controls, unknown contribution IDs, missing config paths,
