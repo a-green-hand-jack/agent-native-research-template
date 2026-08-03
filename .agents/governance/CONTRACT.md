@@ -47,6 +47,19 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - Runtime output becomes durable only through the same review path as human output: accepted
   code, tests, evaluations, reports, decisions, or reviewed memory.
 
+## Template Lifecycle Invariants
+
+- `PROJECT.yaml` records the source template name, template contract version, initialization Git
+  commit, and the ordered set of applied migration versions.
+- Initialization records provenance once and never treats the source template as a live upstream
+  that may overwrite downstream project files.
+- Template compatibility checks are explicit and remain part of functional project verification.
+- Template migrations are forward-only, sequential, repository-reviewed code changes. A migration
+  runs only when explicitly requested; missing migration implementations are blockers rather than
+  permission to perform an implicit best-effort rewrite.
+- Applying the current template version is a no-op. Future migrations update the migration ledger
+  only after their declared changes complete and the resulting project passes compatibility checks.
+
 ## Execution Invariants
 
 - A runnable experiment resolves its code revision, config, environment, data, executor, and

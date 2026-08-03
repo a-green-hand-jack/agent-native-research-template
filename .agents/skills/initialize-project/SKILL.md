@@ -38,6 +38,10 @@ Inspect the planned writes and removals. The functional initializer updates `PRO
 metadata, the source package, smoke test, contribution index, smoke experiment, README, and
 lockfile identity. It never reads or writes the governance sidecar.
 
+Initialization also records the source template name, template contract version, source Git commit,
+and an initially empty migration ledger in `PROJECT.yaml`. These fields describe provenance; they
+do not authorize automatic synchronization from the template repository.
+
 ## Apply And Complete The Slice
 
 Run the same command without `--dry-run`, then replace the initialized bootstrap implementation,
@@ -49,29 +53,50 @@ When the optional sidecar exists, update the project-specific section of
 behavior, scientific claims under test, schemas, validity requirements, compatibility constraints,
 and explicit non-goals.
 
+## Check And Migrate
+
+Check template compatibility explicitly:
+
+```bash
+uv run python tools/template_compat.py check
+```
+
+When a future template version ships a reviewed migration, preview and apply it explicitly:
+
+```bash
+uv run python tools/template_compat.py migrate --to <version> --dry-run
+uv run python tools/template_compat.py migrate --to <version>
+```
+
+Migrations are forward-only, sequential, and registered in repository code. Never pull or overwrite
+arbitrary downstream files merely because the source template changed.
+
 ## Verify
 
 Run:
 
 ```bash
 uv run python tools/initialize_project.py check
+uv run python tools/template_compat.py check
 make verify
 make research-run
 uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
 ```
 
 The identity check rejects stale package paths, old imports, the template distribution name,
-`bootstrap` contribution references, and inconsistent `PROJECT.yaml` values after initialization.
-It also works when `.agents/` has been removed.
+`bootstrap` contribution references, inconsistent `PROJECT.yaml` values, and malformed provenance
+after initialization. The compatibility check rejects unsupported or unapplied template versions.
+Both work when `.agents/` has been removed.
 
 ## Handoff
 
 Return:
 
 ```text
-PROJECT.yaml identity
+PROJECT.yaml identity and template provenance
 renamed source and test paths
 updated contribution and experiment IDs
+applied migration versions
 project-specific contract status, when the sidecar exists
 verification commands and results
 remaining bootstrap behavior that still needs a real implementation
