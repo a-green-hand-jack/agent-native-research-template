@@ -17,6 +17,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
+import experiment_plan
 import input_identity
 import research
 
@@ -139,8 +140,20 @@ def supported_execution_controls(spec: dict[str, Any]) -> tuple[int, int]:
 
 def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any]:
     resolved = research.validate_spec(spec_path, root)
+    plan = experiment_plan.build_plan(resolved)
+    if len(plan["resolved"]["cells"]) != 1:
+        raise EvidenceError(
+            "the local runner executes exactly one plan cell; use an external scheduler "
+            "for matrix plans"
+        )
     seed, timeout = supported_execution_controls(resolved["spec"])
-    return {**resolved, "seed": seed, "timeout": timeout}
+    return {
+        **resolved,
+        "seed": seed,
+        "timeout": timeout,
+        "plan": plan["resolved"],
+        "plan_sha256": plan["sha256"],
+    }
 
 
 def timeout_text(value: str | bytes | None) -> str:
@@ -212,6 +225,10 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
         "seed_environment_variable": SEED_ENVIRONMENT_VARIABLE,
         "question": spec["question"],
         "contribution": spec["contribution"],
+        "plan": {
+            "sha256": resolved["plan_sha256"],
+            "resolved": resolved["plan"],
+        },
         "config": {
             "path": relative(resolved["config_path"]),
             "sha256": research.sha256_file(resolved["config_path"]),
@@ -473,6 +490,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("specs", nargs="*")
 
+    plan = subparsers.add_parser("plan", help="emit a deterministic side-effect-free plan")
+    plan.add_argument("spec")
+
     run = subparsers.add_parser("run", help="run one supported spec with full evidence extraction")
     run.add_argument("spec")
     run.add_argument("--parent")
@@ -499,6 +519,9 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             for path in paths:
                 print(f"OK {research.relative_name(path, root)}")
             return 0
+        if args.command == "plan":
+            print(experiment_plan.render_plan(root / args.spec, root), end="")
+            return 0
         if args.command == "run":
             path, code = run_spec(root / args.spec, root, parent_run_id=args.parent)
             print(research.relative_name(path, root))
@@ -520,7 +543,13 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             )
             print(research.relative_name(destination, root))
             return 0
-    except (EvidenceError, research.SpecError, OSError, ValueError) as exc:
+    except (
+        EvidenceError,
+        experiment_plan.PlanError,
+        research.SpecError,
+        OSError,
+        ValueError,
+    ) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
     return 2

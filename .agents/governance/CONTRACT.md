@@ -80,6 +80,12 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 - A runnable experiment resolves its code revision, config, environment, structured inputs,
   executor, and evaluation protocol.
+- Every execution is preceded by a deterministic, side-effect-free plan. The plan records a
+  protocol ID, run class, observation status, scientific parameters, stable matrix cells,
+  resource controls, commands, declared inputs and artifacts, recovery policy, and completion
+  criteria. Canonical JSON supplies the plan SHA-256 recorded in run evidence.
+- Formal runs require an explicit pre-observation protocol. Post-observation analyses remain
+  traceable but cannot be relabeled as formal pre-observation evidence.
 - Expensive runs begin from a committed checkpoint whenever practical.
 - A run records its Git revision, dirty patch state, resolved config, environment identity,
   structured input identities, seed, executor, hardware, timestamps, metrics, artifact references,

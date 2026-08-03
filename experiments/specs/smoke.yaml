@@ -8,13 +8,13 @@ executor: local
 evaluation: smoke
 command: make smoke
 inputs:
-  - id: smoke-source
-    kind: path
-    path: src
+- id: smoke-source
+  kind: path
+  path: src
 seed_policy:
   mode: fixed
   seeds:
-    - 0
+  - 0
 budget:
   max_runs: 1
   max_wall_time_seconds: 60
@@ -22,5 +22,16 @@ stopping_rule:
   type: after_runs
   runs: 1
 inclusion_criteria:
-  - Include every completed smoke attempt.
+- Include every completed smoke attempt.
 artifacts: []
+protocol_id: smoke-v1
+run_class: smoke
+observation_status: pre_observation
+scientific_parameters: {}
+recovery_policy:
+  mode: new_run
+  reuse_verified_artifacts: false
+completion_criteria:
+  required_artifacts: []
+  required_metrics:
+  - success
