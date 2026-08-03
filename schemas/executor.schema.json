@@ -2,40 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/schemas/executor.schema.json",
   "title": "Executor Profile",
-  "description": "A logical execution and artifact-storage target.",
+  "description": "A logical execution, environment-binding, and artifact-storage target.",
   "type": "object",
   "x-schema-version": 1,
-  "required": [
-    "schema_version",
-    "id",
-    "executor",
-    "capabilities"
-  ],
+  "required": ["schema_version", "id", "executor", "capabilities"],
   "properties": {
-    "schema_version": {
-      "const": 1
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]*$"
-    },
-    "executor": {
-      "type": "string",
-      "minLength": 1
-    },
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "executor": {"type": "string", "minLength": 1},
     "capabilities": {
       "type": "array",
       "minItems": 1,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "items": {"type": "string", "minLength": 1}
+    },
+    "environment": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[A-Z_][A-Z0-9_]*$"},
+      "additionalProperties": {"type": "string"}
+    },
+    "inherit_environment": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$"}
     },
     "asset_bindings": {
       "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/binding"
-      }
+      "additionalProperties": {"$ref": "#/$defs/binding"}
     }
   },
   "additionalProperties": true,
@@ -44,74 +36,33 @@
       "oneOf": [
         {
           "type": "object",
-          "required": [
-            "kind",
-            "path"
-          ],
+          "required": ["kind", "path"],
           "properties": {
-            "kind": {
-              "const": "path"
-            },
-            "scope": {
-              "enum": [
-                "repository",
-                "external"
-              ]
-            },
-            "path": {
-              "type": "string",
-              "minLength": 1
-            },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            }
+            "kind": {"const": "path"},
+            "scope": {"enum": ["repository", "external"]},
+            "path": {"type": "string", "minLength": 1},
+            "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
           },
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": [
-            "kind",
-            "uri"
-          ],
+          "required": ["kind", "uri"],
           "properties": {
-            "kind": {
-              "const": "uri"
-            },
-            "uri": {
-              "type": "string",
-              "minLength": 1
-            },
-            "version": {
-              "type": "string",
-              "minLength": 1
-            },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            }
+            "kind": {"const": "uri"},
+            "uri": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
           },
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": [
-            "kind",
-            "value"
-          ],
+          "required": ["kind", "value"],
           "properties": {
-            "kind": {
-              "const": "opaque"
-            },
-            "value": {
-              "type": "string",
-              "minLength": 1
-            },
-            "version": {
-              "type": "string",
-              "minLength": 1
-            }
+            "kind": {"const": "opaque"},
+            "value": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1}
           },
           "additionalProperties": false
         }
