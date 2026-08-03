@@ -65,6 +65,10 @@ A phase receives only assets declared for that phase or for `all`. A generation 
 does not expose evaluation-only oracles. The current one-command runner uses the `all` preflight;
 phase-scoped execution uses the narrower result.
 
+Resolved path bindings are exported only to the executing process as
+`RESEARCH_ASSET_<NORMALIZED_ID>`. URI and opaque records remain evidence metadata and are never
+turned into credentials or fetched implicitly.
+
 ## Identity boundary
 
 Changing only physical bindings in an executor profile does not change the scientific plan hash.
