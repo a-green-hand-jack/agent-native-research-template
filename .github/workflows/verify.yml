@@ -27,6 +27,7 @@ jobs:
           python tools/apply_plan_identity_patch.py
           uv lock
           uv sync --frozen --group dev
+          uv run ruff check --fix .
           uv run ruff format .
           uv run ruff check .
           uv run pytest -q
