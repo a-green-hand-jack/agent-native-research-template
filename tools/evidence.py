@@ -6,7 +6,6 @@ import os
 import platform
 import re
 import shutil
-import subprocess
 import sys
 import uuid
 from datetime import UTC, datetime
@@ -20,12 +19,13 @@ if str(TOOLS_DIR) not in sys.path:
 import asset_binding
 import experiment_plan
 import input_identity
+import phase_graph
 import research
 
 ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DECISIONS = ("accepted", "rejected", "inconclusive")
 SEED_ENVIRONMENT_VARIABLE = "RESEARCH_SEED"
-TIMEOUT_RETURN_CODE = 124
+TIMEOUT_RETURN_CODE = phase_graph.TIMEOUT_RETURN_CODE
 
 
 class EvidenceError(ValueError):
@@ -161,15 +161,13 @@ def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any
     }
 
 
-def timeout_text(value: str | bytes | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode(errors="replace")
-    return value
-
-
-def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
+def run_once(
+    spec_path: Path,
+    root: Path = ROOT,
+    *,
+    retry_phase: str | None = None,
+    parent_manifest: dict[str, Any] | None = None,
+) -> tuple[Path, int]:
     resolved = validate_supported_spec(spec_path, root)
     spec = resolved["spec"]
     seed = resolved["seed"]
@@ -183,37 +181,25 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
 
     environment = os.environ.copy()
     environment[SEED_ENVIRONMENT_VARIABLE] = str(seed)
-    environment.update(asset_binding.environment_for_assets(resolved["asset_preflight"]))
     started_at = utc_now()
-    try:
-        process = subprocess.run(
-            resolved["argv"],
-            cwd=root,
-            check=False,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            env=environment,
-            timeout=timeout,
-        )
-        return_code = process.returncode
-        stdout = process.stdout
-        stderr = process.stderr
-        termination = {"reason": "completed"}
-    except subprocess.TimeoutExpired as exc:
-        return_code = TIMEOUT_RETURN_CODE
-        stdout = timeout_text(exc.stdout)
-        stderr = timeout_text(exc.stderr)
-        termination = {
-            "reason": "timeout",
-            "max_wall_time_seconds": timeout,
-        }
+    execution = phase_graph.execute_phases(
+        spec,
+        resolved["executor"],
+        resolved["argv"],
+        root,
+        run_dir,
+        environment,
+        timeout,
+        retry_phase=retry_phase,
+        parent_manifest=parent_manifest,
+    )
     finished_at = utc_now()
+    return_code = execution["return_code"]
 
     stdout_path = run_dir / "stdout.log"
     stderr_path = run_dir / "stderr.log"
-    stdout_path.write_text(stdout, encoding="utf-8")
-    stderr_path.write_text(stderr, encoding="utf-8")
+    stdout_path.write_text(execution["stdout"], encoding="utf-8")
+    stderr_path.write_text(execution["stderr"], encoding="utf-8")
 
     def relative(value: Path | None) -> str | None:
         return research.relative_name(value, root) if value is not None else None
@@ -226,7 +212,7 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
         "started_at": started_at,
         "finished_at": finished_at,
         "return_code": return_code,
-        "termination": termination,
+        "termination": execution["termination"],
         "seed": seed,
         "seed_environment_variable": SEED_ENVIRONMENT_VARIABLE,
         "question": spec["question"],
@@ -272,10 +258,13 @@ def run_once(spec_path: Path, root: Path = ROOT) -> tuple[Path, int]:
             "cpu_count": os.cpu_count(),
         },
         "command": resolved["argv"],
+        "phases": execution["phases"],
+        "recovery": execution["recovery"],
         "metrics": research.extract_return_code_metrics(resolved["evaluation"], return_code),
         "artifacts": [
             {"path": relative(stdout_path), "sha256": research.sha256_file(stdout_path)},
             {"path": relative(stderr_path), "sha256": research.sha256_file(stderr_path)},
+            *execution["artifacts"],
         ],
     }
     manifest_path = run_dir / "manifest.json"
@@ -364,12 +353,21 @@ def run_spec(
     root: Path = ROOT,
     *,
     parent_run_id: str | None = None,
+    retry_phase: str | None = None,
 ) -> tuple[Path, int]:
+    parent_manifest: dict[str, Any] | None = None
     if parent_run_id is not None:
-        parent = verify_run(parent_run_id, root)
-        if parent["run_id"] != parent_run_id:
+        parent_manifest = verify_run(parent_run_id, root)
+        if parent_manifest["run_id"] != parent_run_id:
             raise EvidenceError("parent run identity does not match its manifest")
-    manifest_path, _ = run_once(spec_path, root)
+    if retry_phase is not None and parent_manifest is None:
+        raise EvidenceError("phase retry requires a parent run")
+    manifest_path, _ = run_once(
+        spec_path,
+        root,
+        retry_phase=retry_phase,
+        parent_manifest=parent_manifest,
+    )
     return enrich_manifest(manifest_path, root, parent_run_id=parent_run_id)
 
 
@@ -446,6 +444,23 @@ def replay_run(
     return run_spec(root / manifest["spec"]["path"], root, parent_run_id=manifest["run_id"])
 
 
+def retry_phase_run(
+    value: str,
+    phase: str,
+    root: Path = ROOT,
+) -> tuple[Path, int]:
+    parent = verify_run(value, root)
+    drift = recorded_input_drift(parent, root)
+    if drift:
+        raise EvidenceError("recorded inputs drifted: " + "; ".join(drift))
+    return run_spec(
+        root / parent["spec"]["path"],
+        root,
+        parent_run_id=parent["run_id"],
+        retry_phase=phase,
+    )
+
+
 def promote_manifest(
     value: str,
     root: Path = ROOT,
@@ -516,6 +531,12 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("run")
     replay.add_argument("--allow-drift", action="store_true")
 
+    retry = subparsers.add_parser(
+        "retry-phase", help="retry one phase using verified parent outputs"
+    )
+    retry.add_argument("run")
+    retry.add_argument("--phase", required=True)
+
     verify = subparsers.add_parser("verify-run", help="verify every recorded artifact")
     verify.add_argument("run")
 
@@ -552,6 +573,10 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             path, code = replay_run(args.run, root, allow_drift=args.allow_drift)
             print(research.relative_name(path, root))
             return code
+        if args.command == "retry-phase":
+            path, code = retry_phase_run(args.run, args.phase, root)
+            print(research.relative_name(path, root))
+            return code
         if args.command == "verify-run":
             manifest = verify_run(args.run, root)
             print(f"OK {manifest['run_id']}")
@@ -569,6 +594,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         EvidenceError,
         asset_binding.AssetBindingError,
         experiment_plan.PlanError,
+        phase_graph.PhaseGraphError,
         research.SpecError,
         OSError,
         ValueError,

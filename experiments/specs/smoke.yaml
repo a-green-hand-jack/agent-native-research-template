@@ -39,3 +39,8 @@ assets:
 - id: source-tree
   phase: generation
   access: read
+phases:
+- id: main
+  command: make smoke
+  asset_phase: all
+  outputs: []

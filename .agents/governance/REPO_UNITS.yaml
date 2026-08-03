@@ -43,6 +43,7 @@ required_paths:
   - docs/ASSET_BINDINGS.md
   - docs/EXPERIMENT_PLANS.md
   - docs/INPUT_IDENTITY.md
+  - docs/PHASE_RECOVERY.md
   - docs/REFERENCE_IMPLEMENTATION.md
   - environments/main.yaml
   - evals/smoke.yaml
@@ -65,6 +66,7 @@ required_paths:
   - tools/experiment_plan.py
   - tools/initialize_project.py
   - tools/input_identity.py
+  - tools/phase_graph.py
   - tools/research.py
   - tools/template_compat.py
   - tools/verify_template_e2e.py

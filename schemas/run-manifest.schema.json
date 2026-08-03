@@ -196,6 +196,8 @@
     "evaluation",
     "hardware",
     "command",
+    "phases",
+    "recovery",
     "metrics",
     "artifacts"
   ],
@@ -257,6 +259,18 @@
             "max_wall_time_seconds": {
               "type": "integer",
               "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "reason"
+          ],
+          "properties": {
+            "reason": {
+              "const": "phase_failed"
             }
           },
           "additionalProperties": false
@@ -464,6 +478,140 @@
         },
         "sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      },
+      "additionalProperties": false
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "depends_on",
+          "asset_phase",
+          "command",
+          "return_code",
+          "started_at",
+          "finished_at",
+          "termination",
+          "asset_bindings",
+          "artifacts",
+          "errors"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "incomplete",
+              "reused"
+            ]
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "asset_phase": {
+            "enum": [
+              "all",
+              "generation",
+              "evaluation"
+            ]
+          },
+          "command": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "return_code": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "termination": {
+            "type": "object"
+          },
+          "asset_bindings": {
+            "type": "object"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_run_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "required": [
+        "mode",
+        "retry_phase",
+        "source_run_id",
+        "reused_artifacts",
+        "generation_skipped"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "new_run",
+            "phase_retry"
+          ]
+        },
+        "retry_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reused_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "generation_skipped": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
