@@ -35,3 +35,7 @@ completion_criteria:
   required_artifacts: []
   required_metrics:
   - success
+assets:
+- id: source-tree
+  phase: generation
+  access: read

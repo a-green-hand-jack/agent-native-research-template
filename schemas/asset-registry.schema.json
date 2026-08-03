@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/asset-registry.schema.json",
+  "title": "Logical Asset Registry",
+  "description": "Stable logical identities and roles for research assets.",
+  "type": "object",
+  "x-schema-version": 1,
+  "required": ["schema_version", "assets"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "expected_type", "reconstructable"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "role": {
+            "enum": [
+              "source",
+              "dataset",
+              "generation_oracle",
+              "evaluation_oracle",
+              "checkpoint",
+              "cache",
+              "output"
+            ]
+          },
+          "expected_type": {"enum": ["file", "directory", "any"]},
+          "reconstructable": {"type": "boolean"},
+          "immutable_output": {"type": "boolean"},
+          "min_bytes": {"type": "integer", "minimum": 0},
+          "max_bytes": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -188,6 +188,7 @@
     "plan",
     "config",
     "data",
+    "asset_bindings",
     "spec",
     "git",
     "environment",
@@ -436,6 +437,33 @@
         },
         "resolved": {
           "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "asset_bindings": {
+      "type": "object",
+      "required": [
+        "phase",
+        "assets",
+        "sha256"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "all",
+            "generation",
+            "evaluation"
+          ]
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
         }
       },
       "additionalProperties": false

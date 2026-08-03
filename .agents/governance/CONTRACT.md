@@ -90,6 +90,13 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - A run records its Git revision, dirty patch state, resolved config, environment identity,
   structured input identities, seed, executor, hardware, timestamps, metrics, artifact references,
   and termination reason.
+- Logical assets have stable registry IDs and roles. Experiments name logical requirements,
+  executor profiles bind physical `path`, `uri`, or `opaque` records, and side-effect-free
+  preflight validates role, phase, access, type, size, checksum, path, and overwrite rules.
+  Scientific plan identity excludes physical bindings; run evidence records their resolved hash.
+- Generation preflight never exposes evaluation-only assets. Reading assets requires verified
+  presence and content identity; write targets may be planned but immutable outputs cannot be
+  overwritten.
 - New runs resolve generic `path`, `uri`, and `opaque` input declarations before execution.
   Repository path inputs receive deterministic content hashes and participate in replay drift
   checks; URI and opaque identities are recorded without network access or implicit verification.

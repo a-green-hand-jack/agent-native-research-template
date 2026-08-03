@@ -1,0 +1,7 @@
+schema_version: 1
+assets:
+  - id: source-tree
+    role: source
+    expected_type: directory
+    reconstructable: true
+    min_bytes: 1

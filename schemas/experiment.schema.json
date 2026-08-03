@@ -277,6 +277,31 @@
         "boolean",
         "null"
       ]
+    },
+    "asset_requirement": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "phase": {
+          "enum": [
+            "all",
+            "generation",
+            "evaluation"
+          ]
+        },
+        "access": {
+          "enum": [
+            "read",
+            "write"
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
@@ -422,6 +447,12 @@
         }
       },
       "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset_requirement"
+      }
     }
   },
   "additionalProperties": true

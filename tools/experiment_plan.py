@@ -157,6 +157,7 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
         "budget": deepcopy(spec["budget"]),
         "stopping_rule": deepcopy(spec["stopping_rule"]),
         "inputs": deepcopy(spec.get("inputs", [])),
+        "assets": deepcopy(spec.get("assets", [])),
         "artifacts": deepcopy(spec.get("artifacts", [])),
         "inclusion_criteria": list(spec["inclusion_criteria"]),
         "recovery_policy": recovery_policy,
