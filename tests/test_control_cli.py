@@ -64,10 +64,11 @@ def test_archive_group_delegates_to_canonical_archive_tool(
     assert observed == {"argv": ["verify", "archive.json"], "root": tmp_path}
 
 
-def test_package_installs_one_default_console_entry() -> None:
+def test_package_installs_one_configured_console_entry() -> None:
     root = Path(__file__).resolve().parents[1]
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-    assert project["project"]["scripts"] == {"researchctl": "tools.control_cli:main"}
+    cli_name = control_cli.configured_cli_name(root)
+    assert project["project"]["scripts"] == {cli_name: "tools.control_cli:main"}
     assert set(project["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]) == {
         "src/project",
         "tools",
