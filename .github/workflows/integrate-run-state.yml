@@ -1,0 +1,53 @@
+name: Integrate evidence-first run status
+
+on:
+  pull_request:
+    paths:
+      - tools/apply_run_state_patch.py
+      - tools/run_state.py
+      - tests/test_run_state.py
+      - tests/test_run_status_evidence.py
+      - schemas/run-result.schema.json
+      - docs/RUN_STATUS.md
+      - .github/workflows/integrate-run-state.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+        with:
+          ref: agent/evidence-first-run-status
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Apply and format scoped integration
+        run: |
+          uv sync --frozen --group dev
+          uv run python tools/apply_run_state_patch.py
+          uv run ruff check --fix tools/run_state.py tests/test_run_state.py tests/test_run_status_evidence.py
+          uv run ruff format tools tests
+          rm tools/apply_run_state_patch.py
+          rm .github/workflows/integrate-run-state.yml
+
+      - name: Validate integrated branch
+        run: |
+          make verify
+          make research-run
+          make template-e2e
+          uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
+
+      - name: Commit integrated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Integrate evidence-first run status"
+          git push origin HEAD:agent/evidence-first-run-status
