@@ -19,6 +19,7 @@ if str(TOOLS_DIR) not in sys.path:
 import asset_binding
 import experiment_plan
 import input_identity
+import metric_observation
 import phase_graph
 import research
 import run_state
@@ -74,14 +75,17 @@ def extract_metrics(
     return_code: int,
     stdout: str,
     root: Path,
-) -> tuple[dict[str, bool | int | float | str], list[str]]:
-    metrics: dict[str, bool | int | float | str] = {}
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    metrics: dict[str, dict[str, Any]] = {}
     errors: list[str] = []
     for metric in evaluation["metrics"]:
         metric_id = metric["id"]
         metric_type = metric["type"]
         source = metric["source"]
         try:
+            if source["type"] == "missing":
+                metrics[metric_id] = metric_observation.missing(metric, source["reason"])
+                continue
             if source["type"] == "return_code":
                 raw: object = return_code == 0 if metric_type == "boolean" else return_code
             elif source["type"] == "stdout_regex":
@@ -99,9 +103,22 @@ def extract_metrics(
                 raw = read_key(json.loads(path.read_text(encoding="utf-8")), source["key"])
             else:
                 raise EvidenceError(f"metric {metric_id!r} has unsupported source")
-            metrics[metric_id] = coerce_metric(raw, metric_type, metric_id)
-        except (EvidenceError, OSError, ValueError, json.JSONDecodeError) as exc:
+            value = coerce_metric(raw, metric_type, metric_id)
+            metrics[metric_id] = metric_observation.measured(metric, value)
+        except (
+            EvidenceError,
+            metric_observation.MetricObservationError,
+            OSError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
             errors.append(str(exc))
+            try:
+                metrics[metric_id] = metric_observation.missing(
+                    metric, "evaluation_error", str(exc)
+                )
+            except metric_observation.MetricObservationError:
+                pass
     return metrics, errors
 
 
@@ -648,6 +665,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         EvidenceError,
         asset_binding.AssetBindingError,
         experiment_plan.PlanError,
+        metric_observation.MetricObservationError,
         phase_graph.PhaseGraphError,
         research.SpecError,
         run_state.RunStateError,

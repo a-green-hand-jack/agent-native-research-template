@@ -34,7 +34,7 @@ def test_status_and_results_are_read_only_json(tmp_path: Path) -> None:
     results = evidence.run_results(manifest["run_id"], tmp_path)
     assert status["state"] == "succeeded"
     assert results["status"]["state"] == "succeeded"
-    assert results["metrics"]["success"] is True
+    assert results["metrics"]["success"]["value"] is True
 
 
 def test_verify_returns_verified_projection_without_mutation(tmp_path: Path) -> None:

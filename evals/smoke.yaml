@@ -3,8 +3,13 @@ id: smoke
 command: make smoke
 purpose: verify the smallest complete project path
 metrics:
-  - id: success
-    type: boolean
-    direction: maximize
-    source:
-      type: return_code
+- id: success
+  type: boolean
+  direction: maximize
+  source:
+    type: return_code
+  unit: boolean
+  aggregation: single
+  resource_mode: single_process
+  sample_count: 1
+  observation_count: 1

@@ -32,11 +32,19 @@ def configure_outputs(root: Path) -> Path:
         "schema_version: 1\nid: smoke\ncommand: make smoke\n"
         "purpose: execute the smallest path\nmetrics:\n"
         "  - id: success\n    type: boolean\n    direction: maximize\n"
-        "    source:\n      type: return_code\n"
+        "    unit: boolean\n    aggregation: single\n"
+        "    resource_mode: single_process\n    sample_count: 1\n"
+        "    observation_count: 1\n    source:\n      type: return_code\n"
         "  - id: accuracy\n    type: number\n    direction: maximize\n"
-        "    source:\n      type: stdout_regex\n      pattern: 'accuracy=([0-9.]+)'\n"
+        "    unit: fraction\n    aggregation: single\n"
+        "    resource_mode: single_process\n    sample_count: 1\n"
+        "    observation_count: 1\n    source:\n"
+        "      type: stdout_regex\n      pattern: 'accuracy=([0-9.]+)'\n"
         "  - id: score\n    type: number\n    direction: maximize\n"
-        "    source:\n      type: json_file\n      path: outputs/metrics.json\n      key: score\n",
+        "    unit: fraction\n    aggregation: single\n"
+        "    resource_mode: single_process\n    sample_count: 1\n"
+        "    observation_count: 1\n    source:\n      type: json_file\n"
+        "      path: outputs/metrics.json\n      key: score\n",
         encoding="utf-8",
     )
     text = spec.read_text(encoding="utf-8").replace(
@@ -93,7 +101,9 @@ def test_run_extracts_metrics_and_snapshots_declared_artifacts(tmp_path: Path) -
     manifest_path, code = evidence.run_spec(spec, tmp_path)
     assert code == 0
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["metrics"] == {"accuracy": 0.75, "score": 0.75, "success": True}
+    assert manifest["metrics"]["accuracy"]["value"] == 0.75
+    assert manifest["metrics"]["score"]["value"] == 0.75
+    assert manifest["metrics"]["success"]["value"] is True
     assert manifest["seed"] == 0
     assert manifest["seed_environment_variable"] == "RESEARCH_SEED"
     assert manifest["termination"] == {"reason": "completed"}
