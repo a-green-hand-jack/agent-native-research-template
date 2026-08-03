@@ -24,6 +24,15 @@ jobs:
 
       - name: Apply scoped integration
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/integrate_control_cli.py')
+          text = path.read_text(encoding='utf-8')
+          marker = '    count=1,\n)\n\n# Ownership and contract.'
+          if text.count(marker) != 1:
+              raise SystemExit('unexpected E2E count marker')
+          path.write_text(text.replace(marker, '    count=2,\n)\n\n# Ownership and contract.'), encoding='utf-8')
+          PY
           python tools/integrate_control_cli.py
           uv lock
           uv sync --frozen --group dev
