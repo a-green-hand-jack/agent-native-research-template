@@ -21,6 +21,11 @@ def build_template(root: Path) -> None:
             "project_name: Agent-Native Research Template\n"
             "distribution_name: agent-native-project\n"
             "package_name: project\ncontribution_id: bootstrap\n"
+            "template:\n"
+            "  name: agent-native-research-template\n"
+            "  version: 1\n"
+            "  initialized_from_commit: null\n"
+            "  applied_migrations: []\n"
         ),
         "pyproject.toml": (
             '[project]\nname = "agent-native-project"\nversion = "0.1.0"\n'
@@ -77,7 +82,7 @@ def test_dry_run_does_not_change_files(tmp_path: Path) -> None:
     assert not (tmp_path / "src/causal_agent_lab").exists()
 
 
-def test_apply_updates_identity_and_removes_residue(tmp_path: Path) -> None:
+def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) -> None:
     build_template(tmp_path)
     initializer.apply_changes(tmp_path, identity())
     assert initializer.check_project(tmp_path) == []
@@ -88,6 +93,24 @@ def test_apply_updates_identity_and_removes_residue(tmp_path: Path) -> None:
     state = initializer.load_yaml(tmp_path / "PROJECT.yaml")
     assert state["initialized"] is True
     assert state["package_name"] == "causal_agent_lab"
+    assert state["template"] == {
+        "name": "agent-native-research-template",
+        "version": 1,
+        "initialized_from_commit": "unknown",
+        "applied_migrations": [],
+    }
+    readme = (tmp_path / "README.md").read_text(encoding="utf-8")
+    assert "Initialized from Agent-Native Research Template v1 at `unknown`" in readme
+
+
+def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
+    build_template(tmp_path)
+    project = tmp_path / "PROJECT.yaml"
+    project.write_text(
+        project.read_text(encoding="utf-8").replace("version: 1", "version: 2"),
+        encoding="utf-8",
+    )
+    assert any("newer than supported" in error for error in initializer.check_project(tmp_path))
 
 
 def test_check_detects_residue_after_initialization(tmp_path: Path) -> None:

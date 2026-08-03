@@ -54,6 +54,8 @@ required_paths:
     - tools/evidence.py
     - tools/initialize_project.py
     - tools/research.py
+    - tools/template_compat.py
+    - tools/verify_template_e2e.py
 
 dependency_rules:
   - from: functional

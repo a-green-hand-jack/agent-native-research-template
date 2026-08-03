@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = "PROJECT.yaml"
+TEMPLATE_NAME = "agent-native-research-template"
+TEMPLATE_VERSION = 1
 TEMPLATE_STATE = {
     "project_name": "Agent-Native Research Template",
     "distribution_name": "agent-native-project",
@@ -55,6 +58,19 @@ def dump_yaml(data: dict[str, Any]) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
 
+def git_revision(root: Path) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    revision = result.stdout.strip()
+    return revision if result.returncode == 0 and revision else "unknown"
+
+
 def validate_identity(identity: ProjectIdentity) -> None:
     if not identity.project_name.strip():
         raise InitializationError("project name must not be empty")
@@ -87,9 +103,65 @@ def read_required(root: Path, relative: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def template_metadata_errors(state: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    metadata = state.get("template")
+    if not isinstance(metadata, dict):
+        return ["PROJECT.yaml template must be a mapping"]
+    if metadata.get("name") != TEMPLATE_NAME:
+        errors.append(f"PROJECT.yaml template.name must be {TEMPLATE_NAME!r}")
+    version = metadata.get("version")
+    if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
+        errors.append("PROJECT.yaml template.version must be a positive integer")
+    elif version > TEMPLATE_VERSION:
+        errors.append(
+            f"PROJECT.yaml template.version {version} is newer than supported {TEMPLATE_VERSION}"
+        )
+    revision = metadata.get("initialized_from_commit")
+    if revision is not None and (not isinstance(revision, str) or not revision.strip()):
+        errors.append("PROJECT.yaml template.initialized_from_commit must be null or non-empty")
+    migrations = metadata.get("applied_migrations")
+    if not isinstance(migrations, list) or not all(
+        isinstance(item, int) and not isinstance(item, bool) and item > 0 for item in migrations
+    ):
+        errors.append("PROJECT.yaml template.applied_migrations must be positive integers")
+    elif len(migrations) != len(set(migrations)) or migrations != sorted(migrations):
+        errors.append("PROJECT.yaml template.applied_migrations must be sorted and unique")
+    elif isinstance(version, int) and any(item > version for item in migrations):
+        errors.append("PROJECT.yaml applied migration cannot exceed template.version")
+
+    if state.get("initialized") is False:
+        if version != TEMPLATE_VERSION:
+            errors.append(f"uninitialized template version must remain {TEMPLATE_VERSION}")
+        if revision is not None:
+            errors.append("uninitialized template initialized_from_commit must remain null")
+        if migrations != []:
+            errors.append("uninitialized template applied_migrations must remain empty")
+    elif state.get("initialized") is True and revision is None:
+        errors.append("initialized project must record template.initialized_from_commit")
+    return errors
+
+
+def expected_state(root: Path) -> tuple[dict[str, Any], list[str]]:
+    state = load_yaml(root / STATE_PATH)
+    errors: list[str] = []
+    if state.get("schema_version") != 1:
+        errors.append("PROJECT.yaml schema_version must be 1")
+    initialized = state.get("initialized")
+    if not isinstance(initialized, bool):
+        errors.append("PROJECT.yaml initialized must be boolean")
+    for key in TEMPLATE_STATE:
+        if not isinstance(state.get(key), str) or not state[key].strip():
+            errors.append(f"PROJECT.yaml {key} must be a non-empty string")
+    errors.extend(template_metadata_errors(state))
+    return state, errors
+
+
 def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     validate_identity(identity)
-    state = load_yaml(root / STATE_PATH)
+    state, errors = expected_state(root)
+    if errors:
+        raise InitializationError("; ".join(errors))
     if state.get("initialized") is True:
         raise InitializationError("project is already initialized")
 
@@ -151,6 +223,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     smoke_test = smoke_test.replace("template_status", "project_status")
     smoke_test = smoke_test.replace("test_template_vertical_slice", "test_project_vertical_slice")
 
+    revision = git_revision(root)
     readme = read_required(root, "README.md")
     readme = replace_required(
         readme,
@@ -159,8 +232,9 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "README.md",
     )
     marker = (
-        f"\n> Initialized from Agent-Native Research Template. Distribution: "
-        f"`{identity.distribution_name}`; package: `{identity.package_name}`.\n"
+        f"\n> Initialized from Agent-Native Research Template v{TEMPLATE_VERSION} at "
+        f"`{revision}`. Distribution: `{identity.distribution_name}`; package: "
+        f"`{identity.package_name}`.\n"
     )
     first_break = readme.find("\n")
     readme = readme[: first_break + 1] + marker + readme[first_break + 1 :]
@@ -172,6 +246,12 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "distribution_name": identity.distribution_name,
         "package_name": identity.package_name,
         "contribution_id": identity.contribution_id,
+        "template": {
+            "name": TEMPLATE_NAME,
+            "version": TEMPLATE_VERSION,
+            "initialized_from_commit": revision,
+            "applied_migrations": [],
+        },
     }
     return {
         STATE_PATH: dump_yaml(initialized_state),
@@ -205,20 +285,6 @@ def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = Fals
             if parent != root and not any(parent.iterdir()):
                 parent.rmdir()
     return planned
-
-
-def expected_state(root: Path) -> tuple[dict[str, Any], list[str]]:
-    state = load_yaml(root / STATE_PATH)
-    errors: list[str] = []
-    if state.get("schema_version") != 1:
-        errors.append("PROJECT.yaml schema_version must be 1")
-    initialized = state.get("initialized")
-    if not isinstance(initialized, bool):
-        errors.append("PROJECT.yaml initialized must be boolean")
-    for key in TEMPLATE_STATE:
-        if not isinstance(state.get(key), str) or not state[key].strip():
-            errors.append(f"PROJECT.yaml {key} must be a non-empty string")
-    return state, errors
 
 
 def check_project(root: Path = ROOT) -> list[str]:
