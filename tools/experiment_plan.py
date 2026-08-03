@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import math
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -36,7 +37,7 @@ def sha256_json(value: object) -> str:
 def scalar(value: object, field: str) -> str | int | float | bool | None:
     if not isinstance(value, SCALAR_TYPES):
         raise PlanError(f"{field} must contain only JSON scalar values")
-    if isinstance(value, float) and (value != value or value in {float("inf"), float("-inf")}):
+    if isinstance(value, float) and not math.isfinite(value):
         raise PlanError(f"{field} must not contain non-finite numbers")
     return value
 
@@ -110,9 +111,7 @@ def protocol_fields(spec: dict[str, Any]) -> tuple[str, str, str]:
         raise PlanError(f"run_class must be one of: {', '.join(sorted(RUN_CLASSES))}")
     observation_status = spec.get("observation_status", "pre_observation")
     if observation_status not in OBSERVATION_STATUSES:
-        raise PlanError(
-            "observation_status must be pre_observation or post_observation"
-        )
+        raise PlanError("observation_status must be pre_observation or post_observation")
     if run_class == "formal":
         if explicit_protocol is None:
             raise PlanError("formal runs require an explicit protocol_id")
