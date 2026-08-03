@@ -25,6 +25,7 @@ jobs:
       - name: Apply layered identity patch
         run: |
           python tools/apply_plan_identity_patch.py
+          python tools/fix_plan_identity_compat.py
           uv lock
           uv sync --frozen --group dev
           uv run ruff check --fix .
