@@ -9,9 +9,9 @@ Generate a plan without running the experiment:
 uv run researchctl experiment plan experiments/specs/<name>.yaml
 ```
 
-The command prints canonical JSON containing a SHA-256 identity and the complete resolved plan. It
-loads and validates repository definitions but does not invoke phase commands or create a run
-directory.
+The command prints canonical JSON containing three independent identity records and their resolved
+projections. It loads and validates repository definitions, reads Git state for code identity, but
+does not invoke phase commands or create a run directory.
 
 ## One command source per phase
 
@@ -28,11 +28,11 @@ sources of execution truth.
 
 ## Effective configuration
 
-The plan embeds the complete parsed configuration under `effective_config` together with its
-repository path and SHA-256. Consequently:
+The execution projection embeds the complete parsed configuration under `effective_config`
+together with its repository path and SHA-256. Consequently:
 
-- changing configuration content changes the plan identity;
-- changing only YAML key order does not change the plan identity;
+- changing configuration content changes the execution-plan identity;
+- changing only YAML key order does not change any identity;
 - a reviewer can inspect the values that will be used without reading Python defaults;
 - the run manifest records the same resolved configuration.
 
@@ -60,19 +60,58 @@ must exist at run time. Run evidence records inherited variable names and value 
 silently copying or exposing their values. Secret-like names and `RESEARCH_SEED` are not valid
 profile bindings.
 
-## Protocol identity
+## Layered identities
 
-Every plan records:
+One hash cannot distinguish a scientific change from an implementation or deployment change. Every
+new plan therefore contains three canonical identity records, each with `sha256` and `resolved`:
 
-- a stable `protocol_id`;
-- a `run_class`: `smoke`, `pilot`, `partial`, `reference`, `formal`, or `post_observation`;
-- an `observation_status`: `pre_observation` or `post_observation`;
-- scientific parameters and deterministic matrix cells;
-- effective configuration, declared environment policy, inputs, assets, phases, artifacts, budget,
-  stopping rule, recovery policy, and completion criteria.
+### Protocol identity
 
-A formal run requires an explicit protocol ID and must be declared before observing the result.
-Post-observation analysis is allowed, but it is never mislabeled as a formal pre-observation run.
+The protocol projection answers whether two runs implement the same scientific protocol. It
+contains:
+
+- `protocol_id`, research question, contribution, run class, and observation status;
+- scientific parameters, seed policy, matrix, and deterministic cells;
+- the evaluation definition and typed metric protocol;
+- logical inputs and asset requirements;
+- phase IDs, dependency topology, asset phases, and output contracts, but not commands;
+- inclusion criteria, recovery policy, and completion criteria.
+
+Changing a scientific parameter, evaluation protocol, seed policy, logical asset role, or phase
+topology changes the protocol identity. Changing a command, config value, server, mount, or executor
+profile does not.
+
+### Execution-plan identity
+
+The execution projection answers whether the same executable plan will run. It binds the protocol
+identity to:
+
+- parsed effective configuration;
+- normalized phase commands and timeouts;
+- environment definition and lockfile identities;
+- Git commit, dirty-state status, and patch identity;
+- budget, stopping rule, resolved inputs, declared artifacts, and completion semantics.
+
+Changing configuration content, a phase command, code state, lockfile, budget, or artifact contract
+changes the execution-plan identity. Physical profile and asset-binding changes do not.
+
+For one compatibility version, top-level `sha256` and `resolved` remain aliases of
+`execution.sha256` and `execution.resolved`. New integrations should read the named identity record.
+
+### Binding identity
+
+The binding projection answers where and under which execution profile the plan is bound. It
+contains:
+
+- executor/profile definition;
+- explicit and inherited process-environment policy;
+- workspace and artifact roots;
+- declared physical asset bindings during planning;
+- resolved asset preflight records during execution.
+
+Changing only a server path, profile environment policy, workspace root, or physical asset binding
+changes the binding identity without rewriting protocol or execution identity. The runner upgrades
+the binding projection from `declared` to `resolved` after asset preflight.
 
 ## Matrix identity
 
@@ -84,11 +123,18 @@ The built-in local runner still executes one bounded cell. A plan may describe a
 review or an external scheduler, but `researchctl experiment run` rejects plans with more than one
 cell. Each externally scheduled cell must produce its own run manifest.
 
-## Evidence boundary
+## Evidence and replay boundary
 
-New run manifests include the exact resolved plan and its SHA-256. Changing key order does not
-change identity; changing protocol, parameters, matrix values, effective configuration, phase
-commands, environment policy, inputs, or completion semantics does.
+New run manifests record all three identity projections and hashes. Terminal result version 2
+copies the three hashes into an `identities` summary. Legacy manifests and result version 1 remain
+readable.
 
-Review and automation should compare the plan SHA-256 rather than relying on file names or prose
-summaries. A changed plan hash requires a new execution decision and new run evidence.
+Replay recalculates current protocol, execution, and binding identities and reports their drift
+separately, in addition to file-level input and asset diagnostics. This lets reviewers distinguish:
+
+- a scientific protocol change that requires a new research decision;
+- an executable implementation change that requires a new run;
+- a deployment or physical-binding change that affects provenance but not the scientific protocol.
+
+Review and automation should compare the identity layer relevant to the decision rather than relying
+on file names, prose summaries, or a single undifferentiated hash.
