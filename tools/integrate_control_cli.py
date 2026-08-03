@@ -13,6 +13,12 @@ WORKFLOW_PATCH_MARKER = """    count=1,
 # Ownership and contract."""
 
 text = WRAPPER.read_text(encoding="utf-8")
+migration_start = text.index("new_migration = '''")
+migration_end = text.index("'''\nedit(\"tools/template_compat.py\"", migration_start)
+migration_source = text[migration_start:migration_end]
+migration_source = migration_source.replace("\\n", "\\\\n")
+text = text[:migration_start] + migration_source + text[migration_end:]
+
 old = 'edit("tools/template_compat.py", old_migration, new_migration)'
 replacement = '''path = ROOT / "tools/template_compat.py"
 text = path.read_text(encoding="utf-8")
