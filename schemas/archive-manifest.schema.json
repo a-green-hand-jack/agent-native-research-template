@@ -1,93 +1,109 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/schemas/archive-manifest.schema.json",
-  "title": "Archive Manifest",
+  "title": "Research Archive Manifest",
+  "description": "Verified copies and retirement prerequisites for one immutable run.",
   "type": "object",
   "x-schema-version": 1,
   "$defs": {
-    "identifier": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]*$"
-    },
     "sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
     },
-    "verification": {
+    "local_copy": {
       "type": "object",
-      "required": ["method", "verified_at", "sha256"],
+      "required": [
+        "method",
+        "location",
+        "fault_domain",
+        "sha256",
+        "file_count",
+        "verified_at"
+      ],
       "properties": {
-        "method": {"enum": ["local_readback", "external_evidence"]},
-        "verified_at": {"type": "string", "minLength": 1},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "evidence": {"type": "string", "minLength": 1}
-      },
-      "additionalProperties": false
-    },
-    "copy": {
-      "type": "object",
-      "required": ["id", "location", "fault_domain", "verification"],
-      "properties": {
-        "id": {"$ref": "#/$defs/identifier"},
+        "method": {"const": "local_reread"},
         "location": {"type": "string", "minLength": 1},
         "fault_domain": {"type": "string", "minLength": 1},
-        "verification": {"$ref": "#/$defs/verification"}
-      },
-      "additionalProperties": false
-    },
-    "asset": {
-      "type": "object",
-      "required": ["id", "kind", "sha256", "reconstructable", "copies"],
-      "properties": {
-        "id": {"$ref": "#/$defs/identifier"},
-        "kind": {"type": "string", "minLength": 1},
         "sha256": {"$ref": "#/$defs/sha256"},
-        "reconstructable": {"type": "boolean"},
-        "logical_identity": {"type": "string", "minLength": 1},
-        "copies": {
-          "type": "array",
-          "items": {"$ref": "#/$defs/copy"}
-        }
+        "file_count": {"type": "integer", "minimum": 1},
+        "verified_at": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false
     },
-    "target": {
+    "external_copy": {
       "type": "object",
-      "required": ["id", "kind", "required_asset_ids"],
+      "required": [
+        "method",
+        "location",
+        "fault_domain",
+        "sha256",
+        "file_count",
+        "verified_at",
+        "verifier",
+        "evidence_uri"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/identifier"},
-        "kind": {"enum": ["run", "worktree", "branch", "provider"]},
-        "required_asset_ids": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {"$ref": "#/$defs/identifier"}
-        },
-        "unique_untracked_paths": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
-        },
-        "pending_actions": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1}
-        }
+        "method": {"const": "external_attestation"},
+        "location": {"type": "string", "minLength": 1},
+        "fault_domain": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "file_count": {"type": "integer", "minimum": 1},
+        "verified_at": {"type": "string", "minLength": 1},
+        "verifier": {"type": "string", "minLength": 1},
+        "evidence_uri": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false
     }
   },
-  "required": ["schema_version", "archive_id", "assets"],
+  "required": ["archive_version", "run_id", "created_at", "source_manifest", "items"],
   "properties": {
-    "schema_version": {"const": 1},
-    "archive_id": {"$ref": "#/$defs/identifier"},
-    "assets": {
-      "type": "array",
-      "minItems": 1,
-      "items": {"$ref": "#/$defs/asset"}
+    "archive_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "source_manifest": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
     },
-    "retirement_targets": {
+    "items": {
       "type": "array",
-      "items": {"$ref": "#/$defs/target"}
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source",
+          "path_type",
+          "sha256",
+          "file_count",
+          "reconstructable",
+          "copies"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["run_artifact", "logical_asset"]},
+          "logical_asset_id": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1},
+          "path_type": {"enum": ["file", "directory"]},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "file_count": {"type": "integer", "minimum": 1},
+          "reconstructable": {"type": "boolean"},
+          "copies": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {"$ref": "#/$defs/local_copy"},
+                {"$ref": "#/$defs/external_copy"}
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

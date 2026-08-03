@@ -136,6 +136,14 @@ project-specific behavioral, scientific, and interface contracts below these sha
   count. Missing values use explicit reasons and remain distinct from zero. NaN and infinity
   are invalid durable evidence; dispersion requiring repeated observations is rejected when
   fewer than two observations exist.
+- Archives inventory immutable run artifacts and read-only logical assets by content identity.
+  A checksum declaration alone is not a verified copy: local copies must be re-read, and
+  external copies require a verifier identity plus a durable evidence URI.
+- Reconstructable items require at least one verified fault domain. Non-reconstructable items
+  require two verified independent fault domains before retirement may be considered.
+- Stop, delete, and retire are separate actions and permissions. Archive verification and
+  retirement preflight are read-only decisions; they never delete runs, worktrees, branches,
+  providers, servers, or volumes. Destructive action always requires separate authorization.
 - Accepted reports cite run IDs; paper values are generated from locked evidence rather than
   copied from terminal output.
 

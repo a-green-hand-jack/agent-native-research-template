@@ -54,3 +54,8 @@ Each evidence file records:
 
 Do not edit a promoted evidence file in place. A corrected execution receives a new run ID and a
 new evidence envelope. Reports should cite the promoted run ID and evidence file hash.
+
+Before retiring temporary storage or execution surfaces, inventory and verify run artifacts and
+logical assets with `tools/archive.py`. A checksum-only record is not a verified copy, and
+non-reconstructable items require two independent verified fault domains. Retirement preflight
+never performs deletion; see `docs/ARCHIVE_RETIREMENT.md`.
