@@ -30,7 +30,24 @@ jobs:
       - name: Apply and format scoped integration
         run: |
           uv sync --frozen --group dev
-          sed -i '/^    by_id = {phase\["id"\]: phase for phase in phases}$/d' tools/phase_graph.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/phase_graph.py")
+          text = path.read_text(encoding="utf-8")
+          old = (
+              '    phases = normalize_phases(spec, default_argv)\n'
+              '    by_id = {phase["id"]: phase for phase in phases}\n'
+              '    parent_by_id = {\n'
+          )
+          new = (
+              '    phases = normalize_phases(spec, default_argv)\n'
+              '    parent_by_id = {\n'
+          )
+          if text.count(old) != 1:
+              raise RuntimeError("execute_phases cleanup target changed")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
           uv run python tools/apply_phase_patch.py
           uv run ruff check --fix tools/phase_graph.py tests/test_phase_graph.py tests/test_phase_recovery_evidence.py
           uv run ruff format tools tests
