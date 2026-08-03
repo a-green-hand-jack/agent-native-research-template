@@ -79,6 +79,7 @@ required_paths:
   - tools/input_identity.py
   - tools/metric_observation.py
   - tools/phase_graph.py
+  - tools/plan_identity.py
   - tools/research.py
   - tools/run_state.py
   - tools/template_compat.py

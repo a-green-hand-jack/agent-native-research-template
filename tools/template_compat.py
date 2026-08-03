@@ -122,7 +122,16 @@ def migrate_to_v4(root: Path, state: dict[str, Any]) -> list[str]:
     return changes
 
 
-MIGRATIONS: dict[int, Migration] = {2: migrate_to_v2, 3: migrate_to_v3, 4: migrate_to_v4}
+def migrate_to_v5(root: Path, state: dict[str, Any]) -> list[str]:
+    return []
+
+
+MIGRATIONS: dict[int, Migration] = {
+    2: migrate_to_v2,
+    3: migrate_to_v3,
+    4: migrate_to_v4,
+    5: migrate_to_v5,
+}
 
 
 class TemplateCompatibilityError(ValueError):

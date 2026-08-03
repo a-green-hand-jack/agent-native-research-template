@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-RESULT_VERSION = 1
+RESULT_VERSION = 2
 LIFECYCLE_STATES = {
     "planned",
     "submitted",
@@ -135,10 +135,27 @@ def terminal_state(manifest: dict[str, Any], report: dict[str, Any]) -> str:
     return "succeeded"
 
 
+def manifest_identities(manifest: dict[str, Any]) -> dict[str, str] | None:
+    plan = manifest.get("plan")
+    if not isinstance(plan, dict):
+        return None
+    records = [plan.get(layer) for layer in ("protocol", "execution", "binding")]
+    if not all(
+        isinstance(record, dict) and isinstance(record.get("sha256"), str) for record in records
+    ):
+        return None
+    return {
+        "protocol_sha256": records[0]["sha256"],
+        "execution_plan_sha256": records[1]["sha256"],
+        "binding_sha256": records[2]["sha256"],
+    }
+
+
 def terminal_result(manifest: dict[str, Any], manifest_sha256: str) -> dict[str, Any]:
     report = completion_report(manifest)
-    return {
-        "result_version": RESULT_VERSION,
+    identities = manifest_identities(manifest)
+    result = {
+        "result_version": RESULT_VERSION if identities is not None else 1,
         "run_id": manifest["run_id"],
         "state": terminal_state(manifest, report),
         "terminal": True,
@@ -148,6 +165,9 @@ def terminal_result(manifest: dict[str, Any], manifest_sha256: str) -> dict[str,
         "termination": manifest.get("termination"),
         "completion": report,
     }
+    if identities is not None:
+        result["identities"] = identities
+    return result
 
 
 def write_terminal_result(
@@ -243,6 +263,7 @@ def results_projection(
         "run_id": manifest["run_id"],
         "status": status,
         "plan": manifest.get("plan"),
+        "identities": status.get("identities", {}),
         "phases": manifest.get("phases", []),
         "metrics": manifest.get("metrics", {}),
         "evaluation_errors": manifest.get("evaluation_errors", []),

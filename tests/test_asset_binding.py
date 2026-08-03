@@ -130,7 +130,9 @@ def test_profile_binding_change_does_not_change_scientific_plan(tmp_path: Path) 
     executor["asset_bindings"]["source-tree"]["path"] = "src-copy"
     executor_path.write_text(yaml.safe_dump(executor, sort_keys=False), encoding="utf-8")
     second = experiment_plan.plan_spec(spec_path, tmp_path)
-    assert first == second
+    assert first["protocol"] == second["protocol"]
+    assert first["execution"] == second["execution"]
+    assert first["binding"]["sha256"] != second["binding"]["sha256"]
     resolved = resolved_spec(spec_path, tmp_path)
     preflight = asset_binding.resolve_assets(
         resolved["spec"], resolved["executor"], tmp_path, phase="generation"

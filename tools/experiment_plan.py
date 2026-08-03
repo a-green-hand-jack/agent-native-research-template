@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import itertools
-import json
 import math
 import sys
 from copy import deepcopy
@@ -15,10 +13,11 @@ if str(TOOLS_DIR) not in sys.path:
 
 import execution_environment
 import phase_graph
+import plan_identity
 import research
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAN_VERSION = 1
+PLAN_VERSION = 2
 RUN_CLASSES = {"smoke", "pilot", "partial", "reference", "formal", "post_observation"}
 OBSERVATION_STATUSES = {"pre_observation", "post_observation"}
 SCALAR_TYPES = (str, int, float, bool, type(None))
@@ -29,11 +28,11 @@ class PlanError(ValueError):
 
 
 def canonical_json(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return plan_identity.canonical_json(value)
 
 
 def sha256_json(value: object) -> str:
-    return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
+    return plan_identity.sha256_json(value)
 
 
 def scalar(value: object, field: str) -> str | int | float | bool | None:
@@ -95,12 +94,7 @@ def expand_cells(
         if identity in seen:
             raise PlanError("matrix expansion produced duplicate cells")
         seen.add(identity)
-        cells.append(
-            {
-                "cell_id": identity[:16],
-                "parameters": cell_parameters,
-            }
-        )
+        cells.append({"cell_id": identity[:16], "parameters": cell_parameters})
     return cells
 
 
@@ -124,6 +118,18 @@ def protocol_fields(spec: dict[str, Any]) -> tuple[str, str, str]:
     return protocol_id, run_class, observation_status
 
 
+def environment_identity(resolved: dict[str, Any]) -> dict[str, Any]:
+    root = resolved["root"]
+    return {
+        "id": resolved["spec"]["environment"],
+        "definition": deepcopy(resolved["environment"]),
+        "definition_path": research.relative_name(resolved["environment_path"], root),
+        "definition_sha256": research.sha256_file(resolved["environment_path"]),
+        "lockfile": research.relative_name(resolved["lockfile_path"], root),
+        "lockfile_sha256": research.sha256_file(resolved["lockfile_path"]),
+    }
+
+
 def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
     spec = resolved["spec"]
     protocol_id, run_class, observation_status = protocol_fields(spec)
@@ -131,50 +137,39 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
     matrix = normalize_matrix(spec.get("matrix"))
     cells = expand_cells(parameters, matrix)
     recovery_policy = deepcopy(
-        spec.get(
-            "recovery_policy",
-            {"mode": "new_run", "reuse_verified_artifacts": False},
-        )
+        spec.get("recovery_policy", {"mode": "new_run", "reuse_verified_artifacts": False})
     )
     completion_criteria = deepcopy(
         spec.get("completion_criteria", {"required_artifacts": [], "required_metrics": []})
     )
     phases = phase_graph.normalize_phases(spec, resolved["argv"])
-    plan = {
-        "plan_version": PLAN_VERSION,
-        "experiment_id": spec["id"],
-        "protocol_id": protocol_id,
-        "run_class": run_class,
-        "observation_status": observation_status,
-        "question": spec["question"],
-        "contribution": spec["contribution"],
-        "scientific_parameters": parameters,
-        "matrix": matrix,
-        "cells": cells,
-        "config": spec["config"],
-        "effective_config": {
-            "path": spec["config"],
-            "sha256": research.sha256_file(resolved["config_path"]),
-            "resolved": deepcopy(resolved["config"]),
-        },
-        "environment": spec["environment"],
-        "executor": spec["executor"],
-        "evaluation": spec["evaluation"],
-        "execution_environment": execution_environment.declared_environment(
+    effective_config = {
+        "path": spec["config"],
+        "sha256": research.sha256_file(resolved["config_path"]),
+        "resolved": deepcopy(resolved["config"]),
+    }
+    return plan_identity.build_bundle(
+        spec=spec,
+        protocol_id=protocol_id,
+        run_class=run_class,
+        observation_status=observation_status,
+        parameters=parameters,
+        matrix=matrix,
+        cells=cells,
+        phases=phases,
+        effective_config=effective_config,
+        evaluation=resolved["evaluation"],
+        environment=resolved["environment"],
+        environment_identity=environment_identity(resolved),
+        executor=resolved["executor"],
+        execution_environment=execution_environment.declared_environment(
             resolved["executor"], resolved["root"]
         ),
-        "phases": phases,
-        "seed_policy": deepcopy(spec["seed_policy"]),
-        "budget": deepcopy(spec["budget"]),
-        "stopping_rule": deepcopy(spec["stopping_rule"]),
-        "inputs": deepcopy(spec.get("inputs", [])),
-        "assets": deepcopy(spec.get("assets", [])),
-        "artifacts": deepcopy(spec.get("artifacts", [])),
-        "inclusion_criteria": list(spec["inclusion_criteria"]),
-        "recovery_policy": recovery_policy,
-        "completion_criteria": completion_criteria,
-    }
-    return {"sha256": sha256_json(plan), "resolved": plan}
+        git=research.git_state(resolved["root"]),
+        resolved_inputs=resolved["inputs"],
+        recovery_policy=recovery_policy,
+        completion_criteria=completion_criteria,
+    )
 
 
 def plan_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any]:
@@ -183,4 +178,6 @@ def plan_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any]:
 
 
 def render_plan(spec_path: Path, root: Path = ROOT) -> str:
+    import json
+
     return json.dumps(plan_spec(spec_path, root), indent=2, sort_keys=True) + "\n"
