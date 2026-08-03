@@ -55,8 +55,9 @@ uv run python tools/evidence.py retry-phase <parent-run-id> --phase evaluation
 
 The parent run is verified before retry. Every transitive dependency must have succeeded. The new
 child run records the parent, retry phase, reused artifact checksums, and whether generation was
-skipped. Reused phase artifacts remain at their immutable parent locations; the child never edits or
-overwrites the parent run.
+skipped. Reused phase artifacts remain at their immutable parent locations; the child never edits,
+overwrites, or duplicates the parent snapshots. Its manifest records those parent-owned paths and
+checksums as recovery lineage.
 
 The retry uses the current checked-out spec only after normal replay drift checks pass. Use a new
 experiment protocol when the intended phase graph or command changes.
