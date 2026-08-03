@@ -3,10 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
+from test_research import build_repository
 
 from tools import asset_binding, experiment_plan, plan_identity, research
-
-from test_research import build_repository
 
 
 def load_yaml(path: Path) -> dict[str, object]:
