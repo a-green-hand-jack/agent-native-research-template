@@ -132,7 +132,9 @@ def test_unique_untracked_assets_block_retirement(tmp_path: Path) -> None:
     assert "unique untracked paths" in result["targets"][0]["blockers"][0]
 
 
-def test_cli_outputs_machine_readable_decision(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_outputs_machine_readable_decision(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     data = manifest(tmp_path)
     path = tmp_path / "archive.yaml"
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
