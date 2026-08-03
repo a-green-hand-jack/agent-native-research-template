@@ -22,6 +22,7 @@ import experiment_plan
 import input_identity
 import metric_observation
 import phase_graph
+import plan_identity
 import research
 import run_state
 
@@ -160,20 +161,21 @@ def supported_execution_controls(spec: dict[str, Any]) -> tuple[int, int]:
 
 def validate_supported_spec(spec_path: Path, root: Path = ROOT) -> dict[str, Any]:
     resolved = research.validate_spec(spec_path, root)
-    plan = experiment_plan.build_plan(resolved)
+    preflight = asset_binding.resolve_assets(
+        resolved["spec"], resolved["executor"], root, phase="all"
+    )
+    plan = plan_identity.resolve_binding(experiment_plan.build_plan(resolved), preflight)
     if len(plan["resolved"]["cells"]) != 1:
         raise EvidenceError(
             "the local runner executes exactly one plan cell; use an external scheduler "
             "for matrix plans"
         )
-    preflight = asset_binding.resolve_assets(
-        resolved["spec"], resolved["executor"], root, phase="all"
-    )
     seed, timeout = supported_execution_controls(resolved["spec"])
     return {
         **resolved,
         "seed": seed,
         "timeout": timeout,
+        "plan_bundle": plan,
         "plan": plan["resolved"],
         "plan_sha256": plan["sha256"],
         "asset_preflight": preflight,
@@ -195,13 +197,21 @@ def run_once(
     head_label = (git["commit"] or "nogit")[:8]
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{timestamp}-{spec['id']}-{head_label}-{uuid.uuid4().hex[:8]}"
-    run_dir = root / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
-    run_state.write_progress(run_dir, "planned", plan_sha256=resolved["plan_sha256"])
-    run_state.write_progress(run_dir, "submitted", executor=spec["executor"])
-
     environment, environment_evidence = execution_environment.resolve_environment(
         resolved["executor"], root, seed
+    )
+    plan_bundle = plan_identity.resolve_binding(
+        resolved["plan_bundle"], resolved["asset_preflight"], environment_evidence
+    )
+    identities = plan_identity.identity_summary(plan_bundle)
+    run_dir = root / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=False)
+    run_state.write_progress(run_dir, "planned", **identities)
+    run_state.write_progress(
+        run_dir,
+        "submitted",
+        executor=spec["executor"],
+        binding_sha256=identities["binding_sha256"],
     )
     started_at = utc_now()
     run_state.write_progress(run_dir, "running", started_at=started_at)
@@ -240,10 +250,7 @@ def run_once(
         "seed_environment_variable": SEED_ENVIRONMENT_VARIABLE,
         "question": spec["question"],
         "contribution": spec["contribution"],
-        "plan": {
-            "sha256": resolved["plan_sha256"],
-            "resolved": resolved["plan"],
-        },
+        "plan": plan_bundle,
         "config": {
             "path": relative(resolved["config_path"]),
             "sha256": research.sha256_file(resolved["config_path"]),
@@ -456,6 +463,32 @@ def verified_status(value: str, root: Path = ROOT) -> dict[str, Any]:
     return {**status, "run_id": manifest["run_id"]}
 
 
+def recorded_plan_identity_drift(manifest: dict[str, Any], root: Path) -> list[str]:
+    recorded = manifest.get("plan")
+    if not isinstance(recorded, dict) or not all(
+        isinstance(recorded.get(layer), dict) for layer in ("protocol", "execution", "binding")
+    ):
+        return []
+    spec_path = root / manifest["spec"]["path"]
+    current = validate_supported_spec(spec_path, root)
+    _, environment_evidence = execution_environment.resolve_environment(
+        current["executor"], root, current["seed"]
+    )
+    bundle = plan_identity.resolve_binding(
+        current["plan_bundle"], current["asset_preflight"], environment_evidence
+    )
+    labels = {
+        "protocol": "protocol identity changed",
+        "execution": "execution plan identity changed",
+        "binding": "binding identity changed",
+    }
+    return [
+        labels[layer]
+        for layer in ("protocol", "execution", "binding")
+        if recorded[layer].get("sha256") != bundle[layer]["sha256"]
+    ]
+
+
 def recorded_input_drift(manifest: dict[str, Any], root: Path) -> list[str]:
     checks = [
         (manifest["spec"]["path"], manifest["spec"]["sha256"], "spec"),
@@ -481,7 +514,7 @@ def recorded_input_drift(manifest: dict[str, Any], root: Path) -> list[str]:
             "evaluation definition",
         ),
     ]
-    drift: list[str] = []
+    drift = recorded_plan_identity_drift(manifest, root)
     for relative, expected, label in checks:
         path = root / relative
         if not path.is_file():

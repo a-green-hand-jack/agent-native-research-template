@@ -116,6 +116,16 @@ def test_planning_does_not_execute_experiment_command(
         raise AssertionError("planning must not execute subprocesses")
 
     monkeypatch.setattr(subprocess, "run", reject_execution)
+    monkeypatch.setattr(
+        plan_tool.research,
+        "git_state",
+        lambda _root: {
+            "commit": None,
+            "dirty": False,
+            "status": [],
+            "patch_sha256": "0" * 64,
+        },
+    )
     rendered = plan_tool.render_plan(spec_path, tmp_path)
     document = json.loads(rendered)
     assert document["resolved"]["phases"][0]["command"] == ["make", "smoke"]

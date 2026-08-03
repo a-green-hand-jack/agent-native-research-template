@@ -90,6 +90,11 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - Parsed configuration and declared executor environment policy are embedded in every
   deterministic plan. The runner builds a minimal environment from explicit values and a
   reviewed inheritance allowlist; it never copies the complete host environment.
+- Experiment identity is layered. The protocol identity contains scientific intent and phase
+  topology; the execution-plan identity binds protocol to parsed config, commands, code,
+  environment lock, budget, and artifact contract; the binding identity records the selected
+  executor profile, process-environment policy, and resolved physical assets. Profile changes
+  never silently rewrite protocol identity.
 - Every execution is preceded by a deterministic, side-effect-free plan. The plan records a
   protocol ID, run class, observation status, scientific parameters, stable matrix cells,
   resource controls, commands, declared inputs and artifacts, recovery policy, and completion

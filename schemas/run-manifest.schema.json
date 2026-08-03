@@ -302,6 +302,22 @@
           "additionalProperties": false
         }
       ]
+    },
+    "identity_record": {
+      "type": "object",
+      "required": [
+        "sha256",
+        "resolved"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resolved": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
@@ -577,9 +593,44 @@
         },
         "resolved": {
           "type": "object"
+        },
+        "identity_version": {
+          "const": 1
+        },
+        "protocol": {
+          "$ref": "#/$defs/identity_record"
+        },
+        "execution": {
+          "$ref": "#/$defs/identity_record"
+        },
+        "binding": {
+          "$ref": "#/$defs/identity_record"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "sha256",
+            "resolved"
+          ],
+          "not": {
+            "required": [
+              "identity_version"
+            ]
+          }
+        },
+        {
+          "required": [
+            "identity_version",
+            "protocol",
+            "execution",
+            "binding",
+            "sha256",
+            "resolved"
+          ]
+        }
+      ]
     },
     "asset_bindings": {
       "type": "object",

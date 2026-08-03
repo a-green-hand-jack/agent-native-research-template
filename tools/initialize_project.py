@@ -13,7 +13,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = "PROJECT.yaml"
 TEMPLATE_NAME = "agent-native-research-template"
-TEMPLATE_VERSION = 4
+TEMPLATE_VERSION = 5
 TEMPLATE_STATE = {
     "project_name": "Agent-Native Research Template",
     "distribution_name": "agent-native-project",
