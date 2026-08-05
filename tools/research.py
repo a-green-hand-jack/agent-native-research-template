@@ -22,6 +22,7 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 import execution_environment
+import external_facts
 import input_identity
 import metric_observation
 
@@ -51,6 +52,7 @@ SCHEMA_DOCUMENTS = {
     "run manifest": "schemas/run-manifest.schema.json",
     "run result": "schemas/run-result.schema.json",
     "evidence manifest": "schemas/evidence-manifest.schema.json",
+    "external fact": "schemas/external-fact.schema.json",
 }
 
 
@@ -399,6 +401,13 @@ def validate_spec(
     spec = load_yaml(path)
     validate_document(spec, "experiment", path, root)
     resolved_inputs = input_identity.resolve_inputs(spec.get("inputs", []), root)
+    try:
+        resolved_external_facts = external_facts.resolve_references(
+            spec.get("external_facts", []), root
+        )
+        external_facts.require_verified(resolved_external_facts, "experiment execution")
+    except external_facts.ExternalFactError as exc:
+        raise SpecError(str(exc)) from exc
     has_command = "command" in spec
     has_phases = "phases" in spec
     if has_command == has_phases:
@@ -468,6 +477,7 @@ def validate_spec(
         "lockfile_path": lockfile_path,
         "argv": argv,
         "inputs": resolved_inputs,
+        "external_facts": resolved_external_facts,
     }
 
 

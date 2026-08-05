@@ -110,6 +110,9 @@ portable contract rather than copying generated output.
 | `experiments/specs/` | Intended experiment definitions |
 | `experiments/reports/` | Curated reports that reference immutable runs |
 | `Makefile` | Public project setup, test, smoke, and verification interface |
+| `PROJECT.yaml` + `tools/template_lifecycle.py` | Reviewed template baseline and deterministic downstream update plans |
+| optional `RELEASE.yaml` + `tools/release.py` | Immutable draft artifacts, artifact-only verification, and explicit approval records |
+| optional `external-facts/` | Official-source observations with computed freshness and content identity |
 
 Create `baselines/`, `packages/`, or `paper/` only when the project has a real baseline,
 independent component boundary, or publication workflow.

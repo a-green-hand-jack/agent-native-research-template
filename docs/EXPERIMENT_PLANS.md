@@ -13,6 +13,12 @@ The command prints canonical JSON containing three independent identity records 
 projections. It loads and validates repository definitions, reads Git state for code identity, but
 does not invoke phase commands or create a run directory.
 
+Optional external fact IDs remain part of protocol intent, while their resolved source URL,
+content hash, checked time, validity window, and computed freshness are embedded in the execution
+plan. Planning and execution reject referenced facts that are stale, unverified, unknown, or
+missing. Resolved content participates in plan identity, so changing a fact invalidates a
+previously reviewed plan; unreferenced fact files remain inert.
+
 ## One command source per phase
 
 Every experiment normalizes to an explicit phase graph. Each phase owns exactly one command.

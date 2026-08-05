@@ -50,6 +50,7 @@ def build_bundle(
     execution_environment: dict[str, Any],
     git: dict[str, Any],
     resolved_inputs: list[dict[str, Any]],
+    resolved_external_facts: list[dict[str, Any]],
     recovery_policy: dict[str, Any],
     completion_criteria: dict[str, Any],
 ) -> dict[str, Any]:
@@ -68,6 +69,7 @@ def build_bundle(
         "evaluation": deepcopy(evaluation),
         "inputs": deepcopy(spec.get("inputs", [])),
         "logical_assets": deepcopy(spec.get("assets", [])),
+        "external_fact_ids": list(spec.get("external_facts", [])),
         "phase_topology": phase_topology(phases),
         "inclusion_criteria": list(spec["inclusion_criteria"]),
         "recovery_policy": deepcopy(recovery_policy),
@@ -96,6 +98,7 @@ def build_bundle(
         "budget": deepcopy(spec["budget"]),
         "stopping_rule": deepcopy(spec["stopping_rule"]),
         "resolved_inputs": deepcopy(resolved_inputs),
+        "resolved_external_facts": deepcopy(resolved_external_facts),
         "artifacts": deepcopy(spec.get("artifacts", [])),
         "inclusion_criteria": list(spec["inclusion_criteria"]),
         "recovery_policy": deepcopy(recovery_policy),

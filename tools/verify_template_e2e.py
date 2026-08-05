@@ -23,6 +23,10 @@ FUNCTIONAL_RESIDUES = (
     "from project import",
     "contribution: bootstrap",
     'researchctl = "tools.control_cli:main"',
+    "# Agent-Native Research Template",
+    "## Initialize A Real Project",
+    "## Repository Lifecycle Skills",
+    "the bootstrap experiment",
 )
 RESIDUE_SURFACES = (
     "CONTRIBUTIONS.md",

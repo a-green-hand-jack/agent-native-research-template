@@ -267,7 +267,12 @@
       },
       "additionalProperties": false
     },
-    "assets": {"type": "array", "items": {"$ref": "#/$defs/asset_requirement"}}
+    "assets": {"type": "array", "items": {"$ref": "#/$defs/asset_requirement"}},
+    "external_facts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/identifier"}
+    }
   },
   "additionalProperties": true
 }

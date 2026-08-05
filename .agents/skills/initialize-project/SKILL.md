@@ -58,8 +58,8 @@ uv run python tools/initialize_project.py apply \
 
 Inspect every planned write and removal. The functional initializer updates `PROJECT.yaml`, package
 metadata, installed console-script entry, source package, smoke test, contribution index, smoke
-experiment, Makefile, README, and lockfile identity. It never reads or writes the governance
-sidecar.
+experiment, Makefile, README, and lockfile identity. It removes template-only README sections while
+preserving a compact provenance marker. It never reads or writes the governance sidecar.
 
 Initialization records the source template name, template contract version, source Git commit, and
 an initially empty migration ledger in `PROJECT.yaml`. These fields describe provenance; they do

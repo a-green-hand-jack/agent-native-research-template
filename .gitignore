@@ -12,6 +12,7 @@ runs/
 artifacts/
 outputs/
 checkpoints/
+dist/
 
 .agents/runtime/*
 !.agents/runtime/.gitignore

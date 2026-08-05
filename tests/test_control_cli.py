@@ -49,6 +49,21 @@ def test_experiment_group_delegates_to_canonical_runner(
     assert observed == {"argv": ["plan", "study.yaml"], "root": tmp_path}
 
 
+def test_template_group_delegates_to_lifecycle_control(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_project(tmp_path)
+    observed: dict[str, object] = {}
+
+    def fake_main(argv: list[str], root: Path) -> int:
+        observed.update(argv=argv, root=root)
+        return 23
+
+    monkeypatch.setattr(control_cli.template_lifecycle, "main", fake_main)
+    assert control_cli.main(["template", "inspect"], tmp_path) == 23
+    assert observed == {"argv": ["inspect"], "root": tmp_path}
+
+
 def test_archive_group_delegates_to_canonical_archive_tool(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -63,6 +78,21 @@ def test_archive_group_delegates_to_canonical_archive_tool(
     monkeypatch.setattr(control_cli.archive, "main", fake_main)
     assert control_cli.main(["archive", "verify", "archive.json"], tmp_path) == 19
     assert observed == {"argv": ["verify", "archive.json"], "root": tmp_path}
+
+
+def test_release_group_delegates_to_release_control(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_project(tmp_path)
+    observed: dict[str, object] = {}
+
+    def fake_main(argv: list[str], root: Path) -> int:
+        observed.update(argv=argv, root=root)
+        return 29
+
+    monkeypatch.setattr(control_cli.release, "main", fake_main)
+    assert control_cli.main(["release", "validate"], tmp_path) == 29
+    assert observed == {"argv": ["validate"], "root": tmp_path}
 
 
 def test_package_installs_one_configured_console_entry() -> None:

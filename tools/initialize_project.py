@@ -13,13 +13,22 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = "PROJECT.yaml"
 TEMPLATE_NAME = "agent-native-research-template"
-TEMPLATE_VERSION = 5
+TEMPLATE_VERSION = 6
 TEMPLATE_STATE = {
     "project_name": "Agent-Native Research Template",
     "distribution_name": "agent-native-project",
     "package_name": "project",
     "cli_name": "researchctl",
     "contribution_id": "bootstrap",
+}
+DOWNSTREAM_README_SECTIONS = {
+    "Agent Governance Sidecar",
+    "Initialize A Real Project",
+    "Repository Lifecycle Skills",
+    "Project First",
+    "Agent Runtime Compatibility",
+    "Human And Agent Routing",
+    "Governance Entry Points",
 }
 DISTRIBUTION_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 PACKAGE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -103,6 +112,17 @@ def replace_required(content: str, old: str, new: str, path: str) -> str:
     return content.replace(old, new)
 
 
+def remove_markdown_sections(content: str, headings: set[str]) -> str:
+    kept: list[str] = []
+    skipping = False
+    for line in content.splitlines(keepends=True):
+        if line.startswith("## "):
+            skipping = line[3:].strip() in headings
+        if not skipping:
+            kept.append(line)
+    return "".join(kept)
+
+
 def read_required(root: Path, relative: str) -> str:
     path = root / relative
     if not path.is_file():
@@ -127,6 +147,9 @@ def template_metadata_errors(state: dict[str, Any]) -> list[str]:
     revision = metadata.get("initialized_from_commit")
     if revision is not None and (not isinstance(revision, str) or not revision.strip()):
         errors.append("PROJECT.yaml template.initialized_from_commit must be null or non-empty")
+    reviewed = metadata.get("reviewed_template_commit")
+    if reviewed is not None and (not isinstance(reviewed, str) or not reviewed.strip()):
+        errors.append("PROJECT.yaml template.reviewed_template_commit must be null or non-empty")
     migrations = metadata.get("applied_migrations")
     if not isinstance(migrations, list) or not all(
         isinstance(item, int) and not isinstance(item, bool) and item > 0 for item in migrations
@@ -142,10 +165,14 @@ def template_metadata_errors(state: dict[str, Any]) -> list[str]:
             errors.append(f"uninitialized template version must remain {TEMPLATE_VERSION}")
         if revision is not None:
             errors.append("uninitialized template initialized_from_commit must remain null")
+        if reviewed is not None:
+            errors.append("uninitialized template reviewed_template_commit must remain null")
         if migrations != []:
             errors.append("uninitialized template applied_migrations must remain empty")
     elif state.get("initialized") is True and revision is None:
         errors.append("initialized project must record template.initialized_from_commit")
+    elif state.get("initialized") is True and reviewed is None and version >= 6:
+        errors.append("initialized project must record template.reviewed_template_commit")
     return errors
 
 
@@ -243,12 +270,26 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
 
     revision = git_revision(root)
     readme = read_required(root, "README.md").replace("researchctl", identity.cli_name)
+    readme = remove_markdown_sections(readme, DOWNSTREAM_README_SECTIONS)
     readme = replace_required(
         readme,
         "# Agent-Native Research Template",
         f"# {identity.project_name}",
         "README.md",
     )
+    readme = readme.replace(
+        "A project-first GitHub template for ML, DL, RL, agents, benchmarks, environments, and "
+        "adjacent\nresearch projects. The functional project remains conventional and runnable on "
+        "its own. Optional\nagent governance lives in a non-runtime `.agents/` sidecar.\n",
+        f"{identity.project_name} is a project-first research repository with versioned "
+        "experiments,\nimmutable run facts, and reviewed evidence.\n",
+    )
+    readme = readme.replace("## Five-Minute Research Loop", "## Research Loop")
+    readme = readme.replace(
+        "Create a repository from this template, then run:",
+        "From the repository root, run:",
+    )
+    readme = readme.replace("the bootstrap experiment", "the configured smoke experiment")
     marker = (
         f"\n> Initialized from Agent-Native Research Template v{TEMPLATE_VERSION} at "
         f"`{revision}`. Distribution: `{identity.distribution_name}`; package: "
@@ -269,6 +310,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
             "name": TEMPLATE_NAME,
             "version": TEMPLATE_VERSION,
             "initialized_from_commit": revision,
+            "reviewed_template_commit": revision,
             "applied_migrations": [],
         },
     }
@@ -383,6 +425,10 @@ def check_project(root: Path = ROOT) -> list[str]:
         "src/project",
         "from project import",
         "contribution: bootstrap",
+        "# Agent-Native Research Template",
+        "## Initialize A Real Project",
+        "## Repository Lifecycle Skills",
+        "the bootstrap experiment",
     )
     for relative in residue_paths:
         path = root / relative
