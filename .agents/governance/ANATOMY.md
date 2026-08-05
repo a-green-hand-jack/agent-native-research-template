@@ -35,8 +35,8 @@ asymmetric:
 - `.agents/` contains governance.
 - `AGENTS.md` is the only root governance file because agent tools discover it there.
 - Every other path is functional by default.
-- Ignored tool state such as `.omx/` may appear in the working directory but is not a third
-  tracked repository unit.
+- Ignored tool state such as `.omx/` or the project-local `.uv-cache/` may appear in the working
+  directory but is not a third tracked repository unit.
 
 The interactive **[Repository Anatomy Map](docs/repository-map.html)** shows the physical
 boundary, allowed interactions, and worktree control modes. [Repository Evolution](docs/EVOLUTION.md)
@@ -168,6 +168,7 @@ Creation and control are independent:
 |---|---|---|
 | governance | `.agents/runtime/` | Per-worktree pads, control state, and handoffs |
 | external runtime | `.omx/` or equivalent ignored path | Tool-owned execution and workflow state |
+| functional tool | `.uv-cache/` | Ignored project-local dependency cache for sandbox-safe `uv` commands |
 | functional | `runs/` | Local run outputs and immutable manifests |
 | functional | external artifact storage | Large datasets, checkpoints, logs, and generated artifacts |
 

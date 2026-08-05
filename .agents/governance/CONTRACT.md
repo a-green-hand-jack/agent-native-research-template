@@ -198,6 +198,8 @@ project-specific behavioral, scientific, and interface contracts below these sha
 ## Environment And Infra Invariants
 
 - Incompatible baselines or workloads use isolated environments.
+- Project-level `uv` configuration keeps its ignored cache inside the repository so ordinary
+  dependency commands remain writable when a sandbox grants write access only to the checkout.
 - Project configuration refers to logical executor and storage names rather than private
   machine-specific paths.
 - Secrets and private infrastructure values remain in ignored overrides, encrypted files, or a

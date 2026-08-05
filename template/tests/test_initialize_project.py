@@ -34,6 +34,7 @@ def build_template(root: Path) -> None:
             '[project]\nname = "agent-native-project"\nversion = "0.1.0"\n'
             'description = "Bootstrap package for an agent-native research project"\n'
             '[project.scripts]\nresearchctl = "tools.control_cli:main"\n'
+            '[tool.uv]\ncache-dir = ".uv-cache"\n'
             '[tool.hatch.build.targets.wheel]\npackages = ["src/project", "tools"]\n'
         ),
         "uv.lock": '[[package]]\nname = "agent-native-project"\n',
@@ -123,6 +124,7 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     assert 'causal-lab = "tools.control_cli:main"' in (tmp_path / "pyproject.toml").read_text(
         encoding="utf-8"
     )
+    assert 'cache-dir = ".uv-cache"' in (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
     assert state["template"] == {
         "name": "agent-native-research-template",
         "version": 6,

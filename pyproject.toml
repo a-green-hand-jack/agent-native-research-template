@@ -28,6 +28,9 @@ packages = ["src/project", "tools"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.uv]
+cache-dir = ".uv-cache"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

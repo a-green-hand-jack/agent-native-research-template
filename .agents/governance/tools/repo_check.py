@@ -23,11 +23,12 @@ IGNORED_PARTS = {
     ".venv",
     ".pytest_cache",
     ".ruff_cache",
+    ".uv-cache",
     "runs",
     "artifacts",
 }
 GOVERNANCE_PATHS = {".agents/", "AGENTS.md"}
-TOOL_RUNTIME_PREFIXES = {".omx/"}
+TOOL_RUNTIME_PREFIXES = {".omx/", ".uv-cache/"}
 OVERLAY_MARKER = re.compile(r"<!--\s*(?P<name>[A-Z][A-Z0-9:_-]*):(?P<boundary>START|END)\s*-->")
 LEGACY_GOVERNANCE_PATHS = {
     "ANATOMY.md",
