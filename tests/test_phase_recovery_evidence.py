@@ -15,37 +15,40 @@ from test_research import build_repository
 import evidence
 
 
-def python_command(source: str) -> list[str]:
-    return [sys.executable, "-c", source]
-
-
 def configure_phase_spec(root: Path) -> Path:
     spec_path = build_repository(root)
-    generation = (
-        "from pathlib import Path; "
-        "count=Path('generation-count.txt'); "
-        "count.write_text(str(int(count.read_text()) + 1) if count.exists() else '1'); "
-        "Path('outputs').mkdir(exist_ok=True); "
-        "Path('outputs/generated.txt').write_text('generated\\n')"
-    )
-    evaluation = (
-        "import os; from pathlib import Path; "
-        "source=Path(os.environ['RESEARCH_PHASE_GENERATION_ARTIFACT_DIR']); "
-        "assert next(source.rglob('generated.txt')).read_text() == 'generated\\n'; "
-        "Path('outputs/score.txt').write_text('1\\n')"
+    (root / "src/test_project/workloads.py").write_text(
+        "from __future__ import annotations\n\n"
+        "import os\n"
+        "from pathlib import Path\n\n"
+        "def main(argv: list[str] | None = None) -> int:\n"
+        "    command = (argv or [None])[0]\n"
+        "    if command == 'generation':\n"
+        "        count = Path('generation-count.txt')\n"
+        "        count.write_text(str(int(count.read_text()) + 1) if count.exists() else '1')\n"
+        "        Path('outputs').mkdir(exist_ok=True)\n"
+        "        Path('outputs/generated.txt').write_text('generated\\n')\n"
+        "        return 0\n"
+        "    if command == 'evaluation':\n"
+        "        source = Path(os.environ['RESEARCH_PHASE_GENERATION_ARTIFACT_DIR'])\n"
+        "        assert next(source.rglob('generated.txt')).read_text() == 'generated\\n'\n"
+        "        Path('outputs/score.txt').write_text('1\\n')\n"
+        "        return 0\n"
+        "    raise ValueError(f'unknown command: {command}')\n",
+        encoding="utf-8",
     )
     spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
     spec.pop("command", None)
     spec["phases"] = [
         {
             "id": "generation",
-            "command": python_command(generation),
+            "command": ["researchctl", "workload", "generation"],
             "asset_phase": "generation",
             "outputs": [{"path": "outputs/generated.txt", "required": True}],
         },
         {
             "id": "evaluation",
-            "command": python_command(evaluation),
+            "command": ["researchctl", "workload", "evaluation"],
             "depends_on": ["generation"],
             "asset_phase": "evaluation",
             "outputs": [{"path": "outputs/score.txt", "required": True}],

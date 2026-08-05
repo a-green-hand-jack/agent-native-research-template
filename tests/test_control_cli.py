@@ -31,6 +31,7 @@ def test_help_uses_configured_project_command(
     output = capsys.readouterr().out
     assert "usage: labctl" in output
     assert "labctl experiment --help" in output
+    assert "workload" in output
 
 
 def test_experiment_group_delegates_to_canonical_runner(
@@ -108,6 +109,21 @@ def test_release_group_delegates_to_release_control(
     monkeypatch.setattr(control_cli.release, "main", fake_main)
     assert control_cli.main(["release", "validate"], tmp_path) == 29
     assert observed == {"argv": ["validate"], "root": tmp_path}
+
+
+def test_workload_group_delegates_to_project_workload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_project(tmp_path)
+    observed: dict[str, object] = {}
+
+    def fake_main(argv: list[str], root: Path) -> int:
+        observed.update(argv=argv, root=root)
+        return 37
+
+    monkeypatch.setattr(control_cli.workload, "main", fake_main)
+    assert control_cli.main(["workload", "smoke"], tmp_path) == 37
+    assert observed == {"argv": ["smoke"], "root": tmp_path}
 
 
 def test_package_installs_one_configured_console_entry() -> None:

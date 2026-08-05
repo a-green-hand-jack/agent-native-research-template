@@ -21,11 +21,18 @@ from test_research import build_repository
 
 def configure_outputs(root: Path) -> Path:
     spec = build_repository(root)
-    (root / "Makefile").write_text(
-        ".PHONY: smoke\nsmoke:\n"
-        "\t@mkdir -p outputs\n"
-        "\t@printf '{\"score\": 0.75}' > outputs/metrics.json\n"
-        "\t@printf 'accuracy=0.75 seed=%s\\n' \"$$RESEARCH_SEED\"\n",
+    (root / "src/test_project/workloads.py").write_text(
+        "from __future__ import annotations\n\n"
+        "import json\n"
+        "import os\n"
+        "from pathlib import Path\n\n"
+        "def main(argv: list[str] | None = None) -> int:\n"
+        "    assert argv == ['smoke']\n"
+        "    output = Path('outputs/metrics.json')\n"
+        "    output.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    output.write_text(json.dumps({'score': 0.75}), encoding='utf-8')\n"
+        "    print(f\"accuracy=0.75 seed={os.environ['RESEARCH_SEED']}\")\n"
+        "    return 0\n",
         encoding="utf-8",
     )
     (root / "evals/smoke.yaml").write_text(
@@ -169,8 +176,8 @@ def test_local_runner_rejects_unsupported_controls(
 
 def test_local_runner_enforces_wall_time_budget(tmp_path: Path) -> None:
     spec = build_repository(tmp_path)
-    (tmp_path / "Makefile").write_text(
-        ".PHONY: smoke\nsmoke:\n\t@python -c 'import time; time.sleep(2)'\n",
+    (tmp_path / "src/test_project/workloads.py").write_text(
+        "import time\n\ndef main(argv=None):\n    time.sleep(2)\n    return 0\n",
         encoding="utf-8",
     )
     text = spec.read_text(encoding="utf-8").replace(
@@ -186,6 +193,25 @@ def test_local_runner_enforces_wall_time_budget(tmp_path: Path) -> None:
         "reason": "timeout",
         "max_wall_time_seconds": 1,
     }
+
+
+def test_local_runner_records_protected_project_mutation_as_failure(tmp_path: Path) -> None:
+    spec = build_repository(tmp_path)
+    (tmp_path / "src/test_project/workloads.py").write_text(
+        "from pathlib import Path\n\n"
+        "def main(argv=None):\n"
+        "    Path('configs/base.yaml').write_text('seed: 9\\n', encoding='utf-8')\n"
+        "    return 0\n",
+        encoding="utf-8",
+    )
+
+    manifest_path, code = evidence.run_spec(spec, tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert code == evidence.phase_graph.OUTPUT_CONTRACT_RETURN_CODE
+    assert manifest["status"] == "failed"
+    assert manifest["termination"] == {"reason": "protected_project_mutation"}
+    assert manifest["phases"][0]["errors"] == ["protected project file changed: configs/base.yaml"]
 
 
 def test_parent_run_is_recorded(tmp_path: Path) -> None:

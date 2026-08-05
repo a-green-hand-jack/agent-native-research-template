@@ -18,9 +18,12 @@ interpretation.
    phase commands before observing results.
 5. Give every phase exactly one command source. Use explicit `phases` for multi-stage work. A
    top-level `command` is only a legacy one-phase shorthand and cannot coexist with `phases`.
-6. Keep evaluation definitions command-free; they own extraction and interpretation only.
-7. Commit a checkpoint before an expensive run whenever practical.
-8. Validate the definition graph, deterministic plan, asset bindings, and local-runner controls:
+6. Use structured argv beginning with `<project-cli> workload` for every command. Add or update a
+   stable project workload command instead of pointing the spec at Python files, Make targets, or
+   shell strings.
+7. Keep evaluation definitions command-free; they own extraction and interpretation only.
+8. Commit a checkpoint before an expensive run whenever practical.
+9. Validate the definition graph, deterministic plan, asset bindings, and local-runner controls:
 
 ```bash
 uv run researchctl experiment validate experiments/specs/<name>.yaml
@@ -68,6 +71,11 @@ plan requires an external scheduler; the built-in runner executes exactly one ce
 
 Each phase writes `runs/<run-id>/phases/<phase-id>/result.json` plus logs and immutable snapshots. A
 failed dependency produces explicit `incomplete` downstream results.
+
+The runner also snapshots protected project paths around every phase. A workload that creates,
+removes, or changes implementation, tests, configs, experiment definitions, executor profiles,
+schemas, or control tooling fails with `protected_project_mutation`. The guard is not an OS sandbox
+and does not automatically restore the changed file; stop and inspect the worktree before retrying.
 
 Each execution receives a unique run ID and writes an ignored local manifest under
 `runs/<run-id>/manifest.json`. The manifest records Git state, the resolved spec, effective config,

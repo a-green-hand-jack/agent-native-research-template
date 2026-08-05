@@ -27,6 +27,14 @@ def schema_document(title: str) -> str:
 def build_repository(root: Path, *, nested: bool = True) -> Path:
     spec_name = "experiments/specs/smoke/basic.yaml" if nested else "experiments/specs/smoke.yaml"
     files = {
+        "PROJECT.yaml": (
+            "schema_version: 1\ninitialized: true\nproject_name: Test Project\n"
+            "distribution_name: test-project\npackage_name: test_project\n"
+            "cli_name: researchctl\ncontribution_id: bootstrap\n"
+            "template:\n  name: agent-native-research-template\n  version: 7\n"
+            "  initialized_from_commit: test\n  reviewed_template_commit: test\n"
+            "  applied_migrations: []\n"
+        ),
         "CONTRIBUTIONS.md": (
             "| ID | Contribution | Code | Parameters | Evidence | Status |\n"
             "|---|---|---|---|---|---|\n"
@@ -52,10 +60,22 @@ def build_repository(root: Path, *, nested: bool = True) -> Path:
         ),
         "uv.lock": "version = 1\n",
         "Makefile": ".PHONY: smoke\nsmoke:\n\t@printf 'ok\\n'\n",
+        "src/test_project/__init__.py": "",
+        "src/test_project/workloads.py": (
+            "from __future__ import annotations\n\n"
+            "import argparse\n\n"
+            "def main(argv: list[str] | None = None) -> int:\n"
+            "    parser = argparse.ArgumentParser()\n"
+            "    parser.add_subparsers(dest='command', required=True).add_parser('smoke')\n"
+            "    parser.parse_args(argv)\n"
+            "    print('ok')\n"
+            "    return 0\n"
+        ),
         spec_name: (
             "schema_version: 1\nid: smoke\nquestion: Does the smoke path work?\n"
             "contribution: bootstrap\nconfig: configs/base.yaml\nenvironment: main\n"
-            "executor: local\nevaluation: smoke\ncommand: make smoke\n"
+            "executor: local\nevaluation: smoke\n"
+            "command: [researchctl, workload, smoke]\n"
             "seed_policy:\n  mode: fixed\n  seeds: [0]\n"
             "budget:\n  max_runs: 1\n  max_wall_time_seconds: 60\n"
             "stopping_rule:\n  type: after_runs\n  runs: 1\n"
@@ -78,7 +98,31 @@ def test_validate_recursively_discovers_specs(tmp_path: Path) -> None:
     assert paths == [spec_path]
     resolved = research.validate_spec(spec_path, tmp_path)
     assert resolved["spec"]["id"] == "smoke"
-    assert resolved["argv"] == ["make", "smoke"]
+    assert resolved["argv"] == ["researchctl", "workload", "smoke"]
+
+
+def test_validate_rejects_free_form_experiment_command(tmp_path: Path) -> None:
+    spec_path = build_repository(tmp_path)
+    spec_path.write_text(
+        spec_path.read_text(encoding="utf-8").replace(
+            "command: [researchctl, workload, smoke]", "command: make smoke"
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(research.SpecError, match="structured argv"):
+        research.validate_spec(spec_path, tmp_path)
+
+
+def test_validate_rejects_command_outside_configured_workload_cli(tmp_path: Path) -> None:
+    spec_path = build_repository(tmp_path)
+    spec_path.write_text(
+        spec_path.read_text(encoding="utf-8").replace(
+            "[researchctl, workload, smoke]", "[python, internal.py]"
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(research.SpecError, match="researchctl workload"):
+        research.validate_spec(spec_path, tmp_path)
 
 
 def test_validate_rejects_duplicate_experiment_ids(tmp_path: Path) -> None:
@@ -146,7 +190,7 @@ def test_validate_rejects_duplicate_command_sources(tmp_path: Path) -> None:
     spec_path = build_repository(tmp_path)
     text = spec_path.read_text(encoding="utf-8")
     spec_path.write_text(
-        text + "phases:\n  - id: main\n    command: make smoke\n",
+        text + "phases:\n  - id: main\n" + "    command: [researchctl, workload, smoke]\n",
         encoding="utf-8",
     )
     with pytest.raises(research.SpecError, match="exactly one of command or phases"):

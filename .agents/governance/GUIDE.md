@@ -243,3 +243,8 @@ uv run python .agents/governance/tools/repo_check.py
 
 Add a public project command only when it replaces a repeated project procedure. Add a sidecar
 procedure only when it removes a repeated agent coordination cost.
+
+Training, inference, generation, and evaluation procedures used by experiment specs enter through
+`<project-cli> workload`. Keep internal algorithms as library APIs; expose the stable operation that
+an agent or human must repeat. Experiment specs do not call internal Python files, Make targets, or
+free-form shell commands directly.

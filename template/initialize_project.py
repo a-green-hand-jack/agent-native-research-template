@@ -129,6 +129,12 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         f"contribution: {identity.contribution_id}",
         "experiments/specs/smoke.yaml",
     )
+    spec = replace_required(
+        spec,
+        "  - researchctl\n  - workload\n",
+        f"  - {identity.cli_name}\n  - workload\n",
+        "experiments/specs/smoke.yaml",
+    )
 
     source = read_required(root, "src/project/__init__.py")
     source = replace_required(
@@ -139,6 +145,9 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     )
     source = source.replace("template_status", "project_status")
     source = source.replace("bootstrap smoke test", "initialized smoke test")
+
+    workloads = read_required(root, "src/project/workloads.py")
+    workloads = workloads.replace("template_status", "project_status")
 
     smoke_test = read_required(root, "tests/smoke/test_template.py")
     smoke_test = smoke_test.replace("from project import", f"from {identity.package_name} import")
@@ -206,6 +215,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "CONTRIBUTIONS.md": contributions,
         "experiments/specs/smoke.yaml": spec,
         f"src/{identity.package_name}/__init__.py": source,
+        f"src/{identity.package_name}/workloads.py": workloads,
         "tests/smoke/test_project.py": smoke_test,
         "README.md": readme,
     }
@@ -244,7 +254,12 @@ def downstream_workflow(content: str) -> str:
 
 def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = False) -> list[str]:
     changes = build_changes(root, identity)
-    removed = ["src/project/__init__.py", "tests/smoke/test_template.py", "template/"]
+    removed = [
+        "src/project/__init__.py",
+        "src/project/workloads.py",
+        "tests/smoke/test_template.py",
+        "template/",
+    ]
     targets = set(changes)
     for relative in removed:
         path = root / relative.rstrip("/")

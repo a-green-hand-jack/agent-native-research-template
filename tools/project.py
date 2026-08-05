@@ -12,7 +12,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = "PROJECT.yaml"
 TEMPLATE_NAME = "agent-native-research-template"
-TEMPLATE_VERSION = 6
+TEMPLATE_VERSION = 7
 TEMPLATE_STATE = {
     "project_name": "Agent-Native Research Template",
     "distribution_name": "agent-native-project",
@@ -147,6 +147,37 @@ def expected_state(root: Path) -> tuple[dict[str, Any], list[str]]:
     return state, errors
 
 
+def workload_surface_errors(root: Path, package_name: str, cli_name: str) -> list[str]:
+    errors: list[str] = []
+    for relative in (
+        f"src/{package_name}/workloads.py",
+        "tools/workload.py",
+        "tools/source_guard.py",
+    ):
+        if not (root / relative).is_file():
+            errors.append(f"project workload boundary is missing: {relative}")
+    smoke_path = root / "experiments/specs/smoke.yaml"
+    if not smoke_path.is_file():
+        errors.append("project workload boundary is missing: experiments/specs/smoke.yaml")
+        return errors
+    smoke = load_yaml(smoke_path)
+    phases = smoke.get("phases", [])
+    commands = (
+        [smoke.get("command")]
+        if "command" in smoke
+        else [phase.get("command") for phase in phases if isinstance(phase, dict)]
+    )
+    expected_prefix = [cli_name, "workload"]
+    if not commands or any(
+        not isinstance(command, list) or len(command) < 3 or command[:2] != expected_prefix
+        for command in commands
+    ):
+        errors.append(
+            "experiments/specs/smoke.yaml must invoke the configured project workload CLI"
+        )
+    return errors
+
+
 def check_project(root: Path = ROOT) -> list[str]:
     state, errors = expected_state(root)
     if errors:
@@ -155,6 +186,7 @@ def check_project(root: Path = ROOT) -> list[str]:
         for key, value in TEMPLATE_STATE.items():
             if state[key] != value:
                 errors.append(f"uninitialized template {key} must remain {value!r}")
+        errors.extend(workload_surface_errors(root, state["package_name"], state["cli_name"]))
         return errors
 
     if state["template"]["version"] < TEMPLATE_VERSION:
@@ -178,8 +210,11 @@ def check_project(root: Path = ROOT) -> list[str]:
         errors.append(str(exc))
         return errors
 
+    errors.extend(workload_surface_errors(root, identity.package_name, identity.cli_name))
+
     required = [
         f"src/{identity.package_name}/__init__.py",
+        f"src/{identity.package_name}/workloads.py",
         "tests/smoke/test_project.py",
         "pyproject.toml",
         "CONTRIBUTIONS.md",
@@ -201,6 +236,7 @@ def check_project(root: Path = ROOT) -> list[str]:
         ],
         "experiments/specs/smoke.yaml": [f"contribution: {identity.contribution_id}"],
         "tests/smoke/test_project.py": [f"from {identity.package_name} import project_status"],
+        f"src/{identity.package_name}/workloads.py": ["project_status"],
     }
     for relative, required_text in checks.items():
         path = root / relative
@@ -217,6 +253,7 @@ def check_project(root: Path = ROOT) -> list[str]:
         "experiments/specs/smoke.yaml",
         "tests/smoke/test_project.py",
         f"src/{identity.package_name}/__init__.py",
+        f"src/{identity.package_name}/workloads.py",
         "Makefile",
         "README.md",
         "uv.lock",
@@ -230,6 +267,7 @@ def check_project(root: Path = ROOT) -> list[str]:
         "## Initialize A Real Project",
         "## Repository Lifecycle Skills",
         "the bootstrap experiment",
+        "template_status",
         "template/initialize_project.py",
         "template-test:",
         "template-e2e:",

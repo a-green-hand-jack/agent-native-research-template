@@ -139,4 +139,8 @@ def test_planning_does_not_execute_experiment_command(
     )
     rendered = plan_tool.render_plan(spec_path, tmp_path)
     document = json.loads(rendered)
-    assert document["resolved"]["phases"][0]["command"] == ["make", "smoke"]
+    assert document["resolved"]["phases"][0]["command"] == [
+        "researchctl",
+        "workload",
+        "smoke",
+    ]

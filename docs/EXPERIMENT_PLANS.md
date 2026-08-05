@@ -21,16 +21,18 @@ previously reviewed plan; unreferenced fact files remain inert.
 
 ## One command source per phase
 
-Every experiment normalizes to an explicit phase graph. Each phase owns exactly one command.
-Evaluation definitions own metric extraction and interpretation only; they do not repeat execution
-commands.
+Every experiment normalizes to an explicit phase graph. Each phase owns exactly one structured argv
+command beginning with `<project-cli> workload`. Evaluation definitions own metric extraction and
+interpretation only; they do not repeat execution commands. Free-form command strings and direct
+invocation of Python, Make, or internal scripts are rejected before planning or execution.
 
 A legacy single-command specification may declare a top-level `command`. It is normalized to one
 `main` phase. A specification that declares both a top-level command and explicit `phases` is
 rejected rather than choosing one implicitly.
 
 This rule prevents a shell command, evaluation definition, and phase graph from becoming competing
-sources of execution truth.
+sources of execution truth, and gives agents a stable workload interface without requiring them to
+inspect internal source entry points.
 
 ## Effective configuration
 

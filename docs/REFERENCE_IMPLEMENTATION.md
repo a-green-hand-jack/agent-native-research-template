@@ -12,6 +12,7 @@ These ideas are intended to remain useful across languages and execution stacks:
 - explicit initialization, template provenance, and reviewed migrations;
 - bounded attempts, immutable run facts, artifact snapshots, replay provenance, and reviewed
   evidence promotion;
+- a stable project workload command boundary with per-phase protected-file mutation detection;
 - one canonical source for each durable fact and one canonical executable path for each promise.
 
 Projects may replace the supplied language, package manager, test runner, build system, or local
@@ -32,6 +33,10 @@ The checked-in reference implementation targets:
 CI verifies the minimum supported Python version and a current stable Python version. It does not
 claim native Windows or macOS shell compatibility. Projects requiring those platforms should add
 platform-native command adapters and CI jobs before claiming support.
+
+The supplied source guard is not a container or kernel capability boundary. Workload code can read
+the executable source it needs; mutations to protected project paths are detected and fail the run,
+but are not automatically reverted.
 
 ## Changing The Stack
 

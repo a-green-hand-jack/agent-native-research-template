@@ -63,7 +63,7 @@ def test_phase_command_changes_execution_but_not_protocol_topology(tmp_path: Pat
     spec["phases"] = [{"id": "main", "command": command}]
     write_yaml(spec_path, spec)
     first = plan(spec_path, tmp_path)
-    spec["phases"][0]["command"] = ["make", "smoke", "EXTRA=1"]
+    spec["phases"][0]["command"] = ["researchctl", "workload", "smoke", "--extra"]
     write_yaml(spec_path, spec)
     second = plan(spec_path, tmp_path)
     assert first["protocol"]["sha256"] == second["protocol"]["sha256"]

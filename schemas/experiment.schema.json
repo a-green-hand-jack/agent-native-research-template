@@ -8,14 +8,9 @@
   "$defs": {
     "identifier": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
     "command": {
-      "oneOf": [
-        {"type": "string", "minLength": 1},
-        {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
-        }
-      ]
+      "type": "array",
+      "minItems": 3,
+      "items": {"type": "string", "minLength": 1}
     },
     "json_scalar": {"type": ["string", "integer", "number", "boolean", "null"]},
     "input": {

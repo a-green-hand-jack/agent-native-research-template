@@ -97,6 +97,34 @@ def test_phases_write_terminal_results_and_snapshots(tmp_path: Path) -> None:
     assert any(artifact["source_path"] == "outputs/score.txt" for artifact in result["artifacts"])
 
 
+def test_phase_fails_closed_when_workload_mutates_protected_project_file(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "src/model.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("original\n", encoding="utf-8")
+    spec = {
+        "assets": [],
+        "phases": [
+            {
+                "id": "main",
+                "command": python_command(
+                    "from pathlib import Path; Path('src/model.py').write_text('changed\\n')"
+                ),
+                "asset_phase": "all",
+                "outputs": [],
+            }
+        ],
+    }
+
+    result = execute(tmp_path, "mutating-run", spec)
+
+    assert result["return_code"] == phase_graph.OUTPUT_CONTRACT_RETURN_CODE
+    assert result["phases"][0]["status"] == "failed"
+    assert result["phases"][0]["termination"] == {"reason": "protected_project_mutation"}
+    assert result["phases"][0]["errors"] == ["protected project file changed: src/model.py"]
+
+
 def test_failed_phase_marks_downstream_incomplete(tmp_path: Path) -> None:
     spec = two_phase_spec()
     spec["phases"][1]["command"] = python_command("raise SystemExit(2)")

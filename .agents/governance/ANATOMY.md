@@ -121,6 +121,8 @@ portable contract rather than copying generated output.
 | `experiments/reports/` | Curated reports that reference immutable runs |
 | `Makefile` | Public project setup, test, smoke, and verification interface |
 | `PROJECT.yaml` + `tools/project.py` | Retained project identity, provenance, and consistency checks |
+| `tools/control_cli.py` + `tools/workload.py` + `src/<package>/workloads.py` | Stable project workload routing without exposing internal implementation entry points |
+| `tools/source_guard.py` | Per-phase detection of protected project file creation, removal, or modification |
 | `tools/template_compat.py` + `tools/template_lifecycle.py` | Registered downstream migrations and deterministic reviewed update plans |
 | optional `RELEASE.yaml` + `tools/release.py` | Immutable draft artifacts, artifact-only verification, and explicit approval records |
 | optional `external-facts/` | Official-source observations with computed freshness and content identity |

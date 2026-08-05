@@ -32,7 +32,7 @@ def add_inputs(spec: Path) -> None:
 
 def test_run_records_resolved_input_identities(tmp_path: Path) -> None:
     spec = configure_outputs(tmp_path)
-    (tmp_path / "src").mkdir()
+    (tmp_path / "src").mkdir(exist_ok=True)
     (tmp_path / "src/model.py").write_text("VALUE = 1\n", encoding="utf-8")
     add_inputs(spec)
     manifest_path, code = evidence.run_spec(spec, tmp_path)
@@ -46,13 +46,13 @@ def test_run_records_resolved_input_identities(tmp_path: Path) -> None:
     path_record = manifest["inputs"][0]
     assert path_record["path"] == "src"
     assert path_record["path_type"] == "directory"
-    assert path_record["file_count"] == 1
+    assert path_record["file_count"] == 3
     assert len(path_record["sha256"]) == 64
 
 
 def test_replay_rejects_path_input_drift(tmp_path: Path) -> None:
     spec = configure_outputs(tmp_path)
-    (tmp_path / "src").mkdir()
+    (tmp_path / "src").mkdir(exist_ok=True)
     source = tmp_path / "src/model.py"
     source.write_text("VALUE = 1\n", encoding="utf-8")
     add_inputs(spec)

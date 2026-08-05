@@ -131,8 +131,10 @@ required_paths:
   - tools/research.py
   - tools/release.py
   - tools/run_state.py
+  - tools/source_guard.py
   - tools/template_compat.py
   - tools/template_lifecycle.py
+  - tools/workload.py
   - template/README.md
   - template/initialize_project.py
   - template/tests/test_initialize_project.py

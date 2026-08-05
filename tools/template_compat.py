@@ -132,12 +132,42 @@ def migrate_to_v6(root: Path, state: dict[str, Any]) -> list[str]:
     return []
 
 
+def migrate_to_v7(root: Path, state: dict[str, Any]) -> list[str]:
+    package_name = state["package_name"]
+    cli_name = state["cli_name"]
+    blockers: list[str] = []
+    workload_path = root / "src" / package_name / "workloads.py"
+    if not workload_path.is_file():
+        blockers.append(f"missing src/{package_name}/workloads.py")
+    for path in sorted((root / "experiments" / "specs").rglob("*.yaml")):
+        spec = project.load_yaml(path)
+        commands = (
+            [spec.get("command")]
+            if "command" in spec
+            else [phase.get("command") for phase in spec.get("phases", [])]
+        )
+        expected = [cli_name, "workload"]
+        if not commands or any(
+            not isinstance(command, list) or len(command) < 3 or command[:2] != expected
+            for command in commands
+        ):
+            blockers.append(
+                f"{path.relative_to(root).as_posix()} must use {cli_name} workload <command>"
+            )
+    if blockers:
+        raise TemplateCompatibilityError(
+            "template v7 requires a reviewed workload CLI migration: " + "; ".join(blockers)
+        )
+    return []
+
+
 MIGRATIONS: dict[int, Migration] = {
     2: migrate_to_v2,
     3: migrate_to_v3,
     4: migrate_to_v4,
     5: migrate_to_v5,
     6: migrate_to_v6,
+    7: migrate_to_v7,
 }
 
 

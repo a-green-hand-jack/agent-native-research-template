@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import subprocess
 import sys
 from collections.abc import Iterable
@@ -353,15 +352,24 @@ def validate_stopping_rule(value: object) -> None:
         )
 
 
-def command_argv(value: object) -> list[str]:
-    if isinstance(value, str):
-        argv = shlex.split(value)
-    elif isinstance(value, list) and all(isinstance(item, str) for item in value):
-        argv = list(value)
-    else:
-        raise SpecError("command must be a shell-style string or a list of strings")
-    if not argv:
-        raise SpecError("command must not be empty")
+def configured_cli_name(root: Path) -> str:
+    state = load_yaml(root / "PROJECT.yaml")
+    value = state.get("cli_name")
+    if not isinstance(value, str) or not value.strip():
+        raise SpecError("PROJECT.yaml cli_name must be a non-empty string")
+    return value
+
+
+def command_argv(value: object, cli_name: str) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise SpecError("experiment command must use structured argv")
+    argv = list(value)
+    expected = [cli_name, "workload"]
+    if len(argv) < 3 or argv[:2] != expected:
+        raise SpecError(
+            f"experiment command must invoke the configured project workload CLI: "
+            f"{cli_name} workload <command>"
+        )
     return argv
 
 
@@ -445,7 +453,10 @@ def validate_spec(
     environment_path, environment = environments[spec["environment"]]
     evaluation_path, evaluation = evaluations[spec["evaluation"]]
     executor_path, executor = executors[spec["executor"]]
-    argv = command_argv(spec["command"]) if "command" in spec else []
+    cli_name = configured_cli_name(root)
+    argv = command_argv(spec["command"], cli_name) if "command" in spec else []
+    for phase in spec.get("phases", []):
+        command_argv(phase.get("command"), cli_name)
     lockfile_path = repository_path(root, environment["lockfile"], "environment lockfile")
 
     artifacts = spec.get("artifacts", [])

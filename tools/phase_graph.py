@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import time
@@ -13,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import asset_binding
+import source_guard
 
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 TIMEOUT_RETURN_CODE = 124
@@ -36,12 +36,10 @@ def write_json(path: Path, value: object) -> None:
 
 
 def command_argv(value: object) -> list[str]:
-    if isinstance(value, str):
-        argv = shlex.split(value)
-    elif isinstance(value, list) and all(isinstance(item, str) and item for item in value):
+    if isinstance(value, list) and all(isinstance(item, str) and item for item in value):
         argv = list(value)
     else:
-        raise PhaseGraphError("phase command must be a shell-style string or non-empty string list")
+        raise PhaseGraphError("phase command must be a non-empty structured argv list")
     if not argv:
         raise PhaseGraphError("phase command must not be empty")
     return argv
@@ -328,6 +326,7 @@ def execute_phases(
         remaining = max(1, int(deadline - time.monotonic()))
         timeout = min(phase["timeout_seconds"] or remaining, remaining)
         started_at = utc_now()
+        protected_before = source_guard.protected_snapshot(root)
         try:
             process = subprocess.run(
                 phase["command"],
@@ -354,6 +353,13 @@ def execute_phases(
         stdout_parts.append(f"===== {identifier} =====\n{stdout}")
         stderr_parts.append(f"===== {identifier} =====\n{stderr}")
         artifacts, errors = snapshot_outputs(root, phase_dir, phase["outputs"])
+        protected_errors = source_guard.mutation_errors(
+            protected_before, source_guard.protected_snapshot(root)
+        )
+        if protected_errors:
+            errors.extend(protected_errors)
+            return_code = OUTPUT_CONTRACT_RETURN_CODE
+            termination = {"reason": "protected_project_mutation"}
         if return_code == 0 and errors:
             return_code = OUTPUT_CONTRACT_RETURN_CODE
             termination = {"reason": "output_contract_failed"}
@@ -393,15 +399,16 @@ def execute_phases(
     if overall_return_code == 0:
         overall_termination: dict[str, Any] = {"reason": "completed"}
     else:
-        timeout_termination = next(
+        specific_termination = next(
             (
                 record["termination"]
                 for record in results
-                if record.get("termination", {}).get("reason") == "timeout"
+                if record.get("termination", {}).get("reason")
+                in {"timeout", "protected_project_mutation"}
             ),
             None,
         )
-        overall_termination = timeout_termination or {"reason": "phase_failed"}
+        overall_termination = specific_termination or {"reason": "phase_failed"}
     return {
         "phases": results,
         "stdout": "".join(stdout_parts),
