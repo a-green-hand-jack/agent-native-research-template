@@ -8,6 +8,8 @@ import tempfile
 import tomllib
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 IGNORED_COPY_NAMES = {
     ".git",
@@ -191,6 +193,11 @@ def check_downstream_projection(root: Path) -> None:
         raise TemplateVerificationError(
             f"initialized wheel has unexpected retained packages: {packages!r}"
         )
+    state = yaml.safe_load((root / "PROJECT.yaml").read_text(encoding="utf-8"))
+    smoke = yaml.safe_load((root / "experiments/specs/smoke.yaml").read_text(encoding="utf-8"))
+    commands = [phase["command"] for phase in smoke["phases"]]
+    if not commands or any(command[:2] != [state["cli_name"], "workload"] for command in commands):
+        raise TemplateVerificationError("initialized experiment bypasses the project workload CLI")
 
 
 def check_uv_cache(root: Path, environment: dict[str, str]) -> None:
@@ -218,6 +225,7 @@ def verify_initialized_copy(root: Path) -> None:
     check_uv_cache(root, environment)
     run(["uv", "sync", "--frozen", "--group", "dev"], root, environment=environment)
     run(["uv", "run", "template-e2e", "--help"], root)
+    run(["uv", "run", "template-e2e", "workload", "smoke"], root)
     run(["uv", "run", "template-e2e", "project", "check"], root)
     run(["uv", "run", "template-e2e", "archive", "--help"], root)
     run(["uv", "run", "template-e2e", "release", "--help"], root)
@@ -233,6 +241,7 @@ def verify_initialized_copy(root: Path) -> None:
     check_uv_cache(root, environment)
     run(["uv", "sync", "--frozen", "--group", "dev"], root, environment=environment)
     run(["uv", "run", "template-e2e", "--help"], root)
+    run(["uv", "run", "template-e2e", "workload", "smoke"], root)
     run(["uv", "run", "template-e2e", "project", "check"], root)
     run(["uv", "run", "template-e2e", "archive", "--help"], root)
     run(["uv", "run", "template-e2e", "release", "--help"], root)

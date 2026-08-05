@@ -40,6 +40,9 @@ assets:
   access: read
 phases:
 - id: main
-  command: make smoke
+  command:
+  - researchctl
+  - workload
+  - smoke
   asset_phase: all
   outputs: []

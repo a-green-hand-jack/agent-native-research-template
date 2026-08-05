@@ -25,7 +25,7 @@ def build_template(root: Path) -> None:
             "package_name: project\ncli_name: researchctl\ncontribution_id: bootstrap\n"
             "template:\n"
             "  name: agent-native-research-template\n"
-            "  version: 6\n"
+            "  version: 7\n"
             "  initialized_from_commit: null\n"
             "  reviewed_template_commit: null\n"
             "  applied_migrations: []\n"
@@ -53,18 +53,29 @@ def build_template(root: Path) -> None:
             "| bootstrap | Replace with the first real contribution | `src/project/` | "
             "`configs/base.yaml` | `evals/smoke.yaml` | bootstrap |\n"
         ),
-        "experiments/specs/smoke.yaml": "contribution: bootstrap\n",
+        "experiments/specs/smoke.yaml": (
+            "contribution: bootstrap\nphases:\n- id: main\n  command:\n"
+            "  - researchctl\n  - workload\n  - smoke\n"
+        ),
         "src/project/__init__.py": (
             '"""Bootstrap package. Replace this module with the first real project slice."""\n\n'
             "def template_status() -> str:\n"
             '    """Return a stable value used by the bootstrap smoke test."""\n'
             '    return "ready"\n'
         ),
+        "src/project/workloads.py": (
+            "from . import template_status\n\n"
+            "def main(argv: list[str] | None = None) -> int:\n"
+            "    assert template_status() == 'ready'\n"
+            "    return 0\n"
+        ),
         "tests/smoke/test_template.py": (
             "from project import template_status\n\n"
             "def test_template_vertical_slice() -> None:\n"
             '    assert template_status() == "ready"\n'
         ),
+        "tools/workload.py": "def main(argv=None, root=None):\n    return 0\n",
+        "tools/source_guard.py": "PROTECTED_PATHS = ('src',)\n",
         "README.md": "# Agent-Native Research Template\n\nTemplate description.\n",
         ".github/workflows/verify.yml": (
             "steps:\n"
@@ -94,6 +105,18 @@ def test_uninitialized_template_check_passes(tmp_path: Path) -> None:
     assert project.check_project(tmp_path) == []
 
 
+def test_uninitialized_template_check_requires_workload_boundary(tmp_path: Path) -> None:
+    build_template(tmp_path)
+    (tmp_path / "src/project/workloads.py").unlink()
+    spec = tmp_path / "experiments/specs/smoke.yaml"
+    spec.write_text("contribution: bootstrap\ncommand: make smoke\n", encoding="utf-8")
+
+    errors = project.check_project(tmp_path)
+
+    assert "project workload boundary is missing: src/project/workloads.py" in errors
+    assert any("configured project workload CLI" in error for error in errors)
+
+
 def test_dry_run_does_not_change_files(tmp_path: Path) -> None:
     build_template(tmp_path)
     before = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
@@ -109,6 +132,10 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     initializer.apply_changes(tmp_path, identity())
     assert project.check_project(tmp_path) == []
     assert (tmp_path / "src/causal_agent_lab/__init__.py").is_file()
+    assert (tmp_path / "src/causal_agent_lab/workloads.py").is_file()
+    workload = (tmp_path / "src/causal_agent_lab/workloads.py").read_text(encoding="utf-8")
+    assert "project_status" in workload
+    assert "template_status" not in workload
     assert (tmp_path / "tests/smoke/test_project.py").is_file()
     assert not (tmp_path / "src/project").exists()
     assert not (tmp_path / "tests/smoke/test_template.py").exists()
@@ -131,13 +158,13 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     )
     assert state["template"] == {
         "name": "agent-native-research-template",
-        "version": 6,
+        "version": 7,
         "initialized_from_commit": "unknown",
         "reviewed_template_commit": "unknown",
         "applied_migrations": [],
     }
     readme = (tmp_path / "README.md").read_text(encoding="utf-8")
-    assert "Initialized from Agent-Native Research Template v6 at `unknown`" in readme
+    assert "Initialized from Agent-Native Research Template v7 at `unknown`" in readme
 
 
 def test_apply_removes_template_only_readme_sections(tmp_path: Path) -> None:
@@ -176,7 +203,7 @@ def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
     build_template(tmp_path)
     project_file = tmp_path / "PROJECT.yaml"
     project_file.write_text(
-        project_file.read_text(encoding="utf-8").replace("version: 6", "version: 7"),
+        project_file.read_text(encoding="utf-8").replace("version: 7", "version: 8"),
         encoding="utf-8",
     )
     assert any("newer than supported" in error for error in project.check_project(tmp_path))

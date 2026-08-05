@@ -103,7 +103,7 @@ def test_preflight_resolves_content_identity(tmp_path: Path) -> None:
     ]
     source = preflight["assets"][0]
     assert source["path_type"] == "directory"
-    assert source["file_count"] == 1
+    assert source["file_count"] == 3
     assert len(source["sha256"]) == 64
     assert len(preflight["sha256"]) == 64
 

@@ -78,9 +78,12 @@ When the optional sidecar exists, update the project-specific section of
 behavior, scientific claims under test, schemas, validity requirements, compatibility constraints,
 and explicit non-goals.
 
-The initialized CLI must be the public experiment and archive control surface. Verify that the
-configured command from `PROJECT.yaml.cli_name` is installed and that the template default CLI no
-longer remains in package metadata.
+The initialized CLI must be the public experiment, workload, and archive control surface. Replace
+the bootstrap `src/<package>/workloads.py` handler with stable commands for the first real training,
+inference, generation, or evaluation slice. Experiment specs must invoke those commands through
+`<cli-name> workload`, not internal Python files or Make targets. Verify that the configured command
+from `PROJECT.yaml.cli_name` is installed and that the template default CLI no longer remains in
+package metadata.
 
 ## Check And Migrate
 

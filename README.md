@@ -142,9 +142,28 @@ uv run researchctl experiment verify-run <run-id>
 uv run researchctl experiment promote <run-id> --decision accepted
 ```
 
+Project-specific training, inference, generation, and evaluation procedures live behind the same
+installed command under `workload`. Experiment commands use structured argv and must begin with
+`<project-cli> workload`; direct `python`, `make`, shell strings, and other bypasses are rejected
+before execution. The bootstrap vertical slice is available as:
+
+```bash
+uv run researchctl workload smoke
+```
+
+The local runner snapshots protected implementation, test, configuration, experiment, executor,
+schema, and control-tool paths before each phase. A workload that creates, removes, or changes one
+of those files fails the run and records the paths. Runtime outputs and declared artifacts remain
+writable outside those protected surfaces.
+
+This is a project-operation boundary, not a general operating-system sandbox. The workload process
+still reads code required for normal execution, and the guard detects rather than automatically
+reverts a mutation. Use a container, mount policy, or scheduler isolation when stronger filesystem
+confidentiality or prevention is required.
+
 Validation rejects missing research controls, unknown contribution IDs, missing config paths,
-unknown environment or evaluation IDs, ambiguous executors, duplicate phase command sources, and
-missing environment locks.
+unknown environment or evaluation IDs, ambiguous executors, duplicate phase command sources,
+commands outside the configured workload CLI, and missing environment locks.
 
 A run manifest records the resolved spec, Git revision and dirty-state hash, environment lock,
 executor and evaluation definitions, typed metrics, declared artifacts, timestamps, return status,

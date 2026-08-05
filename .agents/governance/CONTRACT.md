@@ -91,12 +91,18 @@ project-specific behavioral, scientific, and interface contracts below these sha
   release control surface. Its name is recorded in `PROJECT.yaml` and may be replaced atomically
   during initialization. Legacy `tools/*.py` entry points are compatibility adapters, not
   independent implementations.
+- Repeatable project workloads such as training, inference, generation, and evaluation are exposed
+  through `<project-cli> workload`. Internal library functions do not become CLI commands merely
+  because they exist.
 
 - A runnable experiment resolves its code revision, config, environment, structured inputs,
   executor, and evaluation protocol.
 - Every experiment has exactly one command source per phase. Evaluation definitions describe
   extraction and interpretation only; they never duplicate execution commands. Top-level
   commands are a legacy one-phase shorthand and cannot coexist with explicit phases.
+- Every experiment command is structured argv beginning with the configured project CLI and the
+  `workload` group. Free-form strings and direct Python, Make, shell, or internal-script entry
+  points are rejected before execution.
 - Parsed configuration and declared executor environment policy are embedded in every
   deterministic plan. The runner builds a minimal environment from explicit values and a
   reviewed inheritance allowlist; it never copies the complete host environment.
@@ -139,6 +145,13 @@ project-specific behavioral, scientific, and interface contracts below these sha
   dependencies make downstream phases explicitly incomplete.
 - Phase retry creates a child run, verifies the parent and current inputs, reuses only successful
   verified dependency snapshots by hash, records recovery lineage, and never overwrites a parent.
+- Each phase compares protected project implementation, test, configuration, experiment, executor,
+  schema, and control-tool files before and after its workload. Creating, removing, or changing a
+  protected file fails that phase and blocks dependents. Runtime outputs and declared artifacts
+  outside protected surfaces remain writable.
+- The workload CLI and source guard are a project-operation boundary, not an OS sandbox. They avoid
+  ad hoc agent entry points and detect protected-file mutations; they do not hide executable source,
+  provide kernel-enforced access control, or automatically revert a detected mutation.
 - The installed CLI's experiment runner is the canonical bounded local runner. It executes exactly one fixed seed,
   exposes that seed as `RESEARCH_SEED`, requires and enforces a positive wall-time limit, and
   accepts only a one-run stopping rule.

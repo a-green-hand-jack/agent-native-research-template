@@ -22,7 +22,7 @@ def initialized_project(root: Path) -> None:
                 "schema_version: 1\ninitialized: true\nproject_name: Causal Agent Lab\n"
                 "distribution_name: causal-agent-lab\npackage_name: causal_agent_lab\n"
                 "cli_name: causal-lab\ncontribution_id: causal-policy\n"
-                "template:\n  name: agent-native-research-template\n  version: 6\n"
+                "template:\n  name: agent-native-research-template\n  version: 7\n"
                 "  initialized_from_commit: unknown\n  reviewed_template_commit: unknown\n"
                 "  applied_migrations: []\n"
             ),
@@ -35,7 +35,9 @@ def initialized_project(root: Path) -> None:
             "experiments/specs/smoke.yaml": (
                 "contribution: causal-policy\n"
                 "inputs:\n  - id: smoke-source\n    kind: path\n    path: src\n"
+                "phases:\n  - id: main\n    command: [causal-lab, workload, smoke]\n"
             ),
+            "src/causal_agent_lab/workloads.py": "def main(argv):\n    return 0\n",
             "README.md": "# Causal Agent Lab\n",
             "Makefile": "verify:\n\tuv run causal-lab experiment validate\n",
         },
@@ -51,7 +53,7 @@ def uninitialized_template(root: Path) -> None:
                 "project_name: Agent-Native Research Template\n"
                 "distribution_name: agent-native-project\npackage_name: project\n"
                 "cli_name: researchctl\ncontribution_id: bootstrap\n"
-                "template:\n  name: agent-native-research-template\n  version: 6\n"
+                "template:\n  name: agent-native-research-template\n  version: 7\n"
                 "  initialized_from_commit: null\n  reviewed_template_commit: null\n"
                 "  applied_migrations: []\n"
             )
@@ -67,7 +69,7 @@ def test_current_initialized_project_is_compatible(tmp_path: Path) -> None:
 def test_migrate_to_current_version_is_explicit_noop(tmp_path: Path) -> None:
     initialized_project(tmp_path)
     before = (tmp_path / "PROJECT.yaml").read_text(encoding="utf-8")
-    assert compat.migrate(tmp_path, 6) == []
+    assert compat.migrate(tmp_path, 7) == []
     assert (tmp_path / "PROJECT.yaml").read_text(encoding="utf-8") == before
 
 
@@ -146,9 +148,10 @@ def test_version_3_migration_installs_configured_control_surface(
 
 
 def test_version_6_migration_records_reviewed_template_baseline(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     initialized_project(tmp_path)
+    monkeypatch.setattr(compat.project, "TEMPLATE_VERSION", 6)
     state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 5
     state["template"].pop("reviewed_template_commit")
@@ -162,8 +165,11 @@ def test_version_6_migration_records_reviewed_template_baseline(
     assert migrated["template"]["applied_migrations"] == [6]
 
 
-def test_version_6_migration_replaces_explicit_null_baseline(tmp_path: Path) -> None:
+def test_version_6_migration_replaces_explicit_null_baseline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     initialized_project(tmp_path)
+    monkeypatch.setattr(compat.project, "TEMPLATE_VERSION", 6)
     state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 5
     state["template"]["reviewed_template_commit"] = None
@@ -177,13 +183,34 @@ def test_version_6_migration_replaces_explicit_null_baseline(tmp_path: Path) -> 
 def test_migrations_are_forward_only(tmp_path: Path) -> None:
     initialized_project(tmp_path)
     state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
-    state["template"]["version"] = 7
+    state["template"]["version"] = 8
     compat.project.write_text(
         tmp_path / "PROJECT.yaml",
         compat.project.dump_yaml(state),
     )
     with pytest.raises(compat.TemplateCompatibilityError, match="newer than supported"):
-        compat.migrate(tmp_path, 6)
+        compat.migrate(tmp_path, 7)
+
+
+def test_version_7_migration_requires_reviewed_workload_boundary(tmp_path: Path) -> None:
+    initialized_project(tmp_path)
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
+    state["template"]["version"] = 6
+    compat.project.write_text(tmp_path / "PROJECT.yaml", compat.project.dump_yaml(state))
+    (tmp_path / "src/causal_agent_lab/workloads.py").unlink()
+    smoke = tmp_path / "experiments/specs/smoke.yaml"
+    smoke.write_text("command: make smoke\n", encoding="utf-8")
+
+    with pytest.raises(compat.TemplateCompatibilityError, match="reviewed workload CLI"):
+        compat.migrate(tmp_path, 7)
+    assert compat.project.load_yaml(tmp_path / "PROJECT.yaml")["template"]["version"] == 6
+
+    workload = tmp_path / "src/causal_agent_lab/workloads.py"
+    workload.parent.mkdir(parents=True, exist_ok=True)
+    workload.write_text("def main(argv):\n    return 0\n", encoding="utf-8")
+    smoke.write_text("command: [causal-lab, workload, smoke]\n", encoding="utf-8")
+    assert compat.migrate(tmp_path, 7) == []
+    assert compat.project.load_yaml(tmp_path / "PROJECT.yaml")["template"]["version"] == 7
 
 
 def test_uninitialized_template_cannot_run_downstream_migrations(tmp_path: Path) -> None:
