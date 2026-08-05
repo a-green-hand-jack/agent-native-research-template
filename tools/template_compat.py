@@ -6,11 +6,10 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-TOOLS_DIR = Path(__file__).resolve().parent
-if str(TOOLS_DIR) not in sys.path:
-    sys.path.insert(0, str(TOOLS_DIR))
-
-import initialize_project
+try:
+    from . import project
+except ImportError:  # compatibility for direct script execution
+    import project
 
 ROOT = Path(__file__).resolve().parents[1]
 Migration = Callable[[Path, dict[str, Any]], list[str]]
@@ -19,17 +18,17 @@ Migration = Callable[[Path, dict[str, Any]], list[str]]
 def migrate_to_v2(root: Path, _: dict[str, Any]) -> list[str]:
     relative = "experiments/specs/smoke.yaml"
     path = root / relative
-    specification = initialize_project.load_yaml(path)
+    specification = project.load_yaml(path)
     if "inputs" in specification:
         return []
     specification["inputs"] = [{"id": "smoke-source", "kind": "path", "path": "src"}]
-    initialize_project.write_text(path, initialize_project.dump_yaml(specification))
+    project.write_text(path, project.dump_yaml(specification))
     return [f"write {relative}"]
 
 
 def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
     cli_name = state["distribution_name"]
-    if not initialize_project.CLI_PATTERN.fullmatch(cli_name):
+    if not project.CLI_PATTERN.fullmatch(cli_name):
         raise TemplateCompatibilityError(
             "distribution_name cannot be used as a CLI name; choose a valid lowercase hyphenated name"
         )
@@ -58,7 +57,7 @@ def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
         content = content.replace(package_marker, package_replacement)
     elif package_replacement not in content:
         raise TemplateCompatibilityError("pyproject.toml does not expose the initialized package")
-    initialize_project.write_text(pyproject_path, content)
+    project.write_text(pyproject_path, content)
     changes.append("write pyproject.toml")
 
     makefile_path = root / "Makefile"
@@ -78,7 +77,7 @@ def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
                 f"control-cli:\n	uv run {cli_name} --help >/dev/null\n\nresearch-validate:\n",
             )
             makefile = makefile.replace("verify: ", "verify: control-cli ")
-        initialize_project.write_text(makefile_path, makefile)
+        project.write_text(makefile_path, makefile)
         changes.append("write Makefile")
 
     readme_path = root / "README.md"
@@ -91,7 +90,7 @@ def migrate_to_v3(root: Path, state: dict[str, Any]) -> list[str]:
             "uv run python tools/evidence.py ", f"uv run {cli_name} experiment "
         )
         readme = readme.replace("uv run python tools/archive.py ", f"uv run {cli_name} archive ")
-        initialize_project.write_text(readme_path, readme)
+        project.write_text(readme_path, readme)
         changes.append("write README.md")
     return changes
 
@@ -100,24 +99,24 @@ def migrate_to_v4(root: Path, state: dict[str, Any]) -> list[str]:
     changes: list[str] = []
     spec_path = root / "experiments/specs/smoke.yaml"
     if spec_path.is_file():
-        spec = initialize_project.load_yaml(spec_path)
+        spec = project.load_yaml(spec_path)
         if spec.get("phases") and "command" in spec:
             spec.pop("command")
-            initialize_project.write_text(spec_path, initialize_project.dump_yaml(spec))
+            project.write_text(spec_path, project.dump_yaml(spec))
             changes.append("write experiments/specs/smoke.yaml")
     evaluation_path = root / "evals/smoke.yaml"
     if evaluation_path.is_file():
-        evaluation = initialize_project.load_yaml(evaluation_path)
+        evaluation = project.load_yaml(evaluation_path)
         if "command" in evaluation:
             evaluation.pop("command")
-            initialize_project.write_text(evaluation_path, initialize_project.dump_yaml(evaluation))
+            project.write_text(evaluation_path, project.dump_yaml(evaluation))
             changes.append("write evals/smoke.yaml")
     profile_path = root / "infra/profiles/local.yaml"
     if profile_path.is_file():
-        profile = initialize_project.load_yaml(profile_path)
+        profile = project.load_yaml(profile_path)
         profile.setdefault("environment", {"PYTHONUNBUFFERED": "1"})
         profile.setdefault("inherit_environment", ["PATH", "HOME"])
-        initialize_project.write_text(profile_path, initialize_project.dump_yaml(profile))
+        project.write_text(profile_path, project.dump_yaml(profile))
         changes.append("write infra/profiles/local.yaml")
     return changes
 
@@ -147,15 +146,14 @@ class TemplateCompatibilityError(ValueError):
 
 
 def compatibility_errors(root: Path = ROOT) -> list[str]:
-    state, errors = initialize_project.expected_state(root)
+    state, errors = project.expected_state(root)
     if errors:
         return errors
     metadata = state["template"]
     version = metadata["version"]
-    if version < initialize_project.TEMPLATE_VERSION:
+    if version < project.TEMPLATE_VERSION:
         errors.append(
-            f"project template version {version} requires migration to "
-            f"{initialize_project.TEMPLATE_VERSION}"
+            f"project template version {version} requires migration to {project.TEMPLATE_VERSION}"
         )
     return errors
 
@@ -168,10 +166,9 @@ def migration_plan(state: dict[str, Any], target: int) -> list[int]:
         raise TemplateCompatibilityError(
             f"template migrations are forward-only: current={current}, target={target}"
         )
-    if target > initialize_project.TEMPLATE_VERSION:
+    if target > project.TEMPLATE_VERSION:
         raise TemplateCompatibilityError(
-            f"target template version {target} is newer than supported "
-            f"{initialize_project.TEMPLATE_VERSION}"
+            f"target template version {target} is newer than supported {project.TEMPLATE_VERSION}"
         )
     plan = list(range(current + 1, target + 1))
     missing = [version for version in plan if version not in MIGRATIONS]
@@ -182,7 +179,7 @@ def migration_plan(state: dict[str, Any], target: int) -> list[int]:
 
 
 def migrate(root: Path, target: int, *, dry_run: bool = False) -> list[str]:
-    state, errors = initialize_project.expected_state(root)
+    state, errors = project.expected_state(root)
     if errors:
         raise TemplateCompatibilityError("; ".join(errors))
     if state["initialized"] is not True:
@@ -202,9 +199,9 @@ def migrate(root: Path, target: int, *, dry_run: bool = False) -> list[str]:
         if version not in applied:
             applied.append(version)
         metadata["applied_migrations"] = sorted(applied)
-    initialize_project.write_text(
-        root / initialize_project.STATE_PATH,
-        initialize_project.dump_yaml(state),
+    project.write_text(
+        root / project.STATE_PATH,
+        project.dump_yaml(state),
     )
     remaining = compatibility_errors(root)
     if remaining:
@@ -238,11 +235,11 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
                 for error in errors:
                     print(f"ERROR {error}")
                 return 1
-            state = initialize_project.load_yaml(root / initialize_project.STATE_PATH)
+            state = project.load_yaml(root / project.STATE_PATH)
             print(
                 "OK template compatibility "
                 f"version={state['template']['version']} "
-                f"current={initialize_project.TEMPLATE_VERSION}"
+                f"current={project.TEMPLATE_VERSION}"
             )
             return 0
         changes = migrate(root, args.to, dry_run=args.dry_run)
@@ -252,7 +249,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         else:
             print(f"OK no migration required for template version {args.to}")
         return 0
-    except (OSError, TemplateCompatibilityError, initialize_project.InitializationError) as exc:
+    except (OSError, TemplateCompatibilityError, project.ProjectCheckError) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
 

@@ -15,6 +15,8 @@ repo/
 │   ├── configs + environments + infra
 │   ├── evals + experiments + evidence
 │   └── README + CONTRIBUTIONS + Makefile
+├── template/                             functional, template-only lifecycle
+│   └── initializer + projection regression checks
 │
 ├── AGENTS.md                             thin discovery adapter
 └── .agents/                              governance sidecar
@@ -24,9 +26,11 @@ repo/
     └── runtime/                          ignored pads, control, handoffs
 ```
 
-The repository has a primary functional project and an optional governance sidecar. They share
-Git history but not runtime. An agent runtime operates them from outside that two-unit model. The
-physical boundary is intentionally asymmetric:
+The repository has a primary functional project and an optional governance sidecar. `template/`
+is functional source-template maintenance code, not a third ownership unit, and is removed from
+the initialized downstream projection. The units share Git history but not runtime. An agent
+runtime operates them from outside that two-unit model. The physical boundary is intentionally
+asymmetric:
 
 - `.agents/` contains governance.
 - `AGENTS.md` is the only root governance file because agent tools discover it there.
@@ -41,6 +45,12 @@ describes when functional project structure should grow.
 The interactive **[Worktree Control Model](docs/worktree-control.html)** separately explains
 human, main-agent, worktree, and worktree-agent identity, authority, persistence, and control
 transfer.
+
+Ownership, lifecycle, and readership are independent classifications. A machine-first schema can
+be downstream-required functional code; an agent-invoked command can still be project-owned; and
+template-only code remains functional even though it is absent downstream. The canonical lifecycle
+classes are `downstream_required`, `downstream_optional`, `template_only`, and `runtime_only` in
+`REPO_UNITS.yaml`.
 
 ## Non-Invasive Interaction
 
@@ -110,9 +120,21 @@ portable contract rather than copying generated output.
 | `experiments/specs/` | Intended experiment definitions |
 | `experiments/reports/` | Curated reports that reference immutable runs |
 | `Makefile` | Public project setup, test, smoke, and verification interface |
-| `PROJECT.yaml` + `tools/template_lifecycle.py` | Reviewed template baseline and deterministic downstream update plans |
+| `PROJECT.yaml` + `tools/project.py` | Retained project identity, provenance, and consistency checks |
+| `tools/template_compat.py` + `tools/template_lifecycle.py` | Registered downstream migrations and deterministic reviewed update plans |
 | optional `RELEASE.yaml` + `tools/release.py` | Immutable draft artifacts, artifact-only verification, and explicit approval records |
 | optional `external-facts/` | Official-source observations with computed freshness and content identity |
+
+## Source Template Maintenance
+
+| Path | Responsibility |
+|---|---|
+| `template/initialize_project.py` | Replace bootstrap identity and remove template-only surfaces |
+| `template/tests/` | Characterize initializer and downstream projection behavior |
+| `template/verify_downstream.py` | Exercise a real initialized copy before and after sidecar removal |
+
+Initialized repositories do not retain `template/`, `template-test`, or `template-e2e`. Their
+functional checks use the installed project CLI and never import template-maintainer code.
 
 Create `baselines/`, `packages/`, or `paper/` only when the project has a real baseline,
 independent component boundary, or publication workflow.

@@ -148,7 +148,7 @@ smoke example is not evidence that a real downstream workflow was adapted correc
 
 Never:
 
-- run `tools/initialize_project.py apply` against a mature non-template repository;
+- run `template/initialize_project.py apply` against a mature non-template repository;
 - replace the downstream source tree, README, CI, build metadata, or lockfile wholesale;
 - merge or copy the template default branch into the repository as an adoption strategy;
 - label project-specific values, claims, metrics, or assets as template defaults;

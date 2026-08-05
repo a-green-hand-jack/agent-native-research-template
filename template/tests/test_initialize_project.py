@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
-MODULE = Path(__file__).resolve().parents[1] / "tools" / "initialize_project.py"
+from tools import project
+
+MODULE = Path(__file__).resolve().parents[1] / "initialize_project.py"
 SPEC = importlib.util.spec_from_file_location("initializer", MODULE)
 assert SPEC and SPEC.loader
 initializer = importlib.util.module_from_spec(SPEC)
@@ -36,10 +38,12 @@ def build_template(root: Path) -> None:
         ),
         "uv.lock": '[[package]]\nname = "agent-native-project"\n',
         "Makefile": (
-            ".PHONY: research-validate research-run verify\n"
+            ".PHONY: research-validate research-run template-test template-e2e verify\n"
             "research-validate:\n\tuv run researchctl experiment validate\n"
             "research-run:\n\tuv run researchctl experiment run experiments/specs/smoke.yaml\n"
-            "verify: research-validate\n"
+            "template-test:\n\tuv run pytest -q template/tests\n\n"
+            "template-e2e:\n\tuv run python template/verify_downstream.py\n\n"
+            "verify: research-validate template-test\n"
         ),
         "CONTRIBUTIONS.md": (
             "| ID | Contribution | Code | Parameters | Evidence | Status |\n"
@@ -60,6 +64,12 @@ def build_template(root: Path) -> None:
             '    assert template_status() == "ready"\n'
         ),
         "README.md": "# Agent-Native Research Template\n\nTemplate description.\n",
+        ".github/workflows/verify.yml": (
+            "steps:\n"
+            "      - name: Initialize and verify a real project copy\n"
+            "        run: make template-e2e\n\n"
+        ),
+        "template/README.md": "# Template Maintenance Surface\n",
     }
     for relative, content in files.items():
         path = root / relative
@@ -79,7 +89,7 @@ def identity() -> object:
 
 def test_uninitialized_template_check_passes(tmp_path: Path) -> None:
     build_template(tmp_path)
-    assert initializer.check_project(tmp_path) == []
+    assert project.check_project(tmp_path) == []
 
 
 def test_dry_run_does_not_change_files(tmp_path: Path) -> None:
@@ -87,6 +97,7 @@ def test_dry_run_does_not_change_files(tmp_path: Path) -> None:
     before = (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
     planned = initializer.apply_changes(tmp_path, identity(), dry_run=True)
     assert any("src/causal_agent_lab/__init__.py" in item for item in planned)
+    assert "remove template/" in planned
     assert (tmp_path / "pyproject.toml").read_text(encoding="utf-8") == before
     assert not (tmp_path / "src/causal_agent_lab").exists()
 
@@ -94,12 +105,18 @@ def test_dry_run_does_not_change_files(tmp_path: Path) -> None:
 def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) -> None:
     build_template(tmp_path)
     initializer.apply_changes(tmp_path, identity())
-    assert initializer.check_project(tmp_path) == []
+    assert project.check_project(tmp_path) == []
     assert (tmp_path / "src/causal_agent_lab/__init__.py").is_file()
     assert (tmp_path / "tests/smoke/test_project.py").is_file()
     assert not (tmp_path / "src/project").exists()
     assert not (tmp_path / "tests/smoke/test_template.py").exists()
-    state = initializer.load_yaml(tmp_path / "PROJECT.yaml")
+    assert not (tmp_path / "template").exists()
+    makefile = (tmp_path / "Makefile").read_text(encoding="utf-8")
+    assert "template-test" not in makefile
+    assert "template-e2e" not in makefile
+    workflow = (tmp_path / ".github/workflows/verify.yml").read_text(encoding="utf-8")
+    assert "template-e2e" not in workflow
+    state = project.load_yaml(tmp_path / "PROJECT.yaml")
     assert state["initialized"] is True
     assert state["package_name"] == "causal_agent_lab"
     assert state["cli_name"] == "causal-lab"
@@ -145,18 +162,18 @@ def test_check_detects_template_only_readme_section_after_initialization(tmp_pat
     initializer.apply_changes(tmp_path, identity())
     with (tmp_path / "README.md").open("a", encoding="utf-8") as handle:
         handle.write("\n## Initialize A Real Project\n")
-    errors = initializer.check_project(tmp_path)
+    errors = project.check_project(tmp_path)
     assert any("README.md" in error and "Initialize A Real Project" in error for error in errors)
 
 
 def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
     build_template(tmp_path)
-    project = tmp_path / "PROJECT.yaml"
-    project.write_text(
-        project.read_text(encoding="utf-8").replace("version: 6", "version: 7"),
+    project_file = tmp_path / "PROJECT.yaml"
+    project_file.write_text(
+        project_file.read_text(encoding="utf-8").replace("version: 6", "version: 7"),
         encoding="utf-8",
     )
-    assert any("newer than supported" in error for error in initializer.check_project(tmp_path))
+    assert any("newer than supported" in error for error in project.check_project(tmp_path))
 
 
 def test_check_detects_residue_after_initialization(tmp_path: Path) -> None:
@@ -164,7 +181,7 @@ def test_check_detects_residue_after_initialization(tmp_path: Path) -> None:
     initializer.apply_changes(tmp_path, identity())
     with (tmp_path / "pyproject.toml").open("a", encoding="utf-8") as handle:
         handle.write("# agent-native-project\n")
-    assert any("template residue" in error for error in initializer.check_project(tmp_path))
+    assert any("template residue" in error for error in project.check_project(tmp_path))
 
 
 def test_invalid_identity_is_rejected(tmp_path: Path) -> None:
@@ -183,4 +200,4 @@ def test_invalid_identity_is_rejected(tmp_path: Path) -> None:
 def test_apply_is_functional_only(tmp_path: Path) -> None:
     build_template(tmp_path)
     initializer.apply_changes(tmp_path, identity())
-    assert initializer.check_project(tmp_path) == []
+    assert project.check_project(tmp_path) == []

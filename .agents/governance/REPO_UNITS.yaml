@@ -16,6 +16,41 @@ ownership:
   governance_paths:
   - .agents/
   - AGENTS.md
+lifecycle:
+  downstream_required:
+    purpose: retained implementation and validation required for project correctness
+    paths:
+    - src/
+    - tests/
+    - tools/
+    - configs/
+    - environments/
+    - evals/
+    - experiments/
+    - infra/
+    - schemas/
+    - PROJECT.yaml
+    - pyproject.toml
+    - Makefile
+  downstream_optional:
+    purpose: retained functional or governance capabilities adopted only when useful
+    paths:
+    - archives/
+    - external-facts/
+    - RELEASE.yaml
+    - .agents/
+    - AGENTS.md
+  template_only:
+    purpose: bootstrap and template-maintainer surfaces removed during initialization
+    paths:
+    - template/
+  runtime_only:
+    purpose: ignored or externally mounted execution state that is never repository truth
+    paths:
+    - .agents/runtime/
+    - .omx/
+    - .codex/
+    - runs/
 required_paths:
   governance:
   - .agents/governance/ANATOMY.md
@@ -87,17 +122,20 @@ required_paths:
   - tools/execution_environment.py
   - tools/external_facts.py
   - tools/experiment_plan.py
-  - tools/initialize_project.py
   - tools/input_identity.py
   - tools/metric_observation.py
   - tools/phase_graph.py
   - tools/plan_identity.py
+  - tools/project.py
   - tools/research.py
   - tools/release.py
   - tools/run_state.py
   - tools/template_compat.py
   - tools/template_lifecycle.py
-  - tools/verify_template_e2e.py
+  - template/README.md
+  - template/initialize_project.py
+  - template/tests/test_initialize_project.py
+  - template/verify_downstream.py
 dependency_rules:
 - from: functional
   to: governance

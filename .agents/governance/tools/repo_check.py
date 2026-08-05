@@ -11,6 +11,12 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 UNIT_MANIFEST = ROOT / ".agents" / "governance" / "REPO_UNITS.yaml"
 UNIT_NAMES = {"governance", "functional"}
+LIFECYCLE_CLASSES = {
+    "downstream_required",
+    "downstream_optional",
+    "template_only",
+    "runtime_only",
+}
 IGNORED_PARTS = {
     ".git",
     ".omx",
@@ -39,6 +45,7 @@ FUNCTIONAL_EXECUTION_ROOTS = {
     "infra",
     "src",
     "tests",
+    "tools",
 }
 FUNCTIONAL_COMMAND_FILES = {"Makefile", "pyproject.toml", ".pre-commit-config.yaml"}
 TEXT_SUFFIXES = {".md", ".py", ".sh", ".toml", ".yaml", ".yml"}
@@ -73,14 +80,15 @@ GUIDANCE_ROUTES = {
     INITIALIZE_PROJECT_SKILL: (
         ADOPT_TEMPLATE_SKILL,
         UPDATE_TEMPLATE_SKILL,
-        "tools/initialize_project.py",
-        "tools/template_compat.py",
+        "template/initialize_project.py",
+        "project check",
+        "project compatibility",
         "--cli-name",
     ),
     UPDATE_TEMPLATE_SKILL: (
         ADOPT_TEMPLATE_SKILL,
         "PROJECT.yaml",
-        "tools/template_compat.py",
+        "project migrate",
     ),
     INFLUENCES_PATH: (
         "https://lingtai.ai/",
@@ -173,6 +181,34 @@ def load_unit_manifest(errors: list[str]) -> dict[str, object] | None:
         errors.append(
             "UNIT-013 governance must remain contained by .agents/ and the AGENTS.md adapter"
         )
+
+    lifecycle = data.get("lifecycle")
+    if not isinstance(lifecycle, dict) or set(lifecycle) != LIFECYCLE_CLASSES:
+        errors.append(f"UNIT-014 lifecycle must contain exactly {sorted(LIFECYCLE_CLASSES)!r}")
+    else:
+        for name, classification in lifecycle.items():
+            if not isinstance(classification, dict):
+                errors.append(f"UNIT-015 lifecycle.{name} must be a mapping")
+                continue
+            if not isinstance(classification.get("purpose"), str):
+                errors.append(f"UNIT-016 lifecycle.{name}.purpose must be text")
+            paths = classification.get("paths")
+            if not isinstance(paths, list) or not paths:
+                errors.append(f"UNIT-017 lifecycle.{name}.paths must be a non-empty list")
+            elif any(not is_valid_repo_path(path) for path in paths):
+                errors.append(f"UNIT-018 lifecycle.{name} paths must be normalized")
+            elif len(paths) != len(set(paths)):
+                errors.append(f"UNIT-019 lifecycle.{name} paths must be unique")
+        template_only = lifecycle.get("template_only")
+        runtime_only = lifecycle.get("runtime_only")
+        if isinstance(template_only, dict) and template_only.get("paths") != ["template/"]:
+            errors.append(
+                "UNIT-020 template-only implementation must remain contained by template/"
+            )
+        if isinstance(runtime_only, dict):
+            runtime_paths = runtime_only.get("paths")
+            if not isinstance(runtime_paths, list) or ".codex/" not in runtime_paths:
+                errors.append("UNIT-021 external .codex must be classified as runtime-only")
 
     required_paths = data.get("required_paths")
     if not isinstance(required_paths, dict) or set(required_paths) != UNIT_NAMES:
@@ -328,6 +364,10 @@ def check_tracked_state(errors: list[str]) -> None:
             errors.append(f"GIT-002 runtime state must not be tracked: {relative_path}")
         if any(relative_path.startswith(prefix) for prefix in TOOL_RUNTIME_PREFIXES):
             errors.append(f"GIT-004 tool runtime state must not be tracked: {relative_path}")
+        if relative_path == ".codex" or relative_path.startswith(".codex/"):
+            errors.append(
+                f"GIT-006 external Codex runtime state must not be tracked: {relative_path}"
+            )
         if path.is_file() and path.stat().st_size > 10 * 1024 * 1024:
             errors.append(f"GIT-003 tracked file exceeds 10 MiB: {relative_path}")
 

@@ -12,7 +12,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from jsonschema import Draft202012Validator
 
-from . import initialize_project
+from . import project
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN_VERSION = 1
@@ -175,7 +175,7 @@ def validate_plan_source(plan: dict[str, Any], template_root: Path) -> None:
 
 
 def inspect(root: Path = ROOT) -> dict[str, Any]:
-    state = initialize_project.load_yaml(root / initialize_project.STATE_PATH)
+    state = project.load_yaml(root / project.STATE_PATH)
     return {
         "project": state,
         "git": {
@@ -193,10 +193,8 @@ def create_plan(
     *,
     mode: str = "auto",
 ) -> dict[str, Any]:
-    state_path = downstream_root / initialize_project.STATE_PATH
-    state = (
-        initialize_project.load_yaml(state_path) if state_path.is_file() else {"initialized": False}
-    )
+    state_path = downstream_root / project.STATE_PATH
+    state = project.load_yaml(state_path) if state_path.is_file() else {"initialized": False}
     metadata = state.get("template", {})
     resolved_mode = "update" if state.get("initialized") is True else "adoption"
     if mode != "auto" and mode != resolved_mode:
@@ -309,7 +307,7 @@ def record_baseline(
         raise TemplateLifecycleError("expected plan hash does not match")
     if plan["mode"] != "update":
         raise TemplateLifecycleError("baseline recording requires a provenance-backed update plan")
-    state = initialize_project.load_yaml(downstream_root / initialize_project.STATE_PATH)
+    state = project.load_yaml(downstream_root / project.STATE_PATH)
     if state["template"].get("reviewed_template_commit") != plan["template"]["baseline_commit"]:
         raise TemplateLifecycleError("reviewed template baseline changed after planning")
     if commit(downstream_root) != plan["downstream"]["commit"]:
@@ -329,9 +327,7 @@ def record_baseline(
                 f"cannot record baseline before resolving target path: {entry['path']}"
             )
     state["template"]["reviewed_template_commit"] = target
-    initialize_project.write_text(
-        downstream_root / initialize_project.STATE_PATH, initialize_project.dump_yaml(state)
-    )
+    project.write_text(downstream_root / project.STATE_PATH, project.dump_yaml(state))
 
 
 def read_plan(path: Path) -> dict[str, Any]:
@@ -392,7 +388,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         OSError,
         json.JSONDecodeError,
         TemplateLifecycleError,
-        initialize_project.InitializationError,
+        project.ProjectCheckError,
     ) as exc:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2

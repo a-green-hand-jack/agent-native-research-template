@@ -1,5 +1,10 @@
 # Template Lifecycle Plans
 
+The source template's bootstrap implementation and real-copy checks live under `template/` and are
+removed during initialization. Downstream repositories retain `researchctl project check`,
+registered migrations under `researchctl project ...`, and the update-plan commands documented
+here. Template-maintainer code is not a downstream runtime dependency.
+
 `PROJECT.yaml.template.reviewed_template_commit` is the only durable upstream baseline. It records
 the exact template commit whose relevant content was reviewed in the downstream repository. The
 template contract version and migration ledger remain independent: a higher version does not imply

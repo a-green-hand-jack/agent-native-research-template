@@ -64,6 +64,21 @@ def test_template_group_delegates_to_lifecycle_control(
     assert observed == {"argv": ["inspect"], "root": tmp_path}
 
 
+def test_project_group_delegates_to_retained_project_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_project(tmp_path)
+    observed: dict[str, object] = {}
+
+    def fake_main(argv: list[str], root: Path) -> int:
+        observed.update(argv=argv, root=root)
+        return 31
+
+    monkeypatch.setattr(control_cli.project, "main", fake_main)
+    assert control_cli.main(["project", "check"], tmp_path) == 31
+    assert observed == {"argv": ["check"], "root": tmp_path}
+
+
 def test_archive_group_delegates_to_canonical_archive_tool(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

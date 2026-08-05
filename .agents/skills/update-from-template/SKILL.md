@@ -47,18 +47,18 @@ cannot be proven.
 
 ## Run Compatibility Checks First
 
-Inspect the downstream copies of the initializer and compatibility tool, then run:
+Inspect the retained downstream project and compatibility interfaces, then run:
 
 ```bash
-uv run python tools/initialize_project.py check
-uv run python tools/template_compat.py check
-uv run python tools/template_compat.py migrate --to <target-version> --dry-run
+uv run <project-cli> project check
+uv run <project-cli> project compatibility
+uv run <project-cli> project migrate --to <target-version> --dry-run
 ```
 
 Registered migrations are the authoritative path for known template contract versions. They are
 forward-only, sequential, and must fail when an intermediate implementation is missing.
 
-Do not copy a newer `template_compat.py` into the repository merely to make an unsupported migration
+Do not copy a newer compatibility implementation into the repository merely to make an unsupported migration
 appear available. First review the target template's migration implementation and bring it in as an
 independent, testable compatibility change when needed.
 

@@ -24,9 +24,9 @@ never rewrites historical run facts or the terminal result.
 ## Commands
 
 ```bash
-uv run python tools/evidence.py status <run-id>
-uv run python tools/evidence.py results <run-id>
-uv run python tools/evidence.py verify-run <run-id>
+uv run researchctl experiment status <run-id>
+uv run researchctl experiment results <run-id>
+uv run researchctl experiment verify-run <run-id>
 ```
 
 `status` prints machine-readable JSON. A missing or corrupt terminal result never becomes success.

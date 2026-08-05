@@ -47,7 +47,7 @@ replace the template default `researchctl`.
 Run a dry run first:
 
 ```bash
-uv run python tools/initialize_project.py apply \
+uv run python template/initialize_project.py apply \
   --project-name "<Project Name>" \
   --distribution-name <distribution-name> \
   --package-name <package_name> \
@@ -58,7 +58,8 @@ uv run python tools/initialize_project.py apply \
 
 Inspect every planned write and removal. The functional initializer updates `PROJECT.yaml`, package
 metadata, installed console-script entry, source package, smoke test, contribution index, smoke
-experiment, Makefile, README, and lockfile identity. It removes template-only README sections while
+experiment, Makefile, CI workflow, README, and lockfile identity. It removes template-only README
+sections, Make targets, CI steps, tests, and the complete `template/` maintenance surface while
 preserving a compact provenance marker. It never reads or writes the governance sidecar.
 
 Initialization records the source template name, template contract version, source Git commit, and
@@ -86,15 +87,15 @@ longer remains in package metadata.
 Check template compatibility explicitly:
 
 ```bash
-uv run python tools/template_compat.py check
+uv run <cli-name> project compatibility
 ```
 
 When a future template version ships a reviewed registered migration, preview and apply it
 explicitly:
 
 ```bash
-uv run python tools/template_compat.py migrate --to <version> --dry-run
-uv run python tools/template_compat.py migrate --to <version>
+uv run <cli-name> project migrate --to <version> --dry-run
+uv run <cli-name> project migrate --to <version>
 ```
 
 Migrations are forward-only, sequential, and registered in repository code. They do not synchronize
@@ -107,18 +108,19 @@ merely because the source template changed.
 Run:
 
 ```bash
-uv run python tools/initialize_project.py check
-uv run python tools/template_compat.py check
+uv run <cli-name> project check
+uv run <cli-name> project compatibility
 uv run <cli-name> --help
 make verify
 make research-run
 uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
 ```
 
-The identity check rejects stale package paths, old imports, the template distribution and CLI
-names, `bootstrap` contribution references, inconsistent `PROJECT.yaml` values, and malformed
-provenance. The compatibility check rejects unsupported or unapplied template versions. Functional
-checks continue to work after `.agents/` and `AGENTS.md` are removed.
+The identity check rejects stale package paths, old imports, template-only paths and targets, the
+template distribution and CLI names, `bootstrap` contribution references, inconsistent
+`PROJECT.yaml` values, and malformed provenance. The compatibility check rejects unsupported or
+unapplied template versions. Functional checks continue to work after `.agents/` and `AGENTS.md`
+are removed.
 
 ## Handoff
 

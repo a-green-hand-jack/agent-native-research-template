@@ -1,26 +1,62 @@
 from __future__ import annotations
 
-import importlib.util
-import sys
 from pathlib import Path
 
 import pytest
 
-TOOLS = Path(__file__).resolve().parents[1] / "tools"
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
+from tools import template_compat as compat
 
-SPEC = importlib.util.spec_from_file_location("template_compat_tool", TOOLS / "template_compat.py")
-assert SPEC and SPEC.loader
-compat = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(compat)
 
-from test_initialize_project import build_template, identity
+def write_files(root: Path, files: dict[str, str]) -> None:
+    for relative, content in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
 
 
 def initialized_project(root: Path) -> None:
-    build_template(root)
-    compat.initialize_project.apply_changes(root, identity())
+    write_files(
+        root,
+        {
+            "PROJECT.yaml": (
+                "schema_version: 1\ninitialized: true\nproject_name: Causal Agent Lab\n"
+                "distribution_name: causal-agent-lab\npackage_name: causal_agent_lab\n"
+                "cli_name: causal-lab\ncontribution_id: causal-policy\n"
+                "template:\n  name: agent-native-research-template\n  version: 6\n"
+                "  initialized_from_commit: unknown\n  reviewed_template_commit: unknown\n"
+                "  applied_migrations: []\n"
+            ),
+            "pyproject.toml": (
+                '[project]\nname = "causal-agent-lab"\nversion = "0.1.0"\n'
+                'description = "Causal Agent Lab"\ndependencies = []\n\n'
+                '[project.scripts]\ncausal-lab = "tools.control_cli:main"\n\n'
+                '[tool.hatch.build.targets.wheel]\npackages = ["src/causal_agent_lab", "tools"]\n'
+            ),
+            "experiments/specs/smoke.yaml": (
+                "contribution: causal-policy\n"
+                "inputs:\n  - id: smoke-source\n    kind: path\n    path: src\n"
+            ),
+            "README.md": "# Causal Agent Lab\n",
+            "Makefile": "verify:\n\tuv run causal-lab experiment validate\n",
+        },
+    )
+
+
+def uninitialized_template(root: Path) -> None:
+    write_files(
+        root,
+        {
+            "PROJECT.yaml": (
+                "schema_version: 1\ninitialized: false\n"
+                "project_name: Agent-Native Research Template\n"
+                "distribution_name: agent-native-project\npackage_name: project\n"
+                "cli_name: researchctl\ncontribution_id: bootstrap\n"
+                "template:\n  name: agent-native-research-template\n  version: 6\n"
+                "  initialized_from_commit: null\n  reviewed_template_commit: null\n"
+                "  applied_migrations: []\n"
+            )
+        },
+    )
 
 
 def test_current_initialized_project_is_compatible(tmp_path: Path) -> None:
@@ -39,30 +75,30 @@ def test_version_2_migration_adds_smoke_input_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     initialized_project(tmp_path)
-    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 2)
-    state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    monkeypatch.setattr(compat.project, "TEMPLATE_VERSION", 2)
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 1
     state["template"]["applied_migrations"] = []
-    compat.initialize_project.write_text(
+    compat.project.write_text(
         tmp_path / "PROJECT.yaml",
-        compat.initialize_project.dump_yaml(state),
+        compat.project.dump_yaml(state),
     )
     smoke = tmp_path / "experiments/specs/smoke.yaml"
-    specification = compat.initialize_project.load_yaml(smoke)
+    specification = compat.project.load_yaml(smoke)
     specification.pop("inputs", None)
-    compat.initialize_project.write_text(
+    compat.project.write_text(
         smoke,
-        compat.initialize_project.dump_yaml(specification),
+        compat.project.dump_yaml(specification),
     )
 
     assert compat.compatibility_errors(tmp_path) == [
         "project template version 1 requires migration to 2"
     ]
     assert compat.migrate(tmp_path, 2) == ["write experiments/specs/smoke.yaml"]
-    migrated = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    migrated = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     assert migrated["template"]["version"] == 2
     assert migrated["template"]["applied_migrations"] == [2]
-    assert compat.initialize_project.load_yaml(smoke)["inputs"] == [
+    assert compat.project.load_yaml(smoke)["inputs"] == [
         {"id": "smoke-source", "kind": "path", "path": "src"}
     ]
     assert compat.compatibility_errors(tmp_path) == []
@@ -72,14 +108,12 @@ def test_version_3_migration_installs_configured_control_surface(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     initialized_project(tmp_path)
-    monkeypatch.setattr(compat.initialize_project, "TEMPLATE_VERSION", 3)
-    state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    monkeypatch.setattr(compat.project, "TEMPLATE_VERSION", 3)
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 2
     state["template"]["applied_migrations"] = [2]
     state.pop("cli_name")
-    compat.initialize_project.write_text(
-        tmp_path / "PROJECT.yaml", compat.initialize_project.dump_yaml(state)
-    )
+    compat.project.write_text(tmp_path / "PROJECT.yaml", compat.project.dump_yaml(state))
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname = "causal-agent-lab"\nversion = "0.1.0"\n'
         'description = "Causal Agent Lab"\ndependencies = []\n\n'
@@ -98,7 +132,7 @@ def test_version_3_migration_installs_configured_control_surface(
     )
     changes = compat.migrate(tmp_path, 3)
     assert changes == ["write pyproject.toml", "write Makefile", "write README.md"]
-    migrated = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    migrated = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     assert migrated["cli_name"] == "causal-agent-lab"
     assert migrated["template"]["version"] == 3
     assert migrated["template"]["applied_migrations"] == [2, 3]
@@ -115,48 +149,44 @@ def test_version_6_migration_records_reviewed_template_baseline(
     tmp_path: Path,
 ) -> None:
     initialized_project(tmp_path)
-    state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 5
     state["template"].pop("reviewed_template_commit")
-    compat.initialize_project.write_text(
-        tmp_path / "PROJECT.yaml", compat.initialize_project.dump_yaml(state)
-    )
+    compat.project.write_text(tmp_path / "PROJECT.yaml", compat.project.dump_yaml(state))
     assert compat.compatibility_errors(tmp_path) == [
         "project template version 5 requires migration to 6"
     ]
     assert compat.migrate(tmp_path, 6) == []
-    migrated = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    migrated = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     assert migrated["template"]["reviewed_template_commit"] == "unknown"
     assert migrated["template"]["applied_migrations"] == [6]
 
 
 def test_version_6_migration_replaces_explicit_null_baseline(tmp_path: Path) -> None:
     initialized_project(tmp_path)
-    state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 5
     state["template"]["reviewed_template_commit"] = None
-    compat.initialize_project.write_text(
-        tmp_path / "PROJECT.yaml", compat.initialize_project.dump_yaml(state)
-    )
+    compat.project.write_text(tmp_path / "PROJECT.yaml", compat.project.dump_yaml(state))
     assert compat.migrate(tmp_path, 6) == []
-    migrated = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    migrated = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     assert migrated["template"]["reviewed_template_commit"] == "unknown"
     assert compat.compatibility_errors(tmp_path) == []
 
 
 def test_migrations_are_forward_only(tmp_path: Path) -> None:
     initialized_project(tmp_path)
-    state = compat.initialize_project.load_yaml(tmp_path / "PROJECT.yaml")
+    state = compat.project.load_yaml(tmp_path / "PROJECT.yaml")
     state["template"]["version"] = 7
-    compat.initialize_project.write_text(
+    compat.project.write_text(
         tmp_path / "PROJECT.yaml",
-        compat.initialize_project.dump_yaml(state),
+        compat.project.dump_yaml(state),
     )
     with pytest.raises(compat.TemplateCompatibilityError, match="newer than supported"):
         compat.migrate(tmp_path, 6)
 
 
 def test_uninitialized_template_cannot_run_downstream_migrations(tmp_path: Path) -> None:
-    build_template(tmp_path)
+    uninitialized_template(tmp_path)
     with pytest.raises(compat.TemplateCompatibilityError, match="initialize the project"):
         compat.migrate(tmp_path, 4)

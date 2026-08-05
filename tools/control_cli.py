@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from . import archive, evidence, release, template_lifecycle
+from . import archive, evidence, project, release, template_lifecycle
 
 DEFAULT_CLI_NAME = "researchctl"
 PROJECT_FILE = "PROJECT.yaml"
@@ -45,6 +45,7 @@ def render_help(root: Path) -> str:
         f"usage: {name} <group> <command> [arguments]\n\n"
         "Project-local research control plane.\n\n"
         "groups:\n"
+        "  project      check project identity and retained functional surfaces\n"
         "  template     inspect, plan, apply, and record reviewed template baselines\n"
         "  experiment   validate, plan, preflight, run, recover, inspect, verify, and promote\n"
         "  archive      create verified copies and produce retirement decisions\n\n"
@@ -61,6 +62,8 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
             print(render_help(project_root), end="")
             return 0
         group, *group_arguments = arguments
+        if group == "project":
+            return project.main(group_arguments, project_root)
         if group == "template":
             return template_lifecycle.main(group_arguments, project_root)
         if group == "experiment":
@@ -70,7 +73,8 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
         if group == "release":
             return release.main(group_arguments, project_root)
         raise ControlCLIError(
-            f"unknown command group {group!r}; expected template, experiment, archive, or release"
+            f"unknown command group {group!r}; expected project, template, experiment, archive, "
+            "or release"
         )
     except ControlCLIError as exc:
         print(f"ERROR {exc}", file=sys.stderr)
