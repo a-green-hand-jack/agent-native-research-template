@@ -14,6 +14,7 @@ IGNORED_COPY_NAMES = {
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
+    ".uv-cache",
     ".venv",
     "__pycache__",
     "runs",
@@ -63,8 +64,8 @@ def copy_ignore(_: str, names: list[str]) -> set[str]:
     return {name for name in names if name in IGNORED_COPY_NAMES}
 
 
-def run(command: list[str], root: Path) -> str:
-    environment = os.environ.copy()
+def run(command: list[str], root: Path, *, environment: dict[str, str] | None = None) -> str:
+    environment = os.environ.copy() if environment is None else environment
     result = subprocess.run(
         command,
         cwd=root,
@@ -81,6 +82,17 @@ def run(command: list[str], root: Path) -> str:
             f"command failed with exit code {result.returncode}: {rendered}\n{output}"
         )
     return output
+
+
+def restricted_home_environment(root: Path) -> dict[str, str]:
+    read_only_home = root.parent / f"{root.name}-read-only-home"
+    read_only_home.mkdir(exist_ok=True)
+    read_only_home.chmod(0o555)
+    environment = os.environ.copy()
+    environment["HOME"] = str(read_only_home)
+    for name in ("UV_CACHE_DIR", "UV_CONFIG_FILE", "UV_NO_CONFIG", "XDG_CACHE_HOME"):
+        environment.pop(name, None)
+    return environment
 
 
 def initialize_project(root: Path) -> None:
@@ -172,10 +184,24 @@ def check_downstream_projection(root: Path) -> None:
             )
 
     configuration = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    if configuration["tool"]["uv"]["cache-dir"] != ".uv-cache":
+        raise TemplateVerificationError("initialized project lost its project-local uv cache")
     packages = configuration["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
     if packages != ["src/template_e2e_project", "tools"]:
         raise TemplateVerificationError(
             f"initialized wheel has unexpected retained packages: {packages!r}"
+        )
+
+
+def check_uv_cache(root: Path, environment: dict[str, str]) -> None:
+    cache_dir = Path(run(["uv", "cache", "dir"], root, environment=environment).strip())
+    if not cache_dir.is_absolute():
+        cache_dir = root / cache_dir
+    cache_dir = cache_dir.resolve()
+    expected = root / ".uv-cache"
+    if cache_dir != expected:
+        raise TemplateVerificationError(
+            f"uv cache is outside the initialized project: {cache_dir} != {expected}"
         )
 
 
@@ -188,7 +214,9 @@ def check_runtime_only_paths_are_untracked() -> None:
 def verify_initialized_copy(root: Path) -> None:
     initialize_project(root)
     check_downstream_projection(root)
-    run(["uv", "sync", "--frozen", "--group", "dev"], root)
+    environment = restricted_home_environment(root)
+    check_uv_cache(root, environment)
+    run(["uv", "sync", "--frozen", "--group", "dev"], root, environment=environment)
     run(["uv", "run", "template-e2e", "--help"], root)
     run(["uv", "run", "template-e2e", "project", "check"], root)
     run(["uv", "run", "template-e2e", "archive", "--help"], root)
@@ -202,7 +230,8 @@ def verify_initialized_copy(root: Path) -> None:
     shutil.rmtree(root / ".agents")
     (root / "AGENTS.md").unlink()
     shutil.rmtree(root / ".venv")
-    run(["uv", "sync", "--frozen", "--group", "dev"], root)
+    check_uv_cache(root, environment)
+    run(["uv", "sync", "--frozen", "--group", "dev"], root, environment=environment)
     run(["uv", "run", "template-e2e", "--help"], root)
     run(["uv", "run", "template-e2e", "project", "check"], root)
     run(["uv", "run", "template-e2e", "archive", "--help"], root)

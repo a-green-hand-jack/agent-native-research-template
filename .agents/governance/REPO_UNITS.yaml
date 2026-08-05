@@ -50,6 +50,7 @@ lifecycle:
     - .agents/runtime/
     - .omx/
     - .codex/
+    - .uv-cache/
     - runs/
 required_paths:
   governance:
