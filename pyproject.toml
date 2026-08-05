@@ -32,5 +32,6 @@ testpaths = ["tests"]
 cache-dir = ".uv-cache"
 
 [tool.ruff]
+extend-exclude = [".uv-cache"]
 line-length = 100
 target-version = "py311"

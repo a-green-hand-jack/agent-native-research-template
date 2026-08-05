@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tomllib
 from pathlib import Path
 
 
@@ -27,3 +28,5 @@ def test_uv_cache_is_project_local_and_ignored(tmp_path: Path) -> None:
 
     assert Path(result.stdout.strip()).resolve() == root / ".uv-cache"
     assert ".uv-cache/" in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    configuration = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    assert ".uv-cache" in configuration["tool"]["ruff"]["extend-exclude"]
