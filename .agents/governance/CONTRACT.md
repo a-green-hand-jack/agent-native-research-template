@@ -55,6 +55,9 @@ project-specific behavioral, scientific, and interface contracts below these sha
   that may overwrite downstream project files.
 - Initialization removes template-only README sections and rejects stale initialization wording
   from initialized functional surfaces while preserving the source-template provenance marker.
+- Initialization removes the complete `template/` maintenance surface and its Make/CI entry points.
+  The retained installed CLI owns project identity, compatibility, experiments, archives, releases,
+  and update planning after initialization.
 - Template compatibility checks are explicit and remain part of functional project verification.
 - Template migrations are forward-only, sequential, repository-reviewed code changes. A migration
   runs only when explicitly requested; missing migration implementations are blockers rather than
@@ -84,7 +87,7 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 ## Execution Invariants
 
-- The installed project CLI is the public experiment, archive, template-lifecycle, and optional
+- The installed project CLI is the public project-check, experiment, archive, template-lifecycle, and optional
   release control surface. Its name is recorded in `PROJECT.yaml` and may be replaced atomically
   during initialization. Legacy `tools/*.py` entry points are compatibility adapters, not
   independent implementations.
@@ -136,7 +139,7 @@ project-specific behavioral, scientific, and interface contracts below these sha
   dependencies make downstream phases explicitly incomplete.
 - Phase retry creates a child run, verifies the parent and current inputs, reuses only successful
   verified dependency snapshots by hash, records recovery lineage, and never overwrites a parent.
-- `tools/evidence.py` is the canonical bounded local runner. It executes exactly one fixed seed,
+- The installed CLI's experiment runner is the canonical bounded local runner. It executes exactly one fixed seed,
   exposes that seed as `RESEARCH_SEED`, requires and enforces a positive wall-time limit, and
   accepts only a one-run stopping rule.
 - Multi-seed, range, random, cost-accounted, or metric-driven execution requires an external

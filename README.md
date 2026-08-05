@@ -50,7 +50,7 @@ make hooks
 Preview a consistent identity replacement before editing the first vertical slice:
 
 ```bash
-uv run python tools/initialize_project.py apply \
+uv run python template/initialize_project.py apply \
   --project-name "Causal Agent Lab" \
   --distribution-name causal-agent-lab \
   --package-name causal_agent_lab \
@@ -60,8 +60,9 @@ uv run python tools/initialize_project.py apply \
 ```
 
 Run the same command without `--dry-run` to update `PROJECT.yaml`, package metadata, the source
-package, installed CLI, smoke test, contribution index, experiment reference, README, and lockfile
-identity. The functional initializer never reads or writes the governance sidecar.
+package, installed CLI, smoke test, contribution index, experiment reference, CI workflow, README,
+and lockfile identity. Initialization then removes the source-template-only `template/` directory
+and its Make/CI entry points. The initializer never reads or writes the governance sidecar.
 
 The initializer establishes a consistent repository identity; it does not invent the project's
 behavior or scientific claims. When the optional sidecar exists, update its project-specific
@@ -69,14 +70,18 @@ Contract separately. Replace the initialized bootstrap implementation, configura
 and question with the first real runnable slice, then run:
 
 ```bash
-uv run python tools/initialize_project.py check
+uv run <project-cli> project check
 make verify
 make research-run
 ```
 
-Once `PROJECT.yaml` is marked initialized, the identity check rejects stale package paths, old
-imports, the template distribution and CLI names, and remaining `bootstrap` contribution
-references. The same check continues to work if `.agents/` is removed.
+Once `PROJECT.yaml` is marked initialized, the retained identity check rejects stale package paths,
+old imports, template-only paths and commands, the template distribution and CLI names, and
+remaining `bootstrap` contribution references. The same check continues to work if `.agents/` is
+removed.
+
+Source-template maintainers use `make template-test` and `make template-e2e`; both targets and the
+implementation they invoke are absent from an initialized downstream repository.
 
 ## Repository Lifecycle Skills
 
@@ -174,18 +179,20 @@ directories without weakening global identity and traceability.
 
 ## Project First
 
-The repository has an intentionally asymmetric structure:
+The source template has an intentionally asymmetric structure:
 
 ```text
 repo/
 ├── project files and conventional tool paths    functional by default
+├── template/                                    removed after initialization
 ├── AGENTS.md                                    thin discovery adapter
 └── .agents/                                     optional governance sidecar
 ```
 
 The functional project contains implementation, tests, evaluations, environments, infrastructure,
-experiments, evidence, reports, and publications. The sidecar contains agent contracts,
-procedures, skills, reviewed memory, runtime handoffs, maps, and its own structural doctor.
+experiments, evidence, reports, and publications. `template/` contains only bootstrap and
+source-template verification code. The sidecar contains agent contracts, procedures, skills,
+reviewed memory, runtime handoffs, maps, and its own structural doctor.
 
 Governance may read project state and invoke public project commands. The project must not import,
 source, configure, or otherwise require governance. CI proves this behavior by deleting `.agents/`
@@ -198,8 +205,15 @@ make verify
 uv run --no-project --with pyyaml python .agents/governance/tools/repo_check.py
 ```
 
-`.agents/governance/REPO_UNITS.yaml` is the ownership source of truth. Only `.agents/` and the root
-discovery adapter `AGENTS.md` are governance-owned; every new path is functional by default.
+`.agents/governance/REPO_UNITS.yaml` is the ownership and lifecycle source of truth. Ownership and
+lifecycle are independent: functional code may be downstream-required, downstream-optional, or
+template-only; runtime state remains external or ignored. Only `.agents/` and the root discovery
+adapter `AGENTS.md` are governance-owned; every new path is functional by default.
+
+Human operators normally enter through this README, `docs/`, project commands, reports, and risky
+approval gates. Agents additionally enter through `AGENTS.md`, `.agents/governance/`, and
+progressively loaded skills, but call the same public project CLI. Machine-first schemas and
+manifests remain functional because they define validity even when Humans rarely read them.
 
 ## Agent Runtime Compatibility
 

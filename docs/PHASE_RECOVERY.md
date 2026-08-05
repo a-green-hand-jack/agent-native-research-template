@@ -50,7 +50,7 @@ Downstream commands receive verified dependency snapshots through
 Retry only a failed or incomplete phase:
 
 ```bash
-uv run python tools/evidence.py retry-phase <parent-run-id> --phase evaluation
+uv run researchctl experiment retry-phase <parent-run-id> --phase evaluation
 ```
 
 The parent run is verified before retry. Every transitive dependency must have succeeded. The new
