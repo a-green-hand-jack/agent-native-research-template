@@ -23,8 +23,9 @@ def build_template(root: Path) -> None:
             "package_name: project\ncli_name: researchctl\ncontribution_id: bootstrap\n"
             "template:\n"
             "  name: agent-native-research-template\n"
-            "  version: 5\n"
+            "  version: 6\n"
             "  initialized_from_commit: null\n"
+            "  reviewed_template_commit: null\n"
             "  applied_migrations: []\n"
         ),
         "pyproject.toml": (
@@ -107,19 +108,52 @@ def test_apply_updates_identity_and_records_template_provenance(tmp_path: Path) 
     )
     assert state["template"] == {
         "name": "agent-native-research-template",
-        "version": 5,
+        "version": 6,
         "initialized_from_commit": "unknown",
+        "reviewed_template_commit": "unknown",
         "applied_migrations": [],
     }
     readme = (tmp_path / "README.md").read_text(encoding="utf-8")
-    assert "Initialized from Agent-Native Research Template v5 at `unknown`" in readme
+    assert "Initialized from Agent-Native Research Template v6 at `unknown`" in readme
+
+
+def test_apply_removes_template_only_readme_sections(tmp_path: Path) -> None:
+    build_template(tmp_path)
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "# Agent-Native Research Template\n\n"
+        "## Five-Minute Research Loop\n\n"
+        "Create a repository from this template, then run:\n\n"
+        "This executes the bootstrap experiment.\n\n"
+        "## Initialize A Real Project\n\nTemplate-only instructions.\n\n"
+        "## Repository Lifecycle Skills\n\nTemplate-only lifecycle.\n\n"
+        "## Project Commands\n\nKeep this section.\n",
+        encoding="utf-8",
+    )
+    initializer.apply_changes(tmp_path, identity())
+    content = readme.read_text(encoding="utf-8")
+    assert "## Research Loop" in content
+    assert "From the repository root, run:" in content
+    assert "configured smoke experiment" in content
+    assert "## Project Commands" in content
+    assert "## Initialize A Real Project" not in content
+    assert "## Repository Lifecycle Skills" not in content
+
+
+def test_check_detects_template_only_readme_section_after_initialization(tmp_path: Path) -> None:
+    build_template(tmp_path)
+    initializer.apply_changes(tmp_path, identity())
+    with (tmp_path / "README.md").open("a", encoding="utf-8") as handle:
+        handle.write("\n## Initialize A Real Project\n")
+    errors = initializer.check_project(tmp_path)
+    assert any("README.md" in error and "Initialize A Real Project" in error for error in errors)
 
 
 def test_check_rejects_invalid_template_metadata(tmp_path: Path) -> None:
     build_template(tmp_path)
     project = tmp_path / "PROJECT.yaml"
     project.write_text(
-        project.read_text(encoding="utf-8").replace("version: 5", "version: 6"),
+        project.read_text(encoding="utf-8").replace("version: 6", "version: 7"),
         encoding="utf-8",
     )
     assert any("newer than supported" in error for error in initializer.check_project(tmp_path))

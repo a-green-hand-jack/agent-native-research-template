@@ -167,6 +167,7 @@ def build_plan(resolved: dict[str, Any]) -> dict[str, Any]:
         ),
         git=research.git_state(resolved["root"]),
         resolved_inputs=resolved["inputs"],
+        resolved_external_facts=resolved["external_facts"],
         recovery_policy=recovery_policy,
         completion_criteria=completion_criteria,
     )

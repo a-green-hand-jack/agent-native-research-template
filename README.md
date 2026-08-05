@@ -95,6 +95,19 @@ The initializer is not an adoption tool, and merging the template default branch
 procedure. Adoption and update begin with a clean baseline, capability and ownership analysis,
 staged issue-sized changes, downstream-specific validation, and exact-head CI evidence.
 
+Machine-readable [Template Lifecycle Plans](docs/TEMPLATE_LIFECYCLE.md) compare an exact reviewed
+baseline with a target template commit, classify safe/already/manual/conflict paths, and require an
+expected plan hash before applying safe writes or recording a new reviewed baseline.
+
+Projects that need immutable delivery artifacts can opt into the
+[Release Lifecycle](docs/RELEASE_LIFECYCLE.md). Draft builds are artifact-only verified but never
+release-ready; strict recording requires a clean exact source revision and an explicit Human
+approver.
+
+Optional [External Facts](external-facts/README.md) let experiments and releases cite official API,
+platform, dataset, model, access, hardware, or toolchain observations. Referenced facts are hashed
+into plans and must still be `VERIFIED` and fresh when used.
+
 ## Executable Research Contract
 
 An experiment specification resolves a complete, reviewable execution boundary:
@@ -125,7 +138,7 @@ uv run researchctl experiment promote <run-id> --decision accepted
 ```
 
 Validation rejects missing research controls, unknown contribution IDs, missing config paths,
-unknown environment or evaluation IDs, ambiguous executors, mismatched evaluation commands, and
+unknown environment or evaluation IDs, ambiguous executors, duplicate phase command sources, and
 missing environment locks.
 
 A run manifest records the resolved spec, Git revision and dirty-state hash, environment lock,

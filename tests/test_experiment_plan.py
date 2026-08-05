@@ -18,6 +18,7 @@ assert SPEC and SPEC.loader
 plan_tool = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(plan_tool)
 
+from test_external_facts import write_fact
 from test_research import build_repository
 
 
@@ -51,6 +52,16 @@ def test_config_content_changes_plan_identity(tmp_path: Path) -> None:
     second = plan_tool.plan_spec(spec_path, tmp_path)
     assert first["sha256"] != second["sha256"]
     assert second["resolved"]["effective_config"]["resolved"] == {"seed": 1}
+
+
+def test_external_fact_snapshot_participates_in_execution_plan(tmp_path: Path) -> None:
+    spec_path = build_repository(tmp_path)
+    write_fact(tmp_path, valid_until="2099-01-01T00:00:00Z")
+    enrich_spec(spec_path, external_facts=["platform-api"])
+    plan = plan_tool.plan_spec(spec_path, tmp_path)
+    assert plan["protocol"]["resolved"]["external_fact_ids"] == ["platform-api"]
+    facts = plan["resolved"]["resolved_external_facts"]
+    assert facts[0]["effective_status"] == "VERIFIED"
 
 
 def test_matrix_expansion_has_stable_cell_ids(tmp_path: Path) -> None:

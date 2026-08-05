@@ -53,10 +53,13 @@ required_paths:
   - docs/METRIC_OBSERVATIONS.md
   - docs/PHASE_RECOVERY.md
   - docs/REFERENCE_IMPLEMENTATION.md
+  - docs/RELEASE_LIFECYCLE.md
   - docs/RUN_STATUS.md
+  - docs/TEMPLATE_LIFECYCLE.md
   - environments/main.yaml
   - evals/smoke.yaml
   - evidence/manifests/README.md
+  - external-facts/README.md
   - experiments/specs/smoke.yaml
   - infra/profiles/local.yaml
   - pyproject.toml
@@ -65,10 +68,14 @@ required_paths:
   - schemas/environment.schema.json
   - schemas/evaluation.schema.json
   - schemas/evidence-manifest.schema.json
+  - schemas/external-fact.schema.json
   - schemas/executor.schema.json
   - schemas/experiment.schema.json
   - schemas/run-manifest.schema.json
   - schemas/run-result.schema.json
+  - schemas/release-manifest.schema.json
+  - schemas/release.schema.json
+  - schemas/template-plan.schema.json
   - src/
   - tests/
   - tools/archive.py
@@ -78,6 +85,7 @@ required_paths:
   - tools/control_cli.py
   - tools/evidence.py
   - tools/execution_environment.py
+  - tools/external_facts.py
   - tools/experiment_plan.py
   - tools/initialize_project.py
   - tools/input_identity.py
@@ -85,8 +93,10 @@ required_paths:
   - tools/phase_graph.py
   - tools/plan_identity.py
   - tools/research.py
+  - tools/release.py
   - tools/run_state.py
   - tools/template_compat.py
+  - tools/template_lifecycle.py
   - tools/verify_template_e2e.py
 dependency_rules:
 - from: functional

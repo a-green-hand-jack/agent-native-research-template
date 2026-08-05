@@ -50,15 +50,21 @@ project-specific behavioral, scientific, and interface contracts below these sha
 ## Template Lifecycle Invariants
 
 - `PROJECT.yaml` records the source template name, template contract version, initialization Git
-  commit, and the ordered set of applied migration versions.
+  commit, last reviewed upstream template commit, and the ordered set of applied migration versions.
 - Initialization records provenance once and never treats the source template as a live upstream
   that may overwrite downstream project files.
+- Initialization removes template-only README sections and rejects stale initialization wording
+  from initialized functional surfaces while preserving the source-template provenance marker.
 - Template compatibility checks are explicit and remain part of functional project verification.
 - Template migrations are forward-only, sequential, repository-reviewed code changes. A migration
   runs only when explicitly requested; missing migration implementations are blockers rather than
   permission to perform an implicit best-effort rewrite.
 - Applying the current template version is a no-op. Future migrations update the migration ledger
   only after their declared changes complete and the resulting project passes compatibility checks.
+- Template lifecycle plans are deterministic derived evidence, not a second provenance source.
+  Automatic application is limited to provenance-backed safe writes on a clean non-default branch;
+  deletions and downstream customizations remain manual. A reviewed baseline is recorded only after
+  every planned target path matches the exact target commit.
 
 ## Change Integration Invariants
 
@@ -78,9 +84,10 @@ project-specific behavioral, scientific, and interface contracts below these sha
 
 ## Execution Invariants
 
-- The installed project CLI is the only public experiment and archive control surface. Its name is
-  recorded in `PROJECT.yaml` and may be replaced atomically during initialization. Legacy
-  `tools/*.py` entry points are compatibility adapters, not independent implementations.
+- The installed project CLI is the public experiment, archive, template-lifecycle, and optional
+  release control surface. Its name is recorded in `PROJECT.yaml` and may be replaced atomically
+  during initialization. Legacy `tools/*.py` entry points are compatibility adapters, not
+  independent implementations.
 
 - A runnable experiment resolves its code revision, config, environment, structured inputs,
   executor, and evaluation protocol.
@@ -159,6 +166,14 @@ project-specific behavioral, scientific, and interface contracts below these sha
 - Stop, delete, and retire are separate actions and permissions. Archive verification and
   retirement preflight are read-only decisions; they never delete runs, worktrees, branches,
   providers, servers, or volumes. Destructive action always requires separate authorization.
+- Release configuration is optional. Draft builds create immutable artifacts and manifests with
+  `release_ready: false`; artifact-only verification cannot approve them. Strict recording requires
+  a clean exact source revision and explicit Human approver, refuses overwrite, and emits compact
+  reviewed provenance separately from ignored generated trees.
+- External facts are optional versioned observations with official HTTPS sources, checked times,
+  content hashes, and computed freshness. Referenced experiments and strict releases require a
+  currently `VERIFIED` snapshot; expiry produces `STALE` without rewriting the historical source,
+  and changed facts invalidate an earlier plan or draft rather than silently updating its evidence.
 - Accepted reports cite run IDs; paper values are generated from locked evidence rather than
   copied from terminal output.
 

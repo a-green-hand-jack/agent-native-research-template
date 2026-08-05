@@ -126,11 +126,19 @@ def migrate_to_v5(root: Path, state: dict[str, Any]) -> list[str]:
     return []
 
 
+def migrate_to_v6(root: Path, state: dict[str, Any]) -> list[str]:
+    metadata = state["template"]
+    if metadata.get("reviewed_template_commit") is None:
+        metadata["reviewed_template_commit"] = metadata["initialized_from_commit"]
+    return []
+
+
 MIGRATIONS: dict[int, Migration] = {
     2: migrate_to_v2,
     3: migrate_to_v3,
     4: migrate_to_v4,
     5: migrate_to_v5,
+    6: migrate_to_v6,
 }
 
 
