@@ -21,7 +21,7 @@ smoke:
 	uv run pytest -q tests/smoke
 
 project-check:
-	uv run researchctl project check
+	uv run repoctl check
 
 template-compat:
 	uv run researchctl project compatibility
@@ -30,6 +30,8 @@ ci-policy:
 	uv run python tools/ci_policy.py
 
 control-cli:
+	uv run repoctl --help >/dev/null
+	uv run repoctl describe --json >/dev/null
 	uv run researchctl --help >/dev/null
 	uv run researchctl experiment plan experiments/specs/smoke.yaml >/dev/null
 

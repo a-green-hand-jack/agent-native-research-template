@@ -21,6 +21,7 @@ lifecycle:
     purpose: retained implementation and validation required for project correctness
     paths:
     - src/
+    - repo_cli/
     - tests/
     - tools/
     - configs/
@@ -99,6 +100,11 @@ required_paths:
   - experiments/specs/smoke.yaml
   - infra/profiles/local.yaml
   - pyproject.toml
+  - repo_cli/__init__.py
+  - repo_cli/__main__.py
+  - repo_cli/cli.py
+  - repo_cli/describe.py
+  - repo_cli/README.md
   - schemas/archive-manifest.schema.json
   - schemas/asset-registry.schema.json
   - schemas/environment.schema.json

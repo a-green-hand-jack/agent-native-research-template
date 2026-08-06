@@ -10,6 +10,7 @@ PROTECTED_PATHS = (
     "Makefile",
     "CONTRIBUTIONS.md",
     "src",
+    "repo_cli",
     "tests",
     "tools",
     "configs",

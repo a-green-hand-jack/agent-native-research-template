@@ -28,12 +28,12 @@ def find_project_root(start: Path | None = None) -> Path:
 
 def configured_cli_name(root: Path) -> str:
     try:
-        project = yaml.safe_load((root / PROJECT_FILE).read_text(encoding="utf-8"))
+        project_state = yaml.safe_load((root / PROJECT_FILE).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, yaml.YAMLError) as exc:
         raise ControlCLIError(f"cannot read {PROJECT_FILE}: {exc}") from exc
-    if not isinstance(project, dict):
+    if not isinstance(project_state, dict):
         raise ControlCLIError(f"{PROJECT_FILE} must contain a YAML mapping")
-    value = project.get("cli_name", DEFAULT_CLI_NAME)
+    value = project_state.get("cli_name", DEFAULT_CLI_NAME)
     if not isinstance(value, str) or not value.strip():
         raise ControlCLIError("PROJECT.yaml cli_name must be a non-empty string")
     return value
@@ -45,13 +45,14 @@ def render_help(root: Path) -> str:
         f"usage: {name} <group> <command> [arguments]\n\n"
         "Project-local research control plane.\n\n"
         "groups:\n"
-        "  project      describe or check project identity and functional surfaces\n"
+        "  project      compatibility alias for retained project checks; prefer repoctl\n"
         "  template     inspect, plan, apply, and record reviewed template baselines\n"
         "  experiment   validate, plan, preflight, run, recover, inspect, verify, and promote\n"
         "  workload     run stable project-owned training, inference, generation, or evaluation\n"
         "  archive      create verified copies and produce retirement decisions\n\n"
         "  release      validate, build, verify, and explicitly approve optional releases\n\n"
-        f"Run '{name} project describe --json' for the machine-readable project interface.\n"
+        "Run 'repoctl describe --json' for the machine-readable repository interface.\n"
+        "Run 'repoctl check' for the canonical repository check.\n"
         f"Run '{name} experiment --help' or '{name} <group> --help' for group commands.\n"
     )
 
@@ -66,9 +67,9 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
         group, *group_arguments = arguments
         if group == "project":
             if group_arguments and group_arguments[0] == "describe":
-                from . import describe
-
-                return describe.main(group_arguments[1:], project_root)
+                raise ControlCLIError(
+                    "project describe moved to the repository interface; use repoctl describe"
+                )
             return project.main(group_arguments, project_root)
         if group == "template":
             return template_lifecycle.main(group_arguments, project_root)

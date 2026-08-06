@@ -1,7 +1,9 @@
 schema_version: 1
 project:
   name: "__PROJECT_NAME__"
-  cli: "__CLI_NAME__"
+interfaces:
+  repository_cli: repoctl
+  project_cli: "__CLI_NAME__"
 context:
   knowledge: .agents/knowledge
   skills: .agents/skills
@@ -9,6 +11,7 @@ context:
 runtime: .agents/runtime
 principles:
   - functional_project_is_primary
-  - use_project_cli_for_repeatable_actions
+  - repository_and_project_clis_are_distinct
+  - use_declared_clis_for_repeatable_actions
   - agent_context_does_not_implement_project_behavior
   - load_context_progressively

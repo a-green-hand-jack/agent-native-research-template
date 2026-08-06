@@ -10,6 +10,7 @@ dependencies = [
 
 [project.scripts]
 researchctl = "tools.control_cli:main"
+repoctl = "repo_cli.cli:main"
 
 [dependency-groups]
 dev = [
@@ -24,6 +25,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/project", "tools"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"repo_cli" = "repo_cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

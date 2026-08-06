@@ -25,16 +25,14 @@ def test_downstream_agent_home_is_project_owned_and_minimal() -> None:
     assert not any("governance" in path for path in targets)
 
 
-def test_agent_home_templates_route_through_project_cli() -> None:
-    identity = initializer.ProjectIdentity(
-        project_name="Example Project",
-        distribution_name="example-project",
-        package_name="example_project",
-        cli_name="example",
-        contribution_id="core",
+def test_agent_home_templates_route_through_distinct_clis() -> None:
+    root = Path(__file__).resolve().parents[2]
+    agents = (root / "template/downstream/AGENTS.md").read_text(encoding="utf-8")
+    manifest = (root / "template/downstream/.agents/system/manifest.yaml").read_text(
+        encoding="utf-8"
     )
-    rendered = initializer.render_downstream_agent_file(
-        initializer.DOWNSTREAM_AGENT_DEFAULTS["AGENTS.md"], identity
-    )
-    assert "example project describe --json" in rendered
-    assert "Do not implement project behavior under `.agents/`" in rendered
+
+    assert "repoctl describe --json" in agents
+    assert "`__CLI_NAME__` for project and research workloads" in agents
+    assert "repository_cli: repoctl" in manifest
+    assert 'project_cli: "__CLI_NAME__"' in manifest
