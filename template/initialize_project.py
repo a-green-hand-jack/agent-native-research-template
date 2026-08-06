@@ -94,7 +94,6 @@ def render_downstream_agent_file(content: str, identity: ProjectIdentity) -> str
     )
 
 
-
 def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     validate_identity(identity)
     state, errors = expected_state(root)
