@@ -35,7 +35,7 @@ def describe_project(root: Path) -> dict[str, Any]:
             f"{STATE_PATH} is missing required description fields: {', '.join(missing)}"
         )
     command_groups = ["project", "experiment", "workload", "archive", "release"]
-    if state["initialized"] is False:
+    if (root / "tools/template_lifecycle.py").is_file():
         command_groups.insert(1, "template")
     return {
         "schema_version": 1,
@@ -48,20 +48,14 @@ def describe_project(root: Path) -> dict[str, Any]:
         },
         "contribution_id": state.get("contribution_id"),
         "command_groups": command_groups,
-        "agent_context": {
-            "root": ".agents",
-            "manifest": ".agents/system/manifest.yaml",
-            "knowledge": ".agents/knowledge",
-            "skills": ".agents/skills",
-            "memory": ".agents/memory",
-            "runtime": ".agents/runtime",
-        },
         "template_provenance": state.get("template"),
     }
 
 
 def main(argv: list[str] | None = None, root: Path | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Describe project capabilities for humans or agents.")
+    parser = argparse.ArgumentParser(
+        description="Describe project capabilities for humans or agents."
+    )
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args(argv)
     project_root = (root or Path.cwd()).resolve()
@@ -73,7 +67,6 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
             project = description["project"]
             print(f"{project['name']} ({project['cli']})")
             print("command groups: " + ", ".join(description["command_groups"]))
-            print("agent context: " + description["agent_context"]["root"])
         return 0
     except (OSError, ProjectDescriptionError) as exc:
         print(f"ERROR {exc}", file=sys.stderr)

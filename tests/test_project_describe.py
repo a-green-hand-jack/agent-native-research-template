@@ -33,11 +33,10 @@ def write_state(root: Path, *, initialized: bool = True) -> None:
     )
 
 
-def test_description_exposes_cli_and_agent_context(tmp_path: Path) -> None:
+def test_description_exposes_project_cli(tmp_path: Path) -> None:
     write_state(tmp_path)
     description = describe.describe_project(tmp_path)
     assert description["project"]["cli"] == "example"
-    assert description["agent_context"]["manifest"] == ".agents/system/manifest.yaml"
     assert "template" not in description["command_groups"]
 
 

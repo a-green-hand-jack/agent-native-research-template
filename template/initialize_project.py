@@ -94,6 +94,7 @@ def render_downstream_agent_file(content: str, identity: ProjectIdentity) -> str
     )
 
 
+
 def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     validate_identity(identity)
     state, errors = expected_state(root)
@@ -299,9 +300,7 @@ def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = Fals
             continue
         if relative not in targets and not path.exists():
             raise InitializationError(f"required source path disappeared before apply: {relative}")
-    planned = [f"remove {path}" for path in removed] + [
-        f"write {path}" for path in sorted(changes)
-    ]
+    planned = [f"remove {path}" for path in removed] + [f"write {path}" for path in sorted(changes)]
     if dry_run:
         return planned
     for relative in removed:
