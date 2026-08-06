@@ -45,12 +45,13 @@ def render_help(root: Path) -> str:
         f"usage: {name} <group> <command> [arguments]\n\n"
         "Project-local research control plane.\n\n"
         "groups:\n"
-        "  project      check project identity and retained functional surfaces\n"
+        "  project      describe or check project identity and functional surfaces\n"
         "  template     inspect, plan, apply, and record reviewed template baselines\n"
         "  experiment   validate, plan, preflight, run, recover, inspect, verify, and promote\n"
         "  workload     run stable project-owned training, inference, generation, or evaluation\n"
         "  archive      create verified copies and produce retirement decisions\n\n"
         "  release      validate, build, verify, and explicitly approve optional releases\n\n"
+        f"Run '{name} project describe --json' for the machine-readable project interface.\n"
         f"Run '{name} experiment --help' or '{name} <group> --help' for group commands.\n"
     )
 
@@ -64,6 +65,10 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
             return 0
         group, *group_arguments = arguments
         if group == "project":
+            if group_arguments and group_arguments[0] == "describe":
+                from . import describe
+
+                return describe.main(group_arguments[1:], project_root)
             return project.main(group_arguments, project_root)
         if group == "template":
             return template_lifecycle.main(group_arguments, project_root)
