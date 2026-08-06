@@ -68,10 +68,7 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
             print(json.dumps(description, indent=2, sort_keys=True))
         else:
             project = description["project"]
-            print(
-                f"{project['name']} "
-                f"(project CLI: {project['cli']}; repo CLI: {REPO_CLI_NAME})"
-            )
+            print(f"{project['name']} (project CLI: {project['cli']}; repo CLI: {REPO_CLI_NAME})")
             print("project command groups: " + ", ".join(project["command_groups"]))
         return 0
     except (OSError, ProjectDescriptionError) as exc:
