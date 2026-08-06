@@ -12,6 +12,7 @@ agent runtime                             outside tracked repo units
 repo/
 ├── functional project                    default owner
 │   ├── src + tests
+│   ├── repo_cli + project CLI adapters
 │   ├── configs + environments + infra
 │   ├── evals + experiments + evidence
 │   └── README + CONTRIBUTIONS + Makefile
@@ -111,7 +112,8 @@ portable contract rather than copying generated output.
 |---|---|
 | `README.md` | Project identity, purpose, and primary entry point |
 | `CONTRIBUTIONS.md` | Core contributions linked to code, parameters, and evidence |
-| `src/` | Project implementation and contribution code |
+| `src/` | Project core implementation and contribution code |
+| `repo_cli/` | Repository-development CLI, project identity, provenance, and retained-surface checks |
 | `tests/` | Local correctness and regression protection |
 | `evals/` | Executable scientific or product evaluation protocols |
 | `configs/` | Versioned human-authored configuration |
@@ -120,12 +122,17 @@ portable contract rather than copying generated output.
 | `experiments/specs/` | Intended experiment definitions |
 | `experiments/reports/` | Curated reports that reference immutable runs |
 | `Makefile` | Public project setup, test, smoke, and verification interface |
-| `PROJECT.yaml` + `tools/project.py` | Retained project identity, provenance, and consistency checks |
+| `PROJECT.yaml` + `repo_cli/project.py` | Canonical retained project identity, provenance, and consistency checks |
+| `tools/project.py` | Temporary compatibility adapter for legacy project and template-migration commands |
 | `tools/control_cli.py` + `tools/workload.py` + `src/<package>/workloads.py` | Stable project workload routing without exposing internal implementation entry points |
 | `tools/source_guard.py` | Per-phase detection of protected project file creation, removal, or modification |
 | `tools/template_compat.py` + `tools/template_lifecycle.py` | Registered downstream migrations and deterministic reviewed update plans |
 | optional `RELEASE.yaml` + `tools/release.py` | Immutable draft artifacts, artifact-only verification, and explicit approval records |
 | optional `external-facts/` | Official-source observations with computed freshness and content identity |
+
+The repository CLI and the project CLI are separate interfaces. `repoctl` owns repository
+orientation and checks. The configured project CLI owns project and research workloads. Neither
+interface changes the ownership of `src/<project>/`, which remains the project's core implementation.
 
 ## Source Template Maintenance
 
@@ -136,7 +143,8 @@ portable contract rather than copying generated output.
 | `template/verify_downstream.py` | Exercise a real initialized copy before and after sidecar removal |
 
 Initialized repositories do not retain `template/`, `template-test`, or `template-e2e`. Their
-functional checks use the installed project CLI and never import template-maintainer code.
+functional checks use the installed repository and project CLIs and never import
+template-maintainer code.
 
 Create `baselines/`, `packages/`, or `paper/` only when the project has a real baseline,
 independent component boundary, or publication workflow.

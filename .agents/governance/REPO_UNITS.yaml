@@ -104,6 +104,7 @@ required_paths:
   - repo_cli/__main__.py
   - repo_cli/cli.py
   - repo_cli/describe.py
+  - repo_cli/project.py
   - repo_cli/README.md
   - schemas/archive-manifest.schema.json
   - schemas/asset-registry.schema.json
