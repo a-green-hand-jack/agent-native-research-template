@@ -31,6 +31,7 @@ def test_help_uses_configured_project_command(
     output = capsys.readouterr().out
     assert "usage: labctl" in output
     assert "labctl experiment --help" in output
+    assert "repoctl describe --json" in output
     assert "workload" in output
 
 
@@ -65,7 +66,7 @@ def test_template_group_delegates_to_lifecycle_control(
     assert observed == {"argv": ["inspect"], "root": tmp_path}
 
 
-def test_project_group_delegates_to_retained_project_check(
+def test_project_check_remains_a_compatibility_alias(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_project(tmp_path)
@@ -78,6 +79,14 @@ def test_project_group_delegates_to_retained_project_check(
     monkeypatch.setattr(control_cli.project, "main", fake_main)
     assert control_cli.main(["project", "check"], tmp_path) == 31
     assert observed == {"argv": ["check"], "root": tmp_path}
+
+
+def test_project_describe_routes_to_repo_cli(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write_project(tmp_path)
+    assert control_cli.main(["project", "describe"], tmp_path) == 2
+    assert "use repoctl describe" in capsys.readouterr().err
 
 
 def test_archive_group_delegates_to_canonical_archive_tool(
@@ -126,13 +135,19 @@ def test_workload_group_delegates_to_project_workload(
     assert observed == {"argv": ["smoke"], "root": tmp_path}
 
 
-def test_package_installs_one_configured_console_entry() -> None:
+def test_package_installs_separate_project_and_repo_clis() -> None:
     root = Path(__file__).resolve().parents[1]
-    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    configuration = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     state = yaml.safe_load((root / "PROJECT.yaml").read_text(encoding="utf-8"))
     cli_name = control_cli.configured_cli_name(root)
-    assert project["project"]["scripts"] == {cli_name: "tools.control_cli:main"}
-    assert set(project["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]) == {
+    assert configuration["project"]["scripts"] == {
+        cli_name: "tools.control_cli:main",
+        "repoctl": "repo_cli.cli:main",
+    }
+    assert set(configuration["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]) == {
         f"src/{state['package_name']}",
         "tools",
+    }
+    assert configuration["tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"] == {
+        "repo_cli": "repo_cli"
     }
