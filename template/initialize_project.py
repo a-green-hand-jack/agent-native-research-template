@@ -31,7 +31,22 @@ DOWNSTREAM_README_SECTIONS = {
     "Human And Agent Routing",
     "Governance Entry Points",
 }
-
+DOWNSTREAM_AGENT_FILES = {
+    "AGENTS.md": "template/downstream/AGENTS.md",
+    ".agents/system/manifest.yaml": "template/downstream/.agents/system/manifest.yaml",
+    ".agents/knowledge/README.md": "template/downstream/.agents/knowledge/README.md",
+    ".agents/skills/README.md": "template/downstream/.agents/skills/README.md",
+    ".agents/memory/README.md": "template/downstream/.agents/memory/README.md",
+    ".agents/runtime/.gitignore": "template/downstream/.agents/runtime/.gitignore",
+}
+DOWNSTREAM_AGENT_DEFAULTS = {
+    "AGENTS.md": "# Agent Entry\n\nRun `__CLI_NAME__ project describe --json`, then load only relevant project context under `.agents/`. Use the project CLI for repeatable mechanics. Do not implement project behavior under `.agents/`.\n",
+    ".agents/system/manifest.yaml": "schema_version: 1\nproject: __PROJECT_NAME__\ncli: __CLI_NAME__\ncontext_roots: [.agents/knowledge, .agents/skills, .agents/memory]\nruntime: .agents/runtime\n",
+    ".agents/knowledge/README.md": "# Project Knowledge\n\nStore project-specific facts here. Keep executable behavior in the functional project and its CLI.\n",
+    ".agents/skills/README.md": "# Project Skills\n\nStore project-specific procedures here. Skills should call the project CLI rather than implement project behavior.\n",
+    ".agents/memory/README.md": "# Project Memory\n\nStore reviewed project lessons and decisions here. Critical behavior still belongs in code, tests, or formal documentation.\n",
+    ".agents/runtime/.gitignore": "*\n!.gitignore\n",
+}
 
 InitializationError = ProjectCheckError
 
@@ -71,6 +86,12 @@ def read_required(root: Path, relative: str) -> str:
     if not path.is_file():
         raise InitializationError(f"required template path is missing: {relative}")
     return path.read_text(encoding="utf-8")
+
+
+def render_downstream_agent_file(content: str, identity: ProjectIdentity) -> str:
+    return content.replace("__PROJECT_NAME__", identity.project_name).replace(
+        "__CLI_NAME__", identity.cli_name
+    )
 
 
 def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
@@ -157,7 +178,6 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
     makefile = downstream_makefile(read_required(root, "Makefile")).replace(
         "researchctl", identity.cli_name
     )
-
     workflow = downstream_workflow(read_required(root, ".github/workflows/verify.yml"))
 
     revision = git_revision(root)
@@ -206,7 +226,7 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
             "applied_migrations": [],
         },
     }
-    return {
+    changes = {
         STATE_PATH: dump_yaml(initialized_state),
         "pyproject.toml": pyproject,
         "Makefile": makefile,
@@ -219,19 +239,27 @@ def build_changes(root: Path, identity: ProjectIdentity) -> dict[str, str]:
         "tests/smoke/test_project.py": smoke_test,
         "README.md": readme,
     }
+    for target, source_path in DOWNSTREAM_AGENT_FILES.items():
+        source = root / source_path
+        content = (
+            source.read_text(encoding="utf-8")
+            if source.is_file()
+            else DOWNSTREAM_AGENT_DEFAULTS[target]
+        )
+        changes[target] = render_downstream_agent_file(content, identity)
+    return changes
 
 
 def downstream_makefile(content: str) -> str:
     lines = content.splitlines(keepends=True)
     rendered: list[str] = []
     skipping = False
+    removed_targets = {"template-compat", "template-test", "template-e2e"}
     for line in lines:
         if line.startswith(".PHONY:"):
-            tokens = [
-                token for token in line.split() if token not in {"template-test", "template-e2e"}
-            ]
+            tokens = [token for token in line.split() if token not in removed_targets]
             line = " ".join(tokens) + "\n"
-        if line.startswith(("template-test:", "template-e2e:")):
+        if any(line.startswith(f"{target}:") for target in removed_targets):
             skipping = True
             continue
         if skipping and line.strip() == "":
@@ -239,7 +267,8 @@ def downstream_makefile(content: str) -> str:
             continue
         if skipping:
             continue
-        line = line.replace(" template-test", "").replace(" template-e2e", "")
+        for target in removed_targets:
+            line = line.replace(f" {target}", "")
         rendered.append(line)
     return "".join(rendered)
 
@@ -255,24 +284,27 @@ def downstream_workflow(content: str) -> str:
 def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = False) -> list[str]:
     changes = build_changes(root, identity)
     removed = [
+        "AGENTS.md",
+        ".agents/",
         "src/project/__init__.py",
         "src/project/workloads.py",
         "tests/smoke/test_template.py",
         "template/",
     ]
     targets = set(changes)
+    optional_source_paths = {"AGENTS.md", ".agents/"}
     for relative in removed:
         path = root / relative.rstrip("/")
+        if relative in optional_source_paths:
+            continue
         if relative not in targets and not path.exists():
             raise InitializationError(f"required source path disappeared before apply: {relative}")
-    planned = [f"write {path}" for path in sorted(changes)] + [f"remove {path}" for path in removed]
+    planned = [f"remove {path}" for path in removed] + [f"write {path}" for path in sorted(changes)]
     if dry_run:
         return planned
-    for relative, content in changes.items():
-        write_text(root / relative, content)
     for relative in removed:
         path = root / relative.rstrip("/")
-        if path.exists() and relative not in changes:
+        if path.exists():
             if path.is_dir():
                 shutil.rmtree(path)
                 continue
@@ -280,6 +312,8 @@ def apply_changes(root: Path, identity: ProjectIdentity, *, dry_run: bool = Fals
             parent = path.parent
             if parent != root and not any(parent.iterdir()):
                 parent.rmdir()
+    for relative, content in changes.items():
+        write_text(root / relative, content)
     return planned
 
 

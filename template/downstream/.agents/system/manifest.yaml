@@ -1,0 +1,14 @@
+schema_version: 1
+project:
+  name: "__PROJECT_NAME__"
+  cli: "__CLI_NAME__"
+context:
+  knowledge: .agents/knowledge
+  skills: .agents/skills
+  memory: .agents/memory
+runtime: .agents/runtime
+principles:
+  - functional_project_is_primary
+  - use_project_cli_for_repeatable_actions
+  - agent_context_does_not_implement_project_behavior
+  - load_context_progressively
