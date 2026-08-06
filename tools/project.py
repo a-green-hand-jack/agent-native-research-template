@@ -47,9 +47,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
 
     from . import template_compat
 
-    forwarded = (
-        ["check"] if args.command == "compatibility" else ["migrate", "--to", str(args.to)]
-    )
+    forwarded = ["check"] if args.command == "compatibility" else ["migrate", "--to", str(args.to)]
     if args.command == "migrate" and args.dry_run:
         forwarded.append("--dry-run")
     return template_compat.main(forwarded, root)
