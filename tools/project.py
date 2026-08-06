@@ -8,27 +8,27 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from repo_cli.project import (
-    CLI_PATTERN,
-    CONTRIBUTION_PATTERN,
-    DISTRIBUTION_PATTERN,
-    PACKAGE_PATTERN,
-    STATE_PATH,
-    TEMPLATE_NAME,
-    TEMPLATE_STATE,
-    TEMPLATE_VERSION,
-    ProjectCheckError,
-    ProjectIdentity,
-    check_project,
-    dump_yaml,
-    expected_state,
-    load_yaml,
-    main as canonical_main,
-    template_metadata_errors,
-    validate_identity,
-    workload_surface_errors,
-    write_text,
-)
+from repo_cli import project as _canonical
+
+CLI_PATTERN = _canonical.CLI_PATTERN
+CONTRIBUTION_PATTERN = _canonical.CONTRIBUTION_PATTERN
+DISTRIBUTION_PATTERN = _canonical.DISTRIBUTION_PATTERN
+PACKAGE_PATTERN = _canonical.PACKAGE_PATTERN
+STATE_PATH = _canonical.STATE_PATH
+TEMPLATE_NAME = _canonical.TEMPLATE_NAME
+TEMPLATE_STATE = _canonical.TEMPLATE_STATE
+TEMPLATE_VERSION = _canonical.TEMPLATE_VERSION
+ProjectCheckError = _canonical.ProjectCheckError
+ProjectIdentity = _canonical.ProjectIdentity
+check_project = _canonical.check_project
+dump_yaml = _canonical.dump_yaml
+expected_state = _canonical.expected_state
+load_yaml = _canonical.load_yaml
+template_metadata_errors = _canonical.template_metadata_errors
+validate_identity = _canonical.validate_identity
+workload_surface_errors = _canonical.workload_surface_errors
+write_text = _canonical.write_text
+canonical_main = _canonical.main
 
 
 def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
