@@ -14,9 +14,9 @@ repoctl = "repo_cli.cli:main"
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.0",
+    "pre-commit>=4.6.2",
     "pytest>=8.0",
-    "ruff>=0.16.1",
+    "ruff>=0.16.2",
 ]
 
 [build-system]
